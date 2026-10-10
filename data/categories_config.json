@@ -1,0 +1,30 @@
+{
+  "income": [
+    "Lương",
+    "Thưởng",
+    "Thu nhập phụ",
+    "Hoàn tiền",
+    "Khác"
+  ],
+  "expense": [
+    "Nhà ở",
+    "Ăn uống",
+    "Di chuyển",
+    "Hóa đơn",
+    "Mua sắm",
+    "Sức khỏe",
+    "Giải trí",
+    "Giáo dục",
+    "Tiết kiệm và đầu tư",
+    "Khác"
+  ],
+  "transaction_types": [
+    "income",
+    "expense"
+  ],
+  "budget_rule": {
+    "needs_percent": 50,
+    "wants_percent": 30,
+    "savings_percent": 20
+  }
+}

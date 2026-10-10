@@ -1,0 +1,31 @@
+transaction_id,user_id,date,description,amount,type,category
+TXN001,demo,2026-09-01,Lương tháng 9,25000000,income,Lương
+TXN002,demo,2026-09-01,Tiền thuê nhà,7000000,expense,Nhà ở
+TXN003,demo,2026-09-02,Ăn sáng,45000,expense,Ăn uống
+TXN004,demo,2026-09-02,Gửi xe tháng,200000,expense,Di chuyển
+TXN005,demo,2026-09-03,Siêu thị,680000,expense,Ăn uống
+TXN006,demo,2026-09-04,Tiền điện,850000,expense,Hóa đơn
+TXN007,demo,2026-09-05,Cà phê,75000,expense,Ăn uống
+TXN008,demo,2026-09-06,Đổ xăng,300000,expense,Di chuyển
+TXN009,demo,2026-09-07,Mua sách,320000,expense,Giáo dục
+TXN010,demo,2026-09-08,Ăn trưa,95000,expense,Ăn uống
+TXN011,demo,2026-09-09,Internet tháng 9,250000,expense,Hóa đơn
+TXN012,demo,2026-09-10,Thưởng dự án,3000000,income,Thưởng
+TXN013,demo,2026-09-11,Khám sức khỏe,450000,expense,Sức khỏe
+TXN014,demo,2026-09-12,Mua áo sơ mi,620000,expense,Mua sắm
+TXN015,demo,2026-09-13,Vé xem phim,180000,expense,Giải trí
+TXN016,demo,2026-09-14,Ăn tối cùng bạn,420000,expense,Ăn uống
+TXN017,demo,2026-09-15,Tiền nước,180000,expense,Hóa đơn
+TXN018,demo,2026-09-16,Hoàn tiền đơn hàng,120000,income,Hoàn tiền
+TXN019,demo,2026-09-17,Taxi,160000,expense,Di chuyển
+TXN020,demo,2026-09-18,Đồ dùng gia đình,390000,expense,Mua sắm
+TXN021,demo,2026-09-19,Ăn sáng,50000,expense,Ăn uống
+TXN022,demo,2026-09-20,Đóng học phí khóa học,1200000,expense,Giáo dục
+TXN023,demo,2026-09-21,Thuốc và vitamin,270000,expense,Sức khỏe
+TXN024,demo,2026-09-22,Chuyển tiết kiệm,4000000,expense,Tiết kiệm và đầu tư
+TXN025,demo,2026-09-23,Mua rau củ,240000,expense,Ăn uống
+TXN026,demo,2026-09-24,Đổ xăng,280000,expense,Di chuyển
+TXN027,demo,2026-09-25,Ăn tối,210000,expense,Ăn uống
+TXN028,demo,2026-09-26,Đăng ký dịch vụ trực tuyến,150000,expense,Giải trí
+TXN029,demo,2026-09-28,Quà sinh nhật,500000,expense,Khác
+TXN030,demo,2026-09-30,Thu nhập làm thêm,1500000,income,Thu nhập phụ
