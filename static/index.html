@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OnisAgent | Trợ lý AI Tài chính & Công việc</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      ONIS<span>AGENT</span>
+      <span class="sub">Dual-Path AI Demo</span>
+    </div>
+
+    <div class="header-status">
+      <!-- System 1 Kev Badge -->
+      <div class="model-badge" title="Decision model System 1 chạy trên chuẩn TypeSafe /v1/systemone của Kev">
+        <div class="dot pulse"></div>
+        <span><strong>Sys1:</strong> Kev (jaredpalmer/kev)</span>
+      </div>
+
+      <!-- LLM Ollama Selector -->
+      <div class="model-badge" title="Chọn mô hình LLM Ollama chạy cục bộ">
+        <span>🧠</span>
+        <select id="ollama-model-select">
+          <option value="qwen2.5:3b" selected>LLM: qwen2.5:3b</option>
+          <option value="gemma3:latest">LLM: gemma3:latest</option>
+          <option value="qwen2.5-coder:14b">LLM: qwen2.5-coder:14b</option>
+        </select>
+      </div>
+
+      <!-- Voice Controls -->
+      <div class="voice-controls">
+        <select id="voice-lang-select" class="btn-toggle active" style="outline: none; cursor: pointer;">
+          <option value="vi-VN" selected>🇻🇳 Giọng Tiếng Việt chuẩn (Tự nhiên)</option>
+          <option value="en-US">🇺🇸 English</option>
+        </select>
+        <button id="toggle-speak-btn" class="btn-toggle active" title="Bật/Tắt tự động đọc giọng nói phản hồi">
+          🔊 Đọc phản hồi: BẬT
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- App Body Grid -->
+  <div class="app-container">
+
+    <!-- Left Column: Conversational Voice Agent -->
+    <section class="chat-pane">
+      <!-- Voice Hero Banner -->
+      <div class="voice-hero-banner">
+        <button id="mic-btn-main" class="mic-btn-large" title="Nhấn để nói tiếng Việt (hoặc nhấn giữ)">
+          🎙️
+        </button>
+        <div class="voice-status-text" id="voice-status-text">
+          <strong>Nhấn nút Micro để nói</strong>
+          <span>Bấm một lần (hoặc nhấn giữ) Micro để ra lệnh bằng giọng nói</span>
+        </div>
+        <div class="visualizer" title="Hiệu ứng sóng âm thanh">
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+        </div>
+      </div>
+
+      <!-- Messages History -->
+      <div class="messages-container" id="messages-container">
+        <!-- Initial Agent Welcome -->
+        <div class="message assistant">
+          <div class="routing-badge fast">⚡ Single-Agent Architecture · Dual-Path</div>
+          <div class="bubble">
+            Xin chào! Tôi là <strong>OnisAgent</strong> - trợ lý AI kết hợp quản lý <strong>Tài chính</strong> và <strong>Công việc</strong> của bạn.<br><br>
+            Kiến trúc của tôi tích hợp 2 đường xử lý:
+            <ul style="padding-left: 20px; margin: 8px 0; color: var(--muted);">
+              <li>⚡ <strong>Fast Path (System 1 - Kev):</strong> Xử lý tức thì các lệnh rõ ràng (ghi chi tiêu, thêm task, xem số dư) trong ~10ms mà không tốn token LLM.</li>
+              <li>🧠 <strong>Reasoning Path (LLM - Ollama):</strong> Suy luận sâu, giải thích xu hướng chi tiêu và lập kế hoạch công việc khi có yêu cầu phức tạp.</li>
+            </ul>
+            Dữ liệu của bạn được lưu tức thì vào file <code>data/onis_db.json</code>. Bạn có thể nhấn micro 🎙️ để nói bằng giọng nói hoặc click các câu lệnh mẫu bên dưới!
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Prompts -->
+      <div class="quick-prompts">
+        <button class="prompt-pill" data-prompt="Chi 35.000 đồng tiền trà sữa">⚡ Chi 35k trà sữa</button>
+        <button class="prompt-pill" data-prompt="Đổ xăng xe máy hết 150.000 đồng">⚡ Đổ xăng 150k</button>
+        <button class="prompt-pill" data-prompt="Nhận lương 20 triệu đồng">⚡ Nhận lương 20tr</button>
+        <button class="prompt-pill" data-prompt="Đặt hạn mức ngân sách tháng 10 triệu">⚡ Ngân sách 10tr</button>
+        <button class="prompt-pill" data-prompt="Thêm task chuẩn bị slide họp lúc 9h sáng mai mức ưu tiên gấp">⚡ Task slide họp 9h mai</button>
+        <button class="prompt-pill" data-prompt="Hoàn thành task Học Kotlin">⚡ Xong task Kotlin</button>
+        <button class="prompt-pill" data-prompt="Tiết kiệm 30 triệu mua Macbook M4">🎯 Tiết kiệm 30tr mua Macbook</button>
+        <button class="prompt-pill" data-prompt="Nạp 2 triệu vào quỹ Laptop">💰 Nạp 2tr vào quỹ Laptop</button>
+        <button class="prompt-pill" data-prompt="Tính vay 50 triệu trong 12 tháng lãi 10%">🧮 Vay 50tr 12 tháng lãi 10%</button>
+        <button class="prompt-pill" data-prompt="Nhắc tôi uống 2 lít nước lúc 8h sáng">⏰ Nhắc uống nước lúc 8h</button>
+        <button class="prompt-pill" data-prompt="Ghi nhớ: Ưu tiên chi tiêu ăn uống dưới 100k mỗi ngày">🧠 Nhớ: Ăn <100k/ngày</button>
+        <button class="prompt-pill" data-prompt="Vì sao tháng này tôi tiêu nhiều tiền hơn bình thường?">🧠 Phân tích chi tiêu (LLM)</button>
+        <button class="prompt-pill" data-prompt="Lập kế hoạch công việc hôm nay giúp tôi dựa trên các task">🧠 Lập kế hoạch ngày (LLM)</button>
+      </div>
+
+      <!-- Chat Input Bar -->
+      <div class="chat-input-bar">
+        <button id="chat-mic-btn" class="btn-input-mic" title="Nhấn để nói tiếng Việt (hoặc nhấn giữ để nói)">🎙️</button>
+        <input type="text" id="chat-input" placeholder="Nhấn Micro 🎙️ để nói hoặc nhập yêu cầu..." autocomplete="off">
+        <button id="send-btn" class="btn-send" title="Gửi yêu cầu">➤</button>
+      </div>
+    </section>
+
+    <!-- Right Column: Live Dashboard & Telemetry -->
+    <section class="dash-pane">
+      <!-- Tabs Navigation -->
+      <div class="tabs-bar">
+        <button class="tab-btn active" data-tab="finance">📊 Tài chính</button>
+        <button class="tab-btn" data-tab="tasks">📝 Công việc</button>
+        <button class="tab-btn" data-tab="savings">🎯 Tiết kiệm</button>
+        <button class="tab-btn" data-tab="reminders">⏰ Lời nhắc & Ghi chú</button>
+        <button class="tab-btn" data-tab="toolbox">🧰 Bảng Công Cụ</button>
+        <button class="tab-btn" data-tab="telemetry">⚡ Kev Telemetry</button>
+        <button class="tab-btn" data-tab="json">💾 Dữ liệu JSON</button>
+      </div>
+
+      <!-- Tab 1: Finance -->
+      <div class="tab-content active" id="tab-finance">
+        <div class="metrics-row">
+          <div class="stat-card cyan">
+            <span>Số dư khả dụng</span>
+            <div class="val" id="stat-balance">0 đ</div>
+          </div>
+          <div class="stat-card green">
+            <span>Tổng thu nhập</span>
+            <div class="val" id="stat-income">0 đ</div>
+          </div>
+          <div class="stat-card red">
+            <span>Tổng chi tiêu</span>
+            <div class="val" id="stat-expense">0 đ</div>
+          </div>
+        </div>
+
+        <div class="budget-box">
+          <div class="budget-head">
+            <strong>Hạn mức ngân sách tháng</strong>
+            <span id="budget-text" style="color: var(--cyan);">0 đ / 8.000.000 đ (0%)</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="budget-progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="form-inline">
+          <select id="tx-input-type" style="width: 120px;">
+            <option value="expense">💸 Chi tiêu</option>
+            <option value="income">💰 Thu nhập</option>
+          </select>
+          <input type="number" id="tx-input-amount" placeholder="Số tiền (đ)" style="width: 140px;">
+          <input type="text" id="tx-input-desc" placeholder="Mô tả (VD: Cơm trưa)" style="flex: 1;">
+          <input type="text" id="tx-input-cat" placeholder="Danh mục (Ăn uống)" style="width: 130px;">
+          <button id="btn-add-tx" class="btn-action primary">➕ Thêm GD</button>
+        </div>
+
+        <div class="table-card">
+          <div class="card-title-bar">
+            <h3>Lịch sử giao dịch gần đây</h3>
+            <span style="font-size: 0.8rem; color: var(--muted);">Tự động đồng bộ từ file JSON</span>
+          </div>
+          <div class="list-scroll" id="transactions-list">
+            <!-- Loaded via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Tasks -->
+      <div class="tab-content" id="tab-tasks">
+        <div class="metrics-row" style="grid-template-columns: 1fr 1fr;">
+          <div class="stat-card cyan">
+            <span>Việc đang chờ thực hiện</span>
+            <div class="val" id="stat-pending-tasks">0</div>
+          </div>
+          <div class="stat-card green">
+            <span>Việc đã hoàn thành</span>
+            <div class="val" id="stat-completed-tasks">0</div>
+          </div>
+        </div>
+
+        <div class="form-inline">
+          <input type="text" id="task-input-title" placeholder="Tên nhiệm vụ mới..." style="flex: 2;">
+          <input type="text" id="task-input-deadline" placeholder="Hạn chót (VD: 2026-10-15 18:00)" style="flex: 1.2;">
+          <select id="task-input-priority" style="width: 110px;">
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+          </select>
+          <button id="btn-add-task" class="btn-action primary">➕ Thêm Task</button>
+        </div>
+
+        <div class="table-card">
+          <div class="card-title-bar">
+            <h3>Danh sách công việc & Hạn chót</h3>
+            <span style="font-size: 0.8rem; color: var(--muted);">Bấm để hoàn thành · Thùng rác để xóa</span>
+          </div>
+          <div class="list-scroll" id="tasks-list">
+            <!-- Loaded via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Savings Goals -->
+      <div class="tab-content" id="tab-savings">
+        <div class="metrics-row" style="grid-template-columns: 1fr 1fr 1fr;">
+          <div class="stat-card cyan">
+            <span>Tổng tiền đã tích lũy</span>
+            <div class="val" id="stat-savings-total">0 đ</div>
+          </div>
+          <div class="stat-card green">
+            <span>Mục tiêu đã hoàn thành</span>
+            <div class="val" id="stat-savings-completed">0 / 0</div>
+          </div>
+          <div class="stat-card" style="border-color: var(--amber);">
+            <span>Tỷ lệ hoàn thành trung bình</span>
+            <div class="val" id="stat-savings-pct" style="color: var(--amber);">0%</div>
+          </div>
+        </div>
+
+        <div class="form-inline">
+          <input type="text" id="goal-input-name" placeholder="Tên mục tiêu tiết kiệm (VD: Mua iPhone 16)" style="flex: 2;">
+          <input type="number" id="goal-input-amount" placeholder="Mục tiêu (VNĐ)" style="flex: 1.2;">
+          <input type="date" id="goal-input-deadline" style="flex: 1;">
+          <button id="btn-add-goal" class="btn-action primary">➕ Tạo Mục Tiêu</button>
+        </div>
+
+        <div class="table-card">
+          <div class="card-title-bar">
+            <h3>Danh sách mục tiêu tiết kiệm (Savings Goals)</h3>
+            <span style="font-size: 0.8rem; color: var(--muted);">Click nút 'Nạp tiền' để bổ sung số dư quỹ</span>
+          </div>
+          <div class="goals-grid" id="savings-goals-grid">
+            <!-- Loaded via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Reminders & Memory Notes -->
+      <div class="tab-content" id="tab-reminders">
+        <div class="rem-note-grid">
+          <!-- Left: Reminders -->
+          <div class="table-card">
+            <div class="card-title-bar">
+              <h3>⏰ Danh sách Lời nhắc</h3>
+              <span style="font-size: 0.8rem; color: var(--muted);">Quản lý nhắc hẹn</span>
+            </div>
+            <div class="form-inline" style="margin-bottom: 12px;">
+              <input type="text" id="rem-input-text" placeholder="Nội dung lời nhắc..." style="flex: 2;">
+              <input type="text" id="rem-input-time" placeholder="Thời gian (VD: 2026-10-15 09:00)" style="flex: 1.5;">
+              <button id="btn-add-rem" class="btn-action primary">➕ Lưu</button>
+            </div>
+            <div class="list-scroll" id="reminders-list" style="max-height: 400px;">
+              <!-- Loaded via JS -->
+            </div>
+          </div>
+
+          <!-- Right: Notes & Preferences Memory -->
+          <div class="table-card">
+            <div class="card-title-bar">
+              <h3>🧠 Bộ nhớ thông tin (Agent Memory)</h3>
+              <span style="font-size: 0.8rem; color: var(--muted);">Sở thích & Lưu ý cá nhân</span>
+            </div>
+            <div class="form-inline" style="margin-bottom: 12px;">
+              <input type="text" id="note-input-content" placeholder="Thông tin cần ghi nhớ..." style="flex: 2;">
+              <select id="note-input-cat" style="width: 120px;">
+                <option value="preference">Sở thích</option>
+                <option value="rule">Quy tắc</option>
+                <option value="general">Chung</option>
+              </select>
+              <button id="btn-add-note" class="btn-action primary">➕ Nhớ</button>
+            </div>
+            <div class="list-scroll" id="notes-list" style="max-height: 400px;">
+              <!-- Loaded via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Toolbox & Matrix -->
+      <div class="tab-content" id="tab-toolbox">
+        <!-- Interactive Loan Calculator Widget -->
+        <div class="calculator-box">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="color: var(--cyan); font-size: 1.05rem;">🧮 Máy tính Khoản vay & Trả góp (Finance Loan Calculator)</h3>
+            <span class="badge-fast">⚡ Fast Path (~0ms LLM Token)</span>
+          </div>
+          <div class="calc-inputs-row">
+            <div class="calc-input-group">
+              <label>Số tiền vay (VNĐ):</label>
+              <input type="number" id="calc-principal" value="50000000" step="1000000">
+            </div>
+            <div class="calc-input-group">
+              <label>Lãi suất (% / năm):</label>
+              <input type="number" id="calc-rate" value="10.5" step="0.1">
+            </div>
+            <div class="calc-input-group">
+              <label>Kỳ hạn vay (tháng):</label>
+              <input type="number" id="calc-months" value="12" step="1">
+            </div>
+            <button id="btn-calc-loan" class="btn-action primary" style="height: 38px;">⚡ Tính toán ngay</button>
+          </div>
+          <div class="calc-result-box" id="calc-result-display">
+            <div class="calc-result-item">
+              <span>Trả góp mỗi tháng:</span>
+              <strong id="calc-res-monthly">4.407.728 đ</strong>
+            </div>
+            <div class="calc-result-item">
+              <span>Tổng tiền lãi:</span>
+              <strong id="calc-res-interest" style="color: var(--amber);">2.892.736 đ</strong>
+            </div>
+            <div class="calc-result-item">
+              <span>Tổng tiền phải trả:</span>
+              <strong id="calc-res-total">52.892.736 đ</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comprehensive Tools Matrix Table -->
+        <div class="table-card">
+          <div class="card-title-bar">
+            <h3>🧰 Ma trận Toàn bộ Công Cụ trong OnisAgent</h3>
+            <span style="font-size: 0.8rem; color: var(--muted);">Phân loại đường chạy & Khả năng tương tác</span>
+          </div>
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>Nhóm</th>
+                <th>Tên Công Cụ</th>
+                <th>Mô tả Chức Năng</th>
+                <th>Đường Xử Lý</th>
+                <th>Giao diện (UI)</th>
+                <th>Giọng nói / Chat</th>
+                <th>Chạy thử</th>
+              </tr>
+            </thead>
+            <tbody id="toolbox-matrix-body">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 3: Kev Telemetry -->
+      <div class="tab-content" id="tab-telemetry">
+        <div class="metrics-row">
+          <div class="stat-card cyan">
+            <span>⚡ Fast Path Triggers</span>
+            <div class="val" id="telem-fast-count">0</div>
+          </div>
+          <div class="stat-card" style="border-color: var(--violet);">
+            <span>🧠 LLM Reasoning</span>
+            <div class="val" id="telem-reason-count" style="color: var(--violet);">0</div>
+          </div>
+          <div class="stat-card green">
+            <span>Tiết kiệm ước tính</span>
+            <div class="val" id="telem-tokens-saved">0 tokens</div>
+          </div>
+        </div>
+
+        <div class="telemetry-grid">
+          <div class="telemetry-card">
+            <h3 style="margin-bottom: 12px; font-size: 0.95rem; color: var(--cyan);">Kev Decision Details (Last Request)</h3>
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.88rem;">
+              <div><strong>Dự đoán Intent:</strong> <code id="telem-last-intent" style="color: var(--cyan);">system.init</code></div>
+              <div><strong>Độ tin cậy (Confidence):</strong> <span id="telem-last-conf">100%</span></div>
+              <div><strong>Độ phức tạp (Complexity):</strong> <span id="telem-last-comp">simple</span></div>
+              <div><strong>Mức độ rủi ro (Risk):</strong> <span id="telem-last-risk">read</span></div>
+              <div><strong>Độ trễ xử lý (Latency):</strong> <span id="telem-last-latency" style="color: var(--green);">~8 ms</span></div>
+            </div>
+          </div>
+
+          <div class="telemetry-card">
+            <h3 style="margin-bottom: 12px; font-size: 0.95rem; color: var(--cyan);">Phân bổ xác suất Intent (Kev Softmax T=2.35)</h3>
+            <div id="telem-probs-bars">
+              <!-- Rendered via JS -->
+              <div style="color: var(--muted); font-size: 0.82rem;">Chưa có lượt chạy nào...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="telemetry-card">
+          <h3 style="margin-bottom: 8px; font-size: 0.95rem;">Kiến trúc luồng xử lý OnisAgent</h3>
+          <p style="color: var(--muted); font-size: 0.82rem; margin-bottom: 12px;">
+            Yêu cầu từ Giọng nói/Văn bản → Model System 1 (Kev) dự đoán intent, độ phức tạp và rủi ro:
+            Nếu rõ ràng (Fast Path) → gọi trực tiếp Tool/Policy lưu vào <code>onis_db.json</code> (tiết kiệm ~95% độ trễ và 100% chi phí token).
+            Nếu cần phân tích đa bước (Reasoning Path) → gọi Ollama LLM suy luận trên dữ liệu thực tế.
+          </p>
+          <div style="background: #0d1627; padding: 12px; border-radius: 8px; border: 1px solid var(--line); font-family: monospace; font-size: 0.82rem; color: #9bb7de;">
+            Client (Voice/Text) ➔ Kev System 1 (/v1/systemone) ➔ Router ➔ [Fast Path: Tools] / [Reasoning Path: Ollama LLM] ➔ JSON DB (onis_db.json)
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: JSON DB -->
+      <div class="tab-content" id="tab-json">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3>Cơ sở dữ liệu tạm thời (data/onis_db.json)</h3>
+            <p style="color: var(--muted); font-size: 0.82rem;">Tất cả giao dịch, công việc, ngân sách và log được lưu tức thì vào file này.</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button id="btn-reload-json" class="btn-action">🔄 Tải lại</button>
+            <button id="btn-reset-db" class="btn-action danger">⚠️ Reset về mặc định</button>
+          </div>
+        </div>
+
+        <div class="json-box" id="json-viewer-box">
+          Đang tải dữ liệu JSON...
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <script src="/static/js/voice.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

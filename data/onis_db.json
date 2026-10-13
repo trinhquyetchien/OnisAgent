@@ -1,0 +1,517 @@
+{
+  "user": {
+    "id": "user_demo_01",
+    "name": "Nguyễn Văn An",
+    "email": "an.nguyen@example.com",
+    "currency": "VND"
+  },
+  "budgets": {
+    "month": "2026-10",
+    "monthly_limit": 8000000,
+    "spent_so_far": 2668000.0,
+    "categories": {
+      "Ăn uống": 3000000,
+      "Đi lại": 1000000,
+      "Hóa đơn & Tiện ích": 1000000,
+      "Học tập & Phát triển": 2000000,
+      "Khác": 1000000
+    }
+  },
+  "transactions": [
+    {
+      "id": "tx_1791899275522",
+      "type": "income",
+      "amount": 5000000.0,
+      "category": "Khác",
+      "description": "Thêm  thu nhập hôm nay",
+      "date": "2026-10-13T20:47:55",
+      "created_by": "system1_fast_path"
+    },
+    {
+      "id": "tx_1791899194966",
+      "type": "expense",
+      "amount": 50000.0,
+      "category": "Ăn uống",
+      "description": "Tôi mới đổ xăng vào sáng nay",
+      "date": "2026-10-13T20:46:34",
+      "created_by": "system1_fast_path"
+    },
+    {
+      "id": "tx_1791898958632",
+      "type": "expense",
+      "amount": 2000000.0,
+      "category": "Khác",
+      "description": "Nạp  và mua",
+      "date": "2026-10-13T20:42:38",
+      "created_by": "system1_fast_path"
+    },
+    {
+      "id": "tx_1791898886400",
+      "type": "expense",
+      "amount": 50000.0,
+      "category": "Khác",
+      "description": "Tôi vừa tiêu  cho",
+      "date": "2026-10-13T20:41:26",
+      "created_by": "system1_fast_path"
+    },
+    {
+      "id": "tx_001",
+      "type": "income",
+      "amount": 15000000,
+      "category": "Lương",
+      "description": "Nhận lương tháng 10",
+      "date": "2026-10-05T09:00:00",
+      "created_by": "system_init"
+    },
+    {
+      "id": "tx_002",
+      "type": "expense",
+      "amount": 23000,
+      "category": "Hóa đơn & Tiện ích",
+      "description": "Tiền nước sinh hoạt",
+      "date": "2026-10-06T14:30:00",
+      "created_by": "system1_fast_path"
+    },
+    {
+      "id": "tx_003",
+      "type": "expense",
+      "amount": 45000,
+      "category": "Ăn uống",
+      "description": "Cơm trưa văn phòng",
+      "date": "2026-10-08T12:15:00",
+      "created_by": "system1_fast_path"
+    },
+    {
+      "id": "tx_004",
+      "type": "expense",
+      "amount": 150000,
+      "category": "Đi lại",
+      "description": "Đổ xăng xe máy",
+      "date": "2026-10-10T18:00:00",
+      "created_by": "system1_fast_path"
+    },
+    {
+      "id": "tx_005",
+      "type": "expense",
+      "amount": 350000,
+      "category": "Học tập & Phát triển",
+      "description": "Mua sách thiết kế hệ thống AI",
+      "date": "2026-10-12T10:45:00",
+      "created_by": "system1_fast_path"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_1791899222789",
+      "title": "Thêm công việc học quốc linh",
+      "deadline": null,
+      "priority": "medium",
+      "status": "pending",
+      "created_at": "2026-10-13T20:47:02",
+      "completed_at": null
+    },
+    {
+      "id": "task_001",
+      "title": "Học Kotlin Jetpack Compose",
+      "deadline": "2026-10-14T20:00:00",
+      "priority": "high",
+      "status": "pending",
+      "created_at": "2026-10-12T08:00:00",
+      "completed_at": null
+    },
+    {
+      "id": "task_002",
+      "title": "Nộp báo cáo tài chính tháng cho team",
+      "deadline": "2026-10-16T17:00:00",
+      "priority": "high",
+      "status": "pending",
+      "created_at": "2026-10-12T09:30:00",
+      "completed_at": null
+    },
+    {
+      "id": "task_003",
+      "title": "Kiểm tra số dư tài khoản tiết kiệm",
+      "deadline": "2026-10-15T12:00:00",
+      "priority": "medium",
+      "status": "pending",
+      "created_at": "2026-10-13T07:15:00",
+      "completed_at": null
+    },
+    {
+      "id": "task_004",
+      "title": "Tập thể dục 30 phút buổi sáng",
+      "deadline": "2026-10-13T06:30:00",
+      "priority": "low",
+      "status": "completed",
+      "created_at": "2026-10-13T06:00:00",
+      "completed_at": "2026-10-13T06:35:00"
+    }
+  ],
+  "savings_goals": [
+    {
+      "id": "goal_001",
+      "name": "Mua Laptop M4 mới",
+      "target_amount": 35000000,
+      "current_amount": 16000000.0,
+      "deadline": "2026-12-31",
+      "created_at": "2026-10-01T09:00:00"
+    },
+    {
+      "id": "goal_002",
+      "name": "Quỹ khẩn cấp dự phòng",
+      "target_amount": 24000000,
+      "current_amount": 18000000,
+      "deadline": "2027-03-31",
+      "created_at": "2026-10-01T09:00:00"
+    },
+    {
+      "id": "goal_1791898915743",
+      "name": "và phí dự",
+      "target_amount": 1000000.0,
+      "current_amount": 0,
+      "deadline": null,
+      "created_at": "2026-10-13T20:41:55"
+    },
+    {
+      "id": "goal_1791898975386",
+      "name": "tạo tài khoản tiết kiệm mới",
+      "target_amount": 10000000,
+      "current_amount": 20000000.0,
+      "deadline": null,
+      "created_at": "2026-10-13T20:42:55"
+    },
+    {
+      "id": "goal_1791898997282",
+      "name": "Liệt kê danh sách tài khoản tiết kiệm của tôi",
+      "target_amount": 10000000,
+      "current_amount": 0,
+      "deadline": null,
+      "created_at": "2026-10-13T20:43:17"
+    }
+  ],
+  "reminders": [
+    {
+      "id": "rem_1791899259861",
+      "text": "Hôm nay có những lời nhắc gì",
+      "remind_at": "2026-10-13T21:00:00",
+      "status": "pending",
+      "created_at": "2026-10-13T20:47:39"
+    },
+    {
+      "id": "rem_1791899080362",
+      "text": "tạo lời nhắc 9:00 Sáng mai cho cuộc họp",
+      "remind_at": null,
+      "status": "pending",
+      "created_at": "2026-10-13T20:44:40"
+    },
+    {
+      "id": "rem_1791899072405",
+      "text": "danh sách Lời nhắc",
+      "remind_at": null,
+      "status": "pending",
+      "created_at": "2026-10-13T20:44:32"
+    },
+    {
+      "id": "rem_001",
+      "text": "Thanh toán cước Internet sinh hoạt",
+      "remind_at": "2026-10-15T19:00:00",
+      "status": "pending"
+    },
+    {
+      "id": "rem_002",
+      "text": "Uống đủ 2 lít nước mỗi ngày",
+      "remind_at": "2026-10-14T08:00:00",
+      "status": "pending"
+    }
+  ],
+  "notes": [
+    {
+      "id": "note_001",
+      "content": "Ưu tiên chi tiêu ăn uống dưới 100k mỗi ngày",
+      "category": "preference",
+      "created_at": "2026-10-10T10:00:00"
+    }
+  ],
+  "activity_logs": [
+    {
+      "id": "log_1791899326615",
+      "timestamp": "2026-10-13T20:48:46",
+      "input": "phần trăm giao dịch tháng này",
+      "routed_to": "llm_qwen2.5:3b",
+      "intent": "transaction.query",
+      "confidence": 0.6032,
+      "latency_ms": 287.24,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899309926",
+      "timestamp": "2026-10-13T20:48:29",
+      "input": "tạo công việc quét nhà cho tôi",
+      "routed_to": "llm_qwen2.5:3b",
+      "intent": "agent.unknown",
+      "confidence": 0.4983,
+      "latency_ms": 968.32,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899291080",
+      "timestamp": "2026-10-13T20:48:11",
+      "input": "ngân sách tháng này bao nhiêu",
+      "routed_to": "llm_qwen2.5:3b",
+      "intent": "budget.query",
+      "confidence": 0.6032,
+      "latency_ms": 1051.84,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899275525",
+      "timestamp": "2026-10-13T20:47:55",
+      "input": "thêm 5 triệu thu nhập hôm nay",
+      "routed_to": "system1",
+      "intent": "transaction.create_income",
+      "confidence": 0.6994,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899259861",
+      "timestamp": "2026-10-13T20:47:39",
+      "input": "Hôm nay có những lời nhắc gì",
+      "routed_to": "system1",
+      "intent": "reminder.create",
+      "confidence": 0.6904,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899239865",
+      "timestamp": "2026-10-13T20:47:19",
+      "input": "nạp 10 triệu vào tài khoản tiết kiệm mới",
+      "routed_to": "system1",
+      "intent": "savings.goal",
+      "confidence": 0.6994,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899232243",
+      "timestamp": "2026-10-13T20:47:12",
+      "input": "tạo tài khoản tiết kiệm mới",
+      "routed_to": "system1",
+      "intent": "savings.goal",
+      "confidence": 0.6994,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899222790",
+      "timestamp": "2026-10-13T20:47:02",
+      "input": "thêm công việc học Quốc Linh",
+      "routed_to": "system1",
+      "intent": "task.create",
+      "confidence": 0.6719,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899194967",
+      "timestamp": "2026-10-13T20:46:34",
+      "input": "tôi mới đổ xăng 50.000 vào sáng nay",
+      "routed_to": "system1",
+      "intent": "transaction.create_expense",
+      "confidence": 0.7255,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899174058",
+      "timestamp": "2026-10-13T20:46:14",
+      "input": "lịch sử giao dịch tháng này",
+      "routed_to": "llm_qwen2.5:3b",
+      "intent": "transaction.query",
+      "confidence": 0.6032,
+      "latency_ms": 1283.7,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899150368",
+      "timestamp": "2026-10-13T20:45:50",
+      "input": "Danh sách công việc hôm nay là gì",
+      "routed_to": "llm_qwen2.5:3b",
+      "intent": "task.query",
+      "confidence": 0.6032,
+      "latency_ms": 1113.52,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899080363",
+      "timestamp": "2026-10-13T20:44:40",
+      "input": "tạo lời nhắc 9:00 Sáng mai cho cuộc họp",
+      "routed_to": "system1",
+      "intent": "reminder.create",
+      "confidence": 0.6904,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899072406",
+      "timestamp": "2026-10-13T20:44:32",
+      "input": "danh sách Lời nhắc",
+      "routed_to": "system1",
+      "intent": "reminder.create",
+      "confidence": 0.6904,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899052885",
+      "timestamp": "2026-10-13T20:44:12",
+      "input": "tạo lịch nhắc 9:00 Sáng mai cho cuộc họp",
+      "routed_to": "llm_qwen2.5:3b",
+      "intent": "agent.unknown",
+      "confidence": 0.4983,
+      "latency_ms": 398.6,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899035566",
+      "timestamp": "2026-10-13T20:43:55",
+      "input": "tạo công việc chạy bộ lúc 10 giờ tối cho tôi",
+      "routed_to": "llm_qwen2.5:3b",
+      "intent": "agent.unknown",
+      "confidence": 0.4983,
+      "latency_ms": 590.23,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899022917",
+      "timestamp": "2026-10-13T20:43:42",
+      "input": "tạo công việc chạy bộ",
+      "routed_to": "llm_qwen2.5:3b",
+      "intent": "agent.unknown",
+      "confidence": 0.4983,
+      "latency_ms": 419.93,
+      "status": "success"
+    },
+    {
+      "id": "log_1791899006310",
+      "timestamp": "2026-10-13T20:43:26",
+      "input": "Công việc hôm nay là gì",
+      "routed_to": "llm_qwen2.5:3b",
+      "intent": "task.query",
+      "confidence": 0.6032,
+      "latency_ms": 940.03,
+      "status": "success"
+    },
+    {
+      "id": "log_1791898997283",
+      "timestamp": "2026-10-13T20:43:17",
+      "input": "Liệt kê danh sách tài khoản tiết kiệm của tôi",
+      "routed_to": "system1",
+      "intent": "savings.goal",
+      "confidence": 0.6994,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791898986272",
+      "timestamp": "2026-10-13T20:43:06",
+      "input": "nạp 10 triệu vào tài khoản tiết kiệm",
+      "routed_to": "system1",
+      "intent": "savings.goal",
+      "confidence": 0.6994,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791898975388",
+      "timestamp": "2026-10-13T20:42:55",
+      "input": "tạo tài khoản tiết kiệm mới",
+      "routed_to": "system1",
+      "intent": "savings.goal",
+      "confidence": 0.6994,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791898958633",
+      "timestamp": "2026-10-13T20:42:38",
+      "input": "nạp 2 triệu và mua",
+      "routed_to": "system1",
+      "intent": "transaction.create_expense",
+      "confidence": 0.7255,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791898948193",
+      "timestamp": "2026-10-13T20:42:28",
+      "input": "nạp 2 triệu tiền tiết kiệm và mua laptop",
+      "routed_to": "system1",
+      "intent": "savings.goal",
+      "confidence": 0.6994,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791898940404",
+      "timestamp": "2026-10-13T20:42:20",
+      "input": "nạp một triệu tiết kiệm và mua laptop 14 mới",
+      "routed_to": "system1",
+      "intent": "savings.goal",
+      "confidence": 0.6994,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791898927726",
+      "timestamp": "2026-10-13T20:42:07",
+      "input": "nạp thêm một triệu vào kỳ khẩn cấp",
+      "routed_to": "llm_qwen2.5:3b",
+      "intent": "agent.unknown",
+      "confidence": 0.4983,
+      "latency_ms": 658.47,
+      "status": "success"
+    },
+    {
+      "id": "log_1791898915744",
+      "timestamp": "2026-10-13T20:41:55",
+      "input": "tiết kiệm 1 triệu và phí dự",
+      "routed_to": "system1",
+      "intent": "savings.goal",
+      "confidence": 0.6994,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791898886401",
+      "timestamp": "2026-10-13T20:41:26",
+      "input": "Tôi vừa tiêu 50k cho",
+      "routed_to": "system1",
+      "intent": "transaction.create_expense",
+      "confidence": 0.7255,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791898832322",
+      "timestamp": "2026-10-13T20:40:32",
+      "input": "Tôi vừa mới tiêu 50.000đ cho đổ xăng sáng nay",
+      "routed_to": "system1",
+      "intent": "transaction.create_expense",
+      "confidence": 0.7255,
+      "latency_ms": 5.2,
+      "status": "success"
+    },
+    {
+      "id": "log_1791898783552",
+      "timestamp": "2026-10-13T20:39:43",
+      "input": "lịch sử giao dịch của tôi",
+      "routed_to": "llm_qwen2.5:3b",
+      "intent": "transaction.query",
+      "confidence": 0.6032,
+      "latency_ms": 2655.73,
+      "status": "success"
+    }
+  ]
+}

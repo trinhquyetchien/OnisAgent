@@ -1,0 +1,9 @@
+{
+  "name": "onisagent-frontend",
+  "version": "1.0.0",
+  "description": "OnisAgent Web Frontend Dashboard",
+  "scripts": {
+    "start": "python3 -m http.server 3000",
+    "serve": "npx serve -l 3000 ."
+  }
+}

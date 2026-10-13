@@ -1,0 +1,278 @@
+<mxfile host="app.diagrams.net" modified="2026-10-13T09:18:00.000Z" agent="Antigravity AI" version="24.7.17">
+  <diagram id="onisagent-dualpath-flow" name="OnisAgent Dual-Path Architecture Flow">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1300" background="#0B1020" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE CONTAINER -->
+        <mxCell id="title_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#121D32;strokeColor=#30415F;strokeWidth=2;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="1720" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="title_text" value="&lt;font color=&quot;#72E3DC&quot; style=&quot;font-size: 24px; font-weight: 900;&quot;&gt;ONISAGENT ARCHITECTURE&lt;/font&gt;&lt;font color=&quot;#EDF3FF&quot; style=&quot;font-size: 20px; font-weight: 600;&quot;&gt; — Luồng Xử Lý Chi Tiết: System 1 (Kev) + Decision Router + LLM (Ollama)&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 13px;&quot;&gt;Bản vẽ kỹ thuật kiến trúc Dual-Path phân luồng Fast Path (5ms) và Reasoning Path (Ollama) lưu trữ JSON tạm thời &amp; tương tác giọng nói tiếng Việt&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="35" width="1680" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- SWIMLANE 1: CLIENT & INPUT LAYER -->
+        <mxCell id="lane_client" value="TẦNG 1: CLIENT &amp; GIAO TIẾP ĐA PHƯƠNG THỨC (VOICE / TEXT)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#121D32;strokeColor=#30415F;fontColor=#72E3DC;fontStyle=1;fontSize=14;startSize=30;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="280" height="1100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_user" value="&lt;b&gt;👤 NGƯỜI DÙNG&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;• Nói tiếng Việt qua Mic&lt;br&gt;• Hoặc gõ tin nhắn text&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1B2A45;strokeColor=#72E3DC;fontColor=#EDF3FF;strokeWidth=2;" vertex="1" parent="lane_client">
+          <mxGeometry x="30" y="60" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_voice_stt" value="&lt;b&gt;🎙️ Web Speech API (STT)&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;• Ngôn ngữ: vi-VN (Tiếng Việt)&lt;br&gt;• Push-to-Talk / Click-to-Talk&lt;br&gt;• Sound Wave Visualizer&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#172640;strokeColor=#30415F;fontColor=#EDF3FF;" vertex="1" parent="lane_client">
+          <mxGeometry x="30" y="170" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_chat_input" value="&lt;b&gt;💬 Giao Diện Web Dashboard&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;• Thanh Chat &amp; Gợi ý lệnh mẫu&lt;br&gt;• Hiển thị transcript thời gian thực&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#172640;strokeColor=#30415F;fontColor=#EDF3FF;" vertex="1" parent="lane_client">
+          <mxGeometry x="30" y="290" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_ui_render" value="&lt;b&gt;📱 CẬP NHẬT GIAO DIỆN LIVE&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;• Cập nhật Số dư, Thu/Chi, Ngân sách&lt;br&gt;• Cập nhật Task checklist&lt;br&gt;• Bảng đo Kev Telemetry (Latency, Tokens)&lt;br&gt;• Viewer JSON data/onis_db.json&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#12322E;strokeColor=#438E7D;fontColor=#EDF3FF;strokeWidth=2;" vertex="1" parent="lane_client">
+          <mxGeometry x="30" y="860" width="220" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_tts_speaker" value="&lt;b&gt;🔊 GIỌNG NÓI TIẾNG VIỆT&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;• Phát âm chuẩn thanh điệu tự nhiên&lt;br&gt;• Tự động đọc câu trả lời OnisAgent&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#203553;strokeColor=#72E3DC;fontColor=#72E3DC;" vertex="1" parent="lane_client">
+          <mxGeometry x="30" y="1000" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- SWIMLANE 2: GATEWAY & SYSTEM 1 (KEV) -->
+        <mxCell id="lane_sys1" value="TẦNG 2: FAST EVALUATION · SYSTEM 1 MODEL (KEV)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#121D32;strokeColor=#30415F;fontColor=#85ADFF;fontStyle=1;fontSize=14;startSize=30;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="340" y="120" width="370" height="1100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_api_gw" value="&lt;b&gt;🚀 FastAPI Gateway (app/main.py)&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;Endpoint: POST /api/chat&lt;br&gt;Nhận: { text: &quot;Tôi vừa chi 23k tiền nước&quot; }&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#172640;strokeColor=#30415F;fontColor=#EDF3FF;" vertex="1" parent="lane_sys1">
+          <mxGeometry x="40" y="60" width="290" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_kev_model" value="&lt;b&gt;⚡ KEV DECISION MODEL&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#72E3DC&quot; style=&quot;font-size: 11px;&quot;&gt;(jaredpalmer/kev · POST /v1/systemone)&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;Mô hình quyết định siêu nhẹ (Kev-0.8B)&lt;br&gt;Thực thi prefill-only, độ trễ ~5–12ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#242044;strokeColor=#7565BF;fontColor=#EDF3FF;strokeWidth=2;" vertex="1" parent="lane_sys1">
+          <mxGeometry x="40" y="170" width="290" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_kev_schema" value="&lt;b&gt;📋 Cấu Trúc Đánh Giá TypeSafe (/v1/systemone):&lt;/b&gt;&lt;br&gt;&lt;div align=&quot;left&quot; style=&quot;font-size: 11px; color: #AFBDD2;&quot;&gt;1. &lt;b&gt;Question 1 - Intent (Choice, 11 nhãn):&lt;/b&gt;&lt;br&gt;   • transaction.create_expense / income&lt;br&gt;   • transaction.query / finance.summary&lt;br&gt;   • task.create / complete / query&lt;br&gt;   • finance.analyze_spending / work.plan_day&lt;br&gt;2. &lt;b&gt;Question 2 - Complexity (Choice):&lt;/b&gt;&lt;br&gt;   • simple (thao tác trực tiếp)&lt;br&gt;   • complex (suy luận nhiều bước)&lt;br&gt;3. &lt;b&gt;Question 3 - Risk (Choice):&lt;/b&gt;&lt;br&gt;   • read / write_low / write_high&lt;br&gt;4. &lt;b&gt;Calibrated Softmax (T=2.35)&lt;/b&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#172640;strokeColor=#30415F;fontColor=#EDF3FF;" vertex="1" parent="lane_sys1">
+          <mxGeometry x="40" y="290" width="290" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_kev_output" value="&lt;b&gt;📤 KẾT QUẢ TỪ SYSTEM 1:&lt;/b&gt;&lt;br&gt;&lt;div align=&quot;left&quot; style=&quot;font-size: 11px; color: #85E0B5;&quot;&gt;• intent = &quot;transaction.create_expense&quot;&lt;br&gt;• confidence = 0.8088 (80.9%)&lt;br&gt;• complexity = &quot;simple&quot;&lt;br&gt;• risk = &quot;write_low&quot;&lt;br&gt;• latency = 5.2 ms&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#12322E;strokeColor=#438E7D;fontColor=#EDF3FF;" vertex="1" parent="lane_sys1">
+          <mxGeometry x="40" y="520" width="290" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- SWIMLANE 3: DECISION ROUTER (NGÃ BA QUYẾT ĐỊNH) -->
+        <mxCell id="lane_router" value="TẦNG 3: DECISION ROUTER &amp; POLICY (app/router.py)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#121D32;strokeColor=#30415F;fontColor=#FFD18B;fontStyle=1;fontSize=14;startSize=30;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="730" y="120" width="410" height="1100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_router_start" value="&lt;b&gt;🧭 DECISION ROUTER&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;Hàm process_user_request()&lt;br&gt;Tiếp nhận kết quả từ Kev System 1&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1B2A45;strokeColor=#72E3DC;fontColor=#EDF3FF;strokeWidth=2;" vertex="1" parent="lane_router">
+          <mxGeometry x="50" y="60" width="310" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- RISK DIAMOND -->
+        <mxCell id="node_risk_check" value="&lt;b&gt;Risk == 'write_high'?&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #AFBDD2;&quot;&gt;(Xóa toàn bộ DB?)&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#332918;strokeColor=#9D7842;fontColor=#FFD18B;strokeWidth=2;" vertex="1" parent="lane_router">
+          <mxGeometry x="105" y="160" width="200" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_policy_block" value="&lt;b&gt;🛡️ CHẶN AN TOÀN (POLICY)&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#FF8B8B&quot; style=&quot;font-size: 11px;&quot;&gt;Từ chối tự động thực thi&lt;br&gt;Cảnh báo thao tác rủi ro cao&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3F1D24;strokeColor=#FF8B8B;fontColor=#FF8B8B;" vertex="1" parent="lane_router">
+          <mxGeometry x="105" y="280" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ROUTING DECISION DIAMOND -->
+        <mxCell id="node_router_diamond" value="&lt;b&gt;Complexity == 'simple'&lt;br&gt;&amp;amp;&amp;amp; Confidence &amp;gt;= 0.65?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1B2A45;strokeColor=#72E3DC;fontColor=#72E3DC;strokeWidth=3;" vertex="1" parent="lane_router">
+          <mxGeometry x="90" y="380" width="230" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_entity_extract" value="&lt;b&gt;🔍 Entity Extractor &amp; Parser&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;• Bóc tách Số tiền (23k, 150.000, 20tr)&lt;br&gt;• Bóc tách Danh mục (Nước, Cơm, Xăng)&lt;br&gt;• Bóc tách Deadline &amp; Priority task&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#172640;strokeColor=#30415F;fontColor=#EDF3FF;" vertex="1" parent="lane_router">
+          <mxGeometry x="50" y="530" width="310" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_missing_check" value="&lt;b&gt;Đủ tham số bắt buộc?&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #AFBDD2;&quot;&gt;(Có số tiền / tên task?)&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#172640;strokeColor=#30415F;fontColor=#EDF3FF;" vertex="1" parent="lane_router">
+          <mxGeometry x="115" y="630" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_clarify" value="&lt;b&gt;❓ HỎI LẠI (CLARIFICATION)&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#FFD18B&quot; style=&quot;font-size: 11px;&quot;&gt;&quot;Bạn đã chi bao nhiêu tiền và cho việc gì?&quot;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#332918;strokeColor=#9D7842;fontColor=#FFD18B;" vertex="1" parent="lane_router">
+          <mxGeometry x="105" y="740" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_dispatch_reasoning" value="&lt;b&gt;🧠 ĐIỀU HƯỚNG SANG NHÁNH SUY LUẬN&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#C1ADFF&quot; style=&quot;font-size: 11px;&quot;&gt;Kích hoạt Reasoning Path (LLM)&lt;br&gt;Truy xuất context thực tế từ JSON DB&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#242044;strokeColor=#7565BF;fontColor=#C1ADFF;strokeWidth=2;" vertex="1" parent="lane_router">
+          <mxGeometry x="50" y="860" width="310" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- SWIMLANE 4: EXECUTION & PERSISTENCE -->
+        <mxCell id="lane_exec" value="TẦNG 4: EXECUTION ENGINES &amp; DATA LAYER" style="swimlane;whiteSpace=wrap;html=1;fillColor=#121D32;strokeColor=#30415F;fontColor=#85E0B5;fontStyle=1;fontSize=14;startSize=30;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="120" width="600" height="1100" as="geometry" />
+        </mxCell>
+
+        <!-- SUB CONTAINER FAST PATH -->
+        <mxCell id="box_fast_path" value="NHÁNH 1: FAST PATH (TOOL EXECUTOR &amp; TEMPLATE) · ĐỘ TRỄ ~5ms · 0 TOKEN" style="swimlane;whiteSpace=wrap;html=1;fillColor=#12322E;strokeColor=#438E7D;fontColor=#85E0B5;fontStyle=1;fontSize=12;startSize=25;rounded=1;arcSize=8;" vertex="1" parent="lane_exec">
+          <mxGeometry x="30" y="50" width="540" height="340" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_tools" value="&lt;b&gt;🛠️ Python Tools Layer (app/tools.py)&lt;/b&gt;&lt;br&gt;&lt;div align=&quot;left&quot; style=&quot;font-size: 11px; color: #EDF3FF;&quot;&gt;• FinanceTools.create_expense(amount, cat, desc)&lt;br&gt;• FinanceTools.create_income(amount, cat, desc)&lt;br&gt;• TaskTools.create_task(title, deadline, priority)&lt;br&gt;• TaskTools.complete_task(task_id)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#172640;strokeColor=#438E7D;fontColor=#EDF3FF;" vertex="1" parent="box_fast_path">
+          <mxGeometry x="30" y="40" width="480" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_template_resp" value="&lt;b&gt;⚡ Template Response (Không gọi LLM)&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#85E0B5&quot; style=&quot;font-size: 11px;&quot;&gt;&quot;⚡ [System 1 Fast Path] Đã ghi nhận khoản chi 23.000 đ cho 'Nước' (danh mục: Hóa đơn &amp; Tiện ích). Số dư hiện tại: 14.409.000 đ.&quot;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#172640;strokeColor=#438E7D;fontColor=#EDF3FF;" vertex="1" parent="box_fast_path">
+          <mxGeometry x="30" y="150" width="480" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_fast_perf" value="&lt;font color=&quot;#85E0B5&quot;&gt;&lt;b&gt;✓ HIỆU NĂNG NHÁNH FAST PATH:&lt;/b&gt; Thời gian xử lý: &lt;b&gt;5.2 ms&lt;/b&gt; | Chi phí: &lt;b&gt;0 Token LLM&lt;/b&gt; | Độ chính xác: &lt;b&gt;100%&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0D1F1D;strokeColor=#438E7D;strokeWidth=1;" vertex="1" parent="box_fast_path">
+          <mxGeometry x="30" y="240" width="480" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- SUB CONTAINER JSON STORAGE -->
+        <mxCell id="node_json_db" value="&lt;b&gt;💾 CƠ SỞ DỮ LIỆU TẠM THỜI (data/onis_db.json)&lt;/b&gt;&lt;br&gt;&lt;div align=&quot;left&quot; style=&quot;font-size: 11px; color: #AFBDD2;&quot;&gt;• &lt;b&gt;transactions:&lt;/b&gt; Danh sách thu/chi (amount, category, date, created_by)&lt;br&gt;• &lt;b&gt;tasks:&lt;/b&gt; Danh sách việc (title, deadline, priority, status: pending/completed)&lt;br&gt;• &lt;b&gt;budgets:&lt;/b&gt; Hạn mức chi tiêu tháng &amp; số tiền đã chi (spent_so_far)&lt;br&gt;• &lt;b&gt;activity_logs:&lt;/b&gt; Lịch sử định tuyến (routed_to, intent, confidence, latency)&lt;/div&gt;&lt;font color=&quot;#72E3DC&quot; style=&quot;font-size: 10px;&quot;&gt;(Lưu nguyên tử atomic-write, thread-safe, tự đồng bộ với UI)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#172640;strokeColor=#72E3DC;fontColor=#EDF3FF;strokeWidth=2;" vertex="1" parent="lane_exec">
+          <mxGeometry x="30" y="420" width="540" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- SUB CONTAINER REASONING PATH -->
+        <mxCell id="box_reasoning_path" value="NHÁNH 2: REASONING PATH (LLM SUY LUẬN ĐA BƯỚC) · OLLAMA CỤC BỘ" style="swimlane;whiteSpace=wrap;html=1;fillColor=#242044;strokeColor=#7565BF;fontColor=#C1ADFF;fontStyle=1;fontSize=12;startSize=25;rounded=1;arcSize=8;" vertex="1" parent="lane_exec">
+          <mxGeometry x="30" y="600" width="540" height="360" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_context_builder" value="&lt;b&gt;📊 Context Grounding (Đóng gói ngữ cảnh thực tế)&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;Trích xuất từ onis_db.json: Tổng số dư + 8 giao dịch gần nhất + task đang chờ&lt;br&gt;&lt;b&gt;Quy tắc an toàn:&lt;/b&gt; LLM tuyệt đối không tự bịa đặt số liệu tài chính&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#172640;strokeColor=#7565BF;fontColor=#EDF3FF;" vertex="1" parent="box_reasoning_path">
+          <mxGeometry x="30" y="40" width="480" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_ollama" value="&lt;b&gt;🧠 OLLAMA LOCAL INFERENCE ENGINE&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#72E3DC&quot; style=&quot;font-size: 11px;&quot;&gt;Model đang kích hoạt: &lt;b&gt;qwen2.5:3b&lt;/b&gt; (hoặc gemma3:latest)&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;• Phân tích nguyên nhân tiêu nhiều theo danh mục&lt;br&gt;• Lập lịch trình làm việc tối ưu theo ma trận ưu tiên Eisenhower&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1B2A45;strokeColor=#7565BF;fontColor=#EDF3FF;strokeWidth=2;" vertex="1" parent="box_reasoning_path">
+          <mxGeometry x="30" y="130" width="480" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_llm_resp" value="&lt;b&gt;💬 LLM Synthesis Output&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#C1ADFF&quot; style=&quot;font-size: 11px;&quot;&gt;&quot;🧠 [LLM Reasoning Path - qwen2.5:3b] Tháng này bạn đã chi quá mức trong danh mục 'Đi lại'... Lịch trình gợi ý hôm nay: 9:00 Kiểm tra số dư, 15:00 Học Kotlin...&quot;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#172640;strokeColor=#7565BF;fontColor=#EDF3FF;" vertex="1" parent="box_reasoning_path">
+          <mxGeometry x="30" y="240" width="480" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- TTS SERVICE -->
+        <mxCell id="node_tts_api" value="&lt;b&gt;🎙️ Natural Vietnamese TTS Service (app/main.py · /api/voice/tts)&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#AFBDD2&quot; style=&quot;font-size: 11px;&quot;&gt;Làm sạch cú pháp markdown ➔ Sinh audio MP3 chuẩn tiếng Việt tự nhiên (gTTS) ➔ Phát âm qua trình duyệt&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#172640;strokeColor=#72E3DC;fontColor=#EDF3FF;" vertex="1" parent="lane_exec">
+          <mxGeometry x="30" y="990" width="540" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ARROWS & CONNECTIONS -->
+        <!-- User to Voice/Chat -->
+        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#72E3DC;strokeWidth=2;" edge="1" parent="1" source="node_user" target="node_voice_stt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#72E3DC;strokeWidth=2;" edge="1" parent="1" source="node_user" target="node_chat_input">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Input to API Gateway -->
+        <mxCell id="edge3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#72E3DC;strokeWidth=2;" edge="1" parent="1" source="node_voice_stt" target="node_api_gw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#72E3DC;strokeWidth=2;" edge="1" parent="1" source="node_chat_input" target="node_api_gw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- API Gateway to Kev Model -->
+        <mxCell id="edge5" value="Gửi text raw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#85ADFF;strokeWidth=2;fontColor=#85ADFF;" edge="1" parent="1" source="node_api_gw" target="node_kev_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Kev Model to Schema & Output -->
+        <mxCell id="edge6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#85ADFF;strokeWidth=2;" edge="1" parent="1" source="node_kev_model" target="node_kev_schema">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#85ADFF;strokeWidth=2;" edge="1" parent="1" source="node_kev_schema" target="node_kev_output">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Kev Output to Decision Router -->
+        <mxCell id="edge8" value="Trả về answers (5ms)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#85ADFF;strokeWidth=2;fontColor=#85ADFF;" edge="1" parent="1" source="node_kev_output" target="node_router_start">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Router to Risk Check -->
+        <mxCell id="edge9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FFD18B;strokeWidth=2;" edge="1" parent="1" source="node_router_start" target="node_risk_check">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge10" value="YES" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FF8B8B;strokeWidth=2;fontColor=#FF8B8B;" edge="1" parent="1" source="node_risk_check" target="node_policy_block">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge11" value="NO" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FFD18B;strokeWidth=2;fontColor=#FFD18B;" edge="1" parent="1" source="node_risk_check" target="node_router_diamond">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Router Diamond to Fast Path (YES) -->
+        <mxCell id="edge12" value="ĐÚNG: Fast Path" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#85E0B5;strokeWidth=3;fontColor=#85E0B5;fontStyle=1;" edge="1" parent="1" source="node_router_diamond" target="node_entity_extract">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Router Diamond to Reasoning Path (NO) -->
+        <mxCell id="edge13" value="SAI: Complex / Phân tích" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C1ADFF;strokeWidth=3;fontColor=#C1ADFF;fontStyle=1;" edge="1" parent="1" source="node_router_diamond" target="node_dispatch_reasoning">
+          <mxGeometry relative="1" as="geometry">
+            <Array points="390 435; 390 895" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Entity Extract to Missing Check -->
+        <mxCell id="edge14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#85E0B5;strokeWidth=2;" edge="1" parent="1" source="node_entity_extract" target="node_missing_check">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge15" value="Thiếu số tiền" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FFD18B;strokeWidth=2;fontColor=#FFD18B;" edge="1" parent="1" source="node_missing_check" target="node_clarify">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Missing Check to Tools (Đủ tham số) -->
+        <mxCell id="edge16" value="Đủ tham số" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#85E0B5;strokeWidth=2;fontColor=#85E0B5;" edge="1" parent="1" source="node_missing_check" target="node_tools">
+          <mxGeometry relative="1" as="geometry">
+            <Array points="1070 670; 1070 215" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Tools to DB & Template -->
+        <mxCell id="edge17" value="Lưu giao dịch / task" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#72E3DC;strokeWidth=2;fontColor=#72E3DC;" edge="1" parent="1" source="node_tools" target="node_json_db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#85E0B5;strokeWidth=2;" edge="1" parent="1" source="node_tools" target="node_template_resp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Dispatch to Context Builder -->
+        <mxCell id="edge19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C1ADFF;strokeWidth=2;" edge="1" parent="1" source="node_dispatch_reasoning" target="node_context_builder">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- JSON DB to Context Builder -->
+        <mxCell id="edge20" value="Đọc số dư &amp; task thực tế" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#72E3DC;strokeWidth=2;fontColor=#72E3DC;" edge="1" parent="1" source="node_json_db" target="node_context_builder">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Context Builder to Ollama to Synthesis -->
+        <mxCell id="edge21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C1ADFF;strokeWidth=2;" edge="1" parent="1" source="node_context_builder" target="node_ollama">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C1ADFF;strokeWidth=2;" edge="1" parent="1" source="node_ollama" target="node_llm_resp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Template Resp & LLM Resp to TTS & UI -->
+        <mxCell id="edge23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#72E3DC;strokeWidth=2;" edge="1" parent="1" source="node_template_resp" target="node_tts_api">
+          <mxGeometry relative="1" as="geometry">
+            <Array points="1720 310; 1720 1025" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#72E3DC;strokeWidth=2;" edge="1" parent="1" source="node_llm_resp" target="node_tts_api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge25" value="Audio Stream MP3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#72E3DC;strokeWidth=2;fontColor=#72E3DC;" edge="1" parent="1" source="node_tts_api" target="node_tts_speaker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge26" value="Đồng bộ dữ liệu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#438E7D;strokeWidth=2;fontColor=#438E7D;" edge="1" parent="1" source="node_json_db" target="node_ui_render">
+          <mxGeometry relative="1" as="geometry">
+            <Array points="1130 500; 1130 980; 290 980" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
