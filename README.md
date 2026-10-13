@@ -1,6 +1,6 @@
 # OnisAgent: Trợ lý AI Đa Luồng (Dual-Path) Cho Tài Chính & Công Việc
 
-> **Dự án Demo thực thi dựa trên bản đặc tả thiết kế kiến trúc [OnisAgent_Project_Overview.html](OnisAgent_Project_Overview.html)**  
+> **Dự án Demo thực thi dựa trên bản đặc tả thiết kế kiến trúc [OnisAgent_Project_Overview.html](docs/OnisAgent_Project_Overview.html)**  
 > Tích hợp **Kev Decision Model (System 1)** từ [jaredpalmer/kev](https://github.com/jaredpalmer/kev.git), **Mô hình ngôn ngữ lớn (LLM)** chạy cục bộ qua **Ollama** (`qwen2.5:3b`, `gemma3:latest`), lưu trữ dữ liệu vào file **JSON tạm thời** (`data/onis_db.json`), cùng giao diện Web tương tác bằng **Giọng nói (Voice In/Out)** hai chiều.
 
 ---
@@ -107,28 +107,24 @@ Giao diện Web có tab **"Dữ liệu JSON"** hiển thị live nội dung file
 
 ```
 OnisAgent/
-├── OnisAgent_Project_Overview.html    # Tài liệu HTML gốc định nghĩa dự án
-├── README.md                          # Tài liệu mô tả dự án bạn đang đọc
-├── start_demo.sh                      # Kịch bản khởi chạy nhanh toàn bộ ứng dụng
-├── data/
-│   └── onis_db.json                   # Cơ sở dữ liệu JSON tạm thời (transactions, tasks, budgets)
-├── app/
-│   ├── __init__.py
-│   ├── config.py                      # Cấu hình cổng, đường dẫn, threshold
-│   ├── db.py                          # Thao tác đọc/ghi file JSON thread-safe
-│   ├── kev_client.py                  # Client Kev Decision Model (TypeSafe /v1/systemone)
-│   ├── ollama_client.py               # Kết nối Ollama API, tự động nhận diện model
-│   ├── router.py                      # Bộ điều phối định tuyến Fast Path vs Reasoning Path
-│   ├── tools.py                       # Công cụ Tài chính, Công việc & Policy Engine
-│   └── main.py                        # Máy chủ web FastAPI & REST API
-├── static/
-│   ├── index.html                     # Giao diện Web Cyber Dark Dashboard
-│   ├── css/
-│   │   └── style.css                  # Bảng màu, typography và hoạt ảnh visualizer
-│   └── js/
-│       ├── voice.js                   # Xử lý Web Speech API (STT & TTS)
-│       └── app.js                     # Điều phối chat, đo đạc telemetry và realtime UI
-└── kev-repo/                          # Mã nguồn clone từ jaredpalmer/kev.git
+├── docs/                                  # 📚 Toàn bộ tài liệu kỹ thuật & slide dự án
+│   ├── README.md                          # Mục lục tra cứu tài liệu
+│   ├── PRESENTATION_SLIDES.md             # 16 Slide thuyết trình pitch deck (Kiến trúc 1:1)
+│   ├── MODEL_TRAINING_AND_DATASET_GUIDE.md # Cẩm nang thu thập dữ liệu & train PhoBERT/Kev/Qwen
+│   ├── onisagent_architecture_flow.drawio # Sơ đồ luồng quyết định chi tiết Draw.io
+│   └── OnisAgent_Project_Overview.html    # Bản đặc tả thiết kế gốc tương tác
+├── backend/                               # 🚀 Dịch vụ Backend FastAPI độc lập
+│   ├── app/                               # FastAPI, AI Dual-Path Core (Kev & Ollama), 22 Tools
+│   ├── data/                              # CSDL JSON
+│   ├── requirements.txt                   # Thư viện Python
+│   └── run_backend.sh                     # Script chạy backend độc lập (:8000)
+├── frontend/                              # 🌐 Dịch vụ Frontend Web độc lập
+│   ├── index.html                         # Giao diện Cyber Dark Dashboard
+│   ├── css/ & js/                         # Web Speech STT/TTS & Realtime Telemetry
+│   ├── package.json                       # Cấu hình script npm / npx
+│   └── run_frontend.sh                    # Script chạy frontend độc lập (:3000)
+├── start_demo.sh                          # 🚀 Script khởi chạy demo 1-click
+└── README.md                              # Tài liệu tổng quan dự án
 ```
 
 ---
