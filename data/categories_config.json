@@ -21,10 +21,5 @@
   "transaction_types": [
     "income",
     "expense"
-  ],
-  "budget_rule": {
-    "needs_percent": 50,
-    "wants_percent": 30,
-    "savings_percent": 20
-  }
+  ]
 }
