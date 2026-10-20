@@ -2,7 +2,11 @@ from decimal import Decimal
 
 import pytest
 
-from src.tools.calculator import expense_ratio, summarize_transactions
+from src.tools.calculator import (
+    calculate_loan_amortization,
+    expense_ratio,
+    summarize_transactions,
+)
 
 
 def test_summarize_transactions_uses_exact_decimal_totals():
@@ -33,3 +37,19 @@ def test_summarize_transactions_rejects_unknown_type():
 
 def test_expense_ratio_handles_zero_income():
     assert expense_ratio("15", "0") == Decimal("0")
+
+
+def test_calculate_loan_amortization_exact_match():
+    # 50 million VND, 12 months, 10% annual interest rate
+    result = calculate_loan_amortization(
+        principal="50000000",
+        annual_interest_rate="10",
+        months=12,
+    )
+    assert result["principal"] == Decimal("50000000")
+    assert result["months"] == 12
+    assert result["monthly_payment"] == Decimal("4395794")
+    assert result["total_payment"] == Decimal("52749528")
+    assert result["total_interest"] == Decimal("2749528")
+    assert len(result["schedule"]) == 12
+    assert result["schedule"][-1]["remaining_balance"] == Decimal("0")
