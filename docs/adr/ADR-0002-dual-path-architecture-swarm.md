@@ -25,8 +25,8 @@ related_adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0005]
 # ADR-0002: Single-Agent Dual-Path Cognitive Architecture & Multi-Agent Swarm Orchestration
 
 > **Y-Statement:** Trong ngữ cảnh OnisAgent cần giải quyết đồng thời bài toán phân mảnh dữ liệu (tài chính – công việc) và ma sát nhập liệu thủ công (khiến hơn 85% người dùng từ bỏ ứng dụng), đồng thời vượt qua "bẫy LLM" (độ trễ 1.500–4.000 ms, chi phí token đắt đỏ và rủi ro ảo giác số học), chúng tôi quyết định chuẩn hóa mô hình **Single-Agent Nhận thức Đa luồng (Dual-Path Cognitive Architecture)** kết hợp điều phối **Multi-Agent Swarm (Strands Agents SDK)**. Hệ thống sử dụng một **Decision Router & Policy Engine** làm cổng điều phối tập trung duy nhất:
-> 1. **Fast Path (System 1 / Kev Decision Model):** Xử lý phản xạ tức thì ~85% tác vụ lặp lại (`transaction.create_expense`, `transaction.create_income`, `transaction.query`, `task.create`, `task.complete`, `finance.loan`, v.v.) với độ trễ siêu tốc **~5–12 ms**, **0 Token LLM**, sử dụng xác suất Softmax Calibrated ($T=2.35$) với ngưỡng tin cậy $\text{Confidence} \ge 0.65$.
-> 2. **Reasoning Path (System 2 / Amazon Bedrock / Ollama LLM):** Kích hoạt cho ~15% tác vụ phức tạp (`finance.analyze_spending`, `work.plan_day`), áp dụng cơ chế **Grounded Context Injection** (nạp dữ liệu DB thực tế, triệt tiêu ảo giác số liệu về 0%).
+> 1. **Fast Path (System 1 / Kev Decision Model):** Xử lý phản xạ tức thì khoảng 85% tác vụ lặp lại (`transaction.create_expense`, `transaction.create_income`, `transaction.query`, `task.create`, `task.complete`) với độ trễ mục tiêu **~5–12 ms**, **0 Token LLM**, và ngưỡng tin cậy $\text{Confidence} \ge 0.65$.
+> 2. **Reasoning Path (System 2 / Amazon Bedrock / Ollama LLM):** Phân tích dòng tiền sâu, dự toán khoản vay và lập kế hoạch ngày/tuần; áp dụng **Grounded Context Injection** với dữ liệu thực tế. Các con số về số dư và lịch vay luôn do phần mềm `Decimal` tính, không do LLM suy ra.
 > Khi luồng Reasoning yêu cầu phân tách miền nghiệp vụ chuyên sâu, **Strands Agents SDK** điều phối Swarm gồm 3 Sub-Agents chuyên biệt (`CategorizationAgent`, `FinancialAdvisoryAgent`, `TaskManagerAgent`), giúp giảm 40% dung lượng Prompt Token và ngăn ngừa triệt để hiện tượng Tool Misfire.
 
 ---
@@ -66,7 +66,7 @@ Lấy cảm hứng từ lý thuyết nhận thức hai hệ thống của Daniel
   • Độ trễ: ~5 – 12 ms                          • Độ trễ: ~300 – 800 ms
   • Chi phí: 0 Token LLM                        • Triệt tiêu ảo giác: Grounded DB
   • Tác vụ: Ghi thu chi, tạo/xong task,         • Tác vụ: Phân tích xu hướng dòng tiền,
-    xem số dư, máy tính khoản vay                 dự toán nợ, lập kế hoạch ngày/tuần
+    xem số dư                                      dự toán khoản vay, lập kế hoạch ngày/tuần
             │                                               │
             │                                 [ 🐝 STRANDS MULTI-AGENT SWARM ]
             │                                 ├── CategorizationAgent
@@ -96,17 +96,16 @@ $$\text{Path} = \begin{cases}
 #### 2.2. Fast Path (System 1 / Kev Decision Model)
 - **Chuẩn giao tiếp TypeSafe `/v1/systemone`:** Dựa trên kiến trúc mô hình quyết định Kev, mô hình chuyên biệt phân loại ý định và độ phức tạp trước khi sinh bất kỳ từ ngữ nào.
 - **Bộ nhãn ý định cốt lõi:**
-  - *Tài chính:* `transaction.create_expense`, `transaction.create_income`, `transaction.query`, `finance.summary`, `finance.loan`.
+  - *Tài chính:* `transaction.create_expense`, `transaction.create_income`, `transaction.query`, `finance.summary`.
   - *Công việc:* `task.create`, `task.complete`, `task.delete`, `task.query`.
-  - *Tiết kiệm & Nhắc nhở:* `savings.goal`, `reminder.create`, `memory.note`.
-  - *Suy luận:* `finance.analyze_spending`, `work.plan_day`.
+  - *Suy luận:* `finance.analyze_spending`, `finance.loan_estimate`, `work.plan_day`, lập kế hoạch quỹ tiết kiệm và lời nhắc.
 - **Hiệu chuẩn xác suất Softmax Calibrated ($T = 2.35$):**
   $$P(y_i) = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}} \quad \text{với } T = 2.35$$
   Hệ số làm mềm $T=2.35$ ngăn ngừa tình trạng mô hình tự tin thái quá (overconfidence), bảo đảm chỉ những tác vụ thực sự rõ ràng ($\text{Confidence} \ge 0.65$) mới được thực thi tự động trên Fast Path.
 - **Hiệu năng:** Xử lý trong **~5–12 ms**, **0 Token LLM**, tiết kiệm hơn 85% chi phí vận hành AI.
 
 #### 2.3. Reasoning Path (System 2 / Amazon Bedrock / Ollama LLM)
-- **Kích hoạt:** Khi yêu cầu thuộc nhóm suy luận chiến lược (`finance.analyze_spending`, `work.plan_day`), khi độ phức tạp được đánh dấu `complex`, hoặc khi điểm tin cậy $< 0.65$.
+- **Kích hoạt:** Khi yêu cầu thuộc nhóm suy luận chiến lược (`finance.analyze_spending`, `finance.loan_estimate`, `work.plan_day`), cần lập kế hoạch quỹ tiết kiệm/lời nhắc, khi độ phức tạp được đánh dấu `complex`, hoặc khi điểm tin cậy $< 0.65$.
 - **Cơ chế Grounded Context Injection (Triệt tiêu 100% ảo giác số liệu):**
   LLM không bao giờ được tự bịa số liệu. Trước khi gọi LLM sinh văn bản, Decision Router tự động truy xuất snapshot dữ liệu thực tế từ DB và bơm vào prompt:
   ```json
@@ -116,7 +115,7 @@ $$\text{Path} = \begin{cases}
     "active_tasks": [ ... danh sách việc cần làm ... ]
   }
   ```
-  LLM chỉ đóng vai trò phân tích xu hướng dòng tiền sâu, dự toán khoản vay và lập kế hoạch ngày/tuần dựa trên số liệu thực tế này.
+  LLM chỉ đóng vai trò phân tích xu hướng dòng tiền sâu và lập kế hoạch dựa trên dữ liệu thực tế này. Lịch trả góp khoản vay được tính bằng calculator Python `Decimal` trên AWS Lambda; LLM chỉ được diễn giải kết quả đó.
 - **Dynamic Model Discovery:** Hệ thống hỗ trợ Amazon Bedrock trên Cloud và tự động phát hiện model cục bộ qua Ollama (`http://localhost:11434/api/tags`), ví dụ: `qwen2.5:3b` (tối ưu tiếng Việt), `gemma3:latest`, `qwen2.5-coder:14b`.
 
 #### 2.4. Tầng Phòng Thủ Zero-Trust Policy Engine

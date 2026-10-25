@@ -19,7 +19,7 @@ tags:
 related_adrs: [ADR-0001, ADR-0002, ADR-0003, ADR-0005]
 ---
 
-# ADR-0004: Thiết Lập Cơ Chế Kiểm Soát Người Dùng (Human-in-the-Loop) & 3 Chốt Phê Duyệt An Toàn (Trigger Gates)
+# ADR-0004: Human-in-the-Loop (HITL) & 3 Chốt Duyệt Cho Thao Tác Nhạy Cảm
 
 > **Y-Statement:** Trong ngữ cảnh OnisAgent ứng dụng kiến trúc Dual-Path kết hợp Multi-Agent Swarm để tự động phân loại giao dịch, dự toán khoản vay trả góp dư nợ giảm dần, khởi tạo quỹ tiết kiệm và sắp xếp công việc, đối mặt với rủi ro sai lệch tự nhiên của AI và yêu cầu bảo vệ tuyệt đối dữ liệu tài chính/công việc cá nhân, chúng tôi quyết định thiết lập **Cơ chế Kiểm soát Người dùng (Human-in-the-Loop - HITL)** theo triết lý **"AI đề xuất, Người dùng quyết định" (AI Proposes, Human Disposes)** thông qua **3 Chốt Phê Duyệt An Toàn (Trigger Gates)** cụ thể:
 > 1. **Gate 1 - Khởi tạo Khoản Vay hoặc Quỹ Tiết Kiệm Mới:** Bắt buộc người dùng bấm xác nhận trực tiếp trước khi áp dụng lịch trả góp khoản vay dư nợ giảm dần hoặc khởi tạo mục tiêu tiết kiệm mới vào DynamoDB.
@@ -68,7 +68,7 @@ Thiết lập nguyên tắc **"AI Proposes, Human Disposes"**: AI Agent chỉ đ
 ```
 
 #### 2.1. Gate 1 - Xác Nhận Áp Dụng Lịch Trả Góp Khoản Vay hoặc Quỹ Tiết Kiệm Mới (Loan Schedule & Savings Goal Gate)
-- **Kịch bản:** Khi `FinancialAdvisoryAgent` hoàn thành tính toán dự toán khoản vay trả góp dư nợ giảm dần bằng Python `Decimal` (Ví dụ: vay 50 triệu trong 12 tháng lãi 10%/năm, mỗi tháng trả 4.395.794 đ) hoặc đề xuất một mục tiêu tiết kiệm mới (Ví dụ: *"Quỹ mua laptop 35 triệu"*).
+- **Kịch bản:** Khi `FinancialAdvisoryAgent` hoàn thành tính toán dự toán khoản vay trả góp dư nợ giảm dần bằng Python `Decimal` (ví dụ: vay 50 triệu trong 12 tháng lãi 10%/năm, khoản trả thông thường 4.395.794 đ và kỳ cuối được điều chỉnh theo dư nợ) hoặc đề xuất một mục tiêu tiết kiệm mới (Ví dụ: *"Quỹ mua laptop 35 triệu"*).
 - **Cơ chế kiểm soát:**
   1. Hệ thống chuyển sang trạng thái chờ phê duyệt `Pending Approval State`.
   2. Giao diện (Streamlit/Web Dashboard) dựng thẻ trực quan hiển thị đầy đủ bảng lịch trả góp gốc + lãi từng tháng hoặc mục tiêu tiết kiệm kèm thanh tiến độ dự kiến.

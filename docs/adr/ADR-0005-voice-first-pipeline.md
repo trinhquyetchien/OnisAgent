@@ -41,6 +41,7 @@ Thiết lập phương thức tương tác **Voice-First tiếng Việt tự nhi
 - **Chiều Vào (Inbound Speech):** Cho phép người dùng nói 1 câu tiếng Việt duy nhất (*"Chi 45k ăn phở"*, *"Thêm task hoàn thiện slide họp 9h sáng mai"*), hệ thống tự động nhận dạng, chuẩn hóa số từ tiếng Việt và định tuyến vào lõi AI Dual-Path.
 - **Chiều Ra (Outbound Speech):** Phản hồi bằng giọng đọc tiếng Việt mượt mà (Neural TTS) với câu thoại súc tích, ngắn gọn, đi thẳng vào kết quả trong thời gian thực.
 - **Tối ưu Độ trễ Toàn trình:** Đảm bảo toàn bộ chu trình từ lúc người dùng dứt lời đến khi nghe thấy giọng đọc phản hồi diễn ra trong vòng **dưới hoặc bằng 2 giây** ($\le 2$ giây).
+- **Định tuyến theo ý định:** Sau STT, thao tác lặp lại và rõ ràng (thêm thu chi, tạo task, xem số dư) có thể đi Fast Path; phân tích dòng tiền và dự toán khoản vay đi Reasoning Path. Phép tính tiền tệ ở cả hai luồng luôn dùng Python `Decimal`.
 
 ---
 

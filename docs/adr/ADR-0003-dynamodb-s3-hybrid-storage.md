@@ -19,7 +19,7 @@ tags:
 related_adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0005]
 ---
 
-# ADR-0003: Lựa chọn Cấu trúc Lưu trữ Dữ liệu Lai Amazon DynamoDB và Amazon S3 & Cơ chế Đồng bộ Cục bộ
+# ADR-0003: DynamoDB Schema (Transactions, Tasks, Sessions, SavingsGoals) & S3 Blob Storage
 
 > **Y-Statement:** Trong ngữ cảnh OnisAgent cần quản lý song song dữ liệu có cấu trúc tần suất cao (giao dịch thu/chi, nhiệm vụ công việc, mục tiêu tiết kiệm, bộ nhớ phiên và nhật ký telemetry) và dữ liệu phi cấu trúc (ảnh chụp hóa đơn, file đệm âm thanh giọng nói tạm thời Temp Audio), đồng thời hỗ trợ phát triển thử nghiệm/offline không cần AWS credentials, chúng tôi quyết định sử dụng **Amazon DynamoDB** làm CSDL NoSQL cốt lõi gồm 4 bảng chuyên biệt (`Transactions`, `Tasks`, `Sessions`, `SavingsGoals`), kết hợp **Amazon S3** làm Blob Storage lưu trữ hóa đơn và đệm âm thanh tạm thời (với Lifecycle Rule tự động dọn dẹp sau 24–48h), đồng thời thiết lập **Cơ chế Đồng bộ Cục bộ (Local Sync Fallback)** qua file `data/onis_db.json` và SQLite, chấp nhận sự đánh đổi về việc phải quản lý ánh xạ khóa tham chiếu (S3 Object Key) và duy trì lớp trừu tượng repository hai chế độ (Cloud vs Local).
 
@@ -135,8 +135,9 @@ Tất cả các bảng đều sử dụng `user_id` làm Partition Key (PK) đ�
 #### 2.3. Cơ Chế Đồng Bộ Cục Bộ (Local Sync Fallback)
 Nhằm hỗ trợ quá trình phát triển, kiểm thử unit test và chế độ chạy ngoại tuyến (offline-first):
 - **Tệp dữ liệu cục bộ `data/onis_db.json`:**
-  - Định dạng JSON phân cấp cấu trúc tương đương 4 bảng DynamoDB (`transactions`, `tasks`, `savings_goals`, `sessions`, `telemetry`).
+  - Định dạng JSON phân cấp phản chiếu 4 nhóm dữ liệu DynamoDB: `transactions`, `tasks`, `sessions` và `savings_goals`; telemetry thuộc dữ liệu phiên, không phải bảng nghiệp vụ thứ năm.
   - Được quản lý bởi lớp trừu tượng `src/database/local_storage.py`.
+- **Nhắc nhở và cảnh báo bất thường:** Được tạo từ hạn mục tiêu trong `SavingsGoals` và dữ liệu giao dịch trong `Transactions`; không tạo thêm bảng DynamoDB nghiệp vụ.
 - **Cơ chế chuyển đổi trong suốt (Transparent Repository Pattern):**
   - Cấu hình qua biến môi trường `DATA_SOURCE=dynamodb` hoặc `DATA_SOURCE=json`.
   - Khi không có AWS credentials hoặc mất kết nối mạng, hệ thống tự động fallback sang `local_storage.py` mà không làm thay đổi bất kỳ logic nghiệp vụ nào của các Agent hay Tools.
@@ -194,4 +195,3 @@ Quyết định kiến trúc này cần được đánh giá lại khi:
 ---
 
 Nhận xét cuối cùng: Kiến trúc lưu trữ lai DynamoDB + S3 kết hợp cơ chế Local Sync qua `data/onis_db.json` mang lại sự cân bằng lý tưởng giữa khả năng mở rộng không giới hạn của Cloud Serverless và tính tiện lợi, độc lập của môi trường phát triển cục bộ.
-
