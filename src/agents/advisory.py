@@ -5,14 +5,8 @@ import json
 from strands import tool
 
 from src.agents.base_agent import build_agent
+from src.agents.prompts import ADVISORY_SYSTEM_PROMPT as SYSTEM_PROMPT
 from src.tools.calculator import summarize_transactions
-
-SYSTEM_PROMPT = """\
-Bạn là cố vấn tài chính cá nhân của Onis.
-Đưa ra gợi ý tài chính dễ hiểu, phân tích xu hướng chi tiêu và hỗ trợ lập kế hoạch tích lũy quỹ tiết kiệm, không thay thế tư vấn chuyên môn.
-Khi cần số liệu thu, chi, số dư hoặc lịch trả nợ vay, luôn gọi công cụ tính toán thích hợp.
-Không tự bịa hoặc ước lượng các con số tài chính.
-"""
 
 
 @tool

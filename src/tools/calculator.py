@@ -99,14 +99,10 @@ def calculate_loan_amortization(
 
     if monthly_rate == 0:
         monthly_payment = (p / Decimal(m)).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-        total_payment = p
-        total_interest = Decimal("0")
     else:
         factor = (Decimal("1") + monthly_rate) ** m
         raw_pmt = (p * monthly_rate * factor) / (factor - Decimal("1"))
         monthly_payment = raw_pmt.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-        total_payment = monthly_payment * Decimal(m)
-        total_interest = total_payment - p
 
     schedule = []
     balance = p
@@ -128,6 +124,15 @@ def calculate_loan_amortization(
             "interest": interest_payment,
             "remaining_balance": balance,
         })
+
+    total_payment = sum(
+        (item["payment"] for item in schedule),
+        start=Decimal("0"),
+    )
+    total_interest = sum(
+        (item["interest"] for item in schedule),
+        start=Decimal("0"),
+    )
 
     return {
         "principal": p,
