@@ -55,7 +55,7 @@ OnisAgent vận hành trên mô hình nhận thức hai luồng lấy cảm hứ
   • Độ trễ: ~5 – 12 ms                          • Độ trễ: ~300 – 800 ms
   • Chi phí: 0 Token LLM                        • Ngữ cảnh: Grounded Context (0% ảo giác)
   • Tác vụ: Ghi nhận thu chi, tạo task,         • Tác vụ: Phân tích xu hướng dòng tiền sâu,
-    xem số dư, tính toán trả góp khoản vay        dự toán khoản vay, lập kế hoạch ngày/tuần
+    xem số dư                                  dự toán khoản vay, lập kế hoạch ngày/tuần
             │                                               │
             │                                 [ 🐝 STRANDS MULTI-AGENT SWARM ]
             │                                 ├── CategorizationAgent
@@ -73,11 +73,11 @@ OnisAgent vận hành trên mô hình nhận thức hai luồng lấy cảm hứ
 ```
 
 ### 🧭 Cơ Chế Decision Router
-- **Fast Path (System 1 / Kev Decision Model):** Xử lý phản xạ tức thì (**~5–12 ms**, **0 Token LLM**) cho 85% tác vụ lặp lại (thêm thu chi, tạo task, xem số dư, tính toán khoản vay). Kích hoạt khi độ phức tạp là `simple` và điểm tin cậy Softmax Calibrated ($T=2.35$) đạt $\ge 0.65$.
-- **Reasoning Path (System 2 / Amazon Bedrock / Ollama LLM):** Kích hoạt cho các truy vấn phức tạp hoặc mơ hồ. Áp dụng kỹ thuật **Grounded Context Injection** – toàn bộ số liệu bắt buộc phải được tính sẵn bằng Python `Decimal` trước khi LLM sinh văn bản phản hồi.
+- **Fast Path (System 1 / Kev Decision Model):** Xử lý phản xạ tức thì (**~5–12 ms**, **0 Token LLM**) cho khoảng 85% tác vụ lặp lại (thêm thu chi, tạo task, xem số dư). Kích hoạt khi độ phức tạp là `simple` và điểm tin cậy Softmax Calibrated ($T=2.35$) đạt $\ge 0.65$.
+- **Reasoning Path (System 2 / Amazon Bedrock / Ollama LLM):** Phân tích dòng tiền sâu, dự toán khoản vay và lập kế hoạch ngày/tuần. Áp dụng kỹ thuật **Grounded Context Injection** – mọi số liệu tài chính phải do Python `Decimal` tính trước (bao gồm calculator chạy trên AWS Lambda) rồi mới được dùng để diễn giải.
 - **Multi-Agent Swarm (Strands Agents SDK):** Phân chia 3 Sub-Agents chuyên trách:
-  1. `CategorizationAgent`: Tự động đọc và phân loại thu/chi từ câu thoại hoặc ảnh hóa đơn (OCR).
-  2. `FinancialAdvisoryAgent`: Phân tích sâu xu hướng dòng tiền, tư vấn nạp quỹ tiết kiệm và phân tích khoản vay.
+  1. `CategorizationAgent`: Tự động trích xuất và phân loại thu/chi từ câu thoại tiếng Việt, văn bản hoặc nội dung OCR của ảnh hóa đơn.
+  2. `FinancialAdvisoryAgent`: Phân tích xu hướng dòng tiền, dự toán khoản vay, hỗ trợ lập mục tiêu tiết kiệm có thời hạn và cảnh báo biến động bất thường.
   3. `TaskManagerAgent`: Quản lý công việc, xây dựng Ma trận Ưu tiên Động và lập kế hoạch ngày/tuần.
 
 ---
@@ -145,20 +145,20 @@ flowchart TB
 
 ## 💎 Bộ 3 Tính Năng Tài Chính Cốt Lõi & Quản Lý Công Việc
 
-### 1. 💰 Quản Lý & Phân Loại Thu Chi Tự Động (Automated Cash Flow)
-- Đọc hiểu câu thoại tự nhiên tiếng Việt: *"Sáng nay ăn phở hết 45k"*, *"Đổ xăng 50k"*, *"Nhận lương 20 triệu"*.
-- Đọc và trích xuất dữ liệu tự động từ ảnh chụp hóa đơn/biên lai mua sắm.
+### 1. 💰 Ghi Nhận & Phân Loại Thu Chi Tự Động (Automated Cash Flow)
+- Tự động trích xuất mô tả, số tiền và danh mục từ câu thoại tiếng Việt, văn bản người dùng nhập hoặc nội dung OCR từ ảnh hóa đơn/biên lai.
+- Không tự suy đoán trường dữ liệu chưa rõ; yêu cầu người dùng bổ sung khi cần.
 - Truy vấn số dư sổ cái và phân tích xu hướng dòng tiền trực quan.
 
 ### 2. 🧮 Máy Tính Khoản Vay Dư Nợ Giảm Dần (Loan Amortization Calculator)
 - Minh chứng tuyệt đối cho triết lý *"Models reason, software computes"*: Sử dụng mã nguồn Python `Decimal` thuần túy thực thi trên **AWS Lambda**, bảo đảm độ chính xác số học **100%**, loại bỏ hoàn toàn sai số dấu phẩy động (`float`) và nguy cơ ảo giác từ LLM.
 - Tự động lập lịch trả góp gốc + lãi hàng tháng, tính tổng lãi phải trả theo thời hạn vay và lãi suất thực tế:
   $$\text{Niên kim hàng tháng } (PMT) = P \times \frac{r(1+r)^n}{(1+r)^n - 1}$$
-- *Ví dụ mẫu:* Vay 50.000.000 đ trong 12 tháng lãi suất 10%/năm $\rightarrow$ Mỗi tháng trả cố định 4.395.794 đ; Tổng lãi: 2.749.528 đ.
+- *Ví dụ mẫu:* Vay 50.000.000 đ trong 12 tháng lãi suất 10%/năm $\rightarrow$ 11 kỳ đầu trả 4.395.794 đ, kỳ cuối được điều chỉnh theo số dư còn lại thành 4.395.799 đ; tổng thanh toán 52.749.533 đ, tổng lãi 2.749.533 đ.
 
 ### 3. 🎯 Quỹ Tiết Kiệm & Lời Nhắc Thông Minh (Savings Goals & Smart Reminders)
-- Khởi tạo các mục tiêu tích lũy có hạn chót (Ví dụ: *"Mua laptop 35 triệu trước tháng 12"*).
-- Theo dõi tiến độ nạp quỹ trực quan theo phần trăm (%), cập nhật số dư mục tiêu và tự động kích hoạt lời nhắc nhở định kỳ.
+- Khởi tạo mục tiêu tích lũy có số tiền và thời hạn (Ví dụ: *"Mua laptop 35 triệu trước tháng 12"*).
+- Theo dõi tiến độ, đề xuất lời nhắc theo hạn mục tiêu và chủ động cảnh báo khi phát hiện biến động thu chi bất thường; người dùng quyết định hành động tiếp theo.
 
 ### 4. 📝 Quản Lý Công Việc & Ma Trận Ưu Tiên Động (Tasks & Dynamic Priority Matrix)
 - Khởi tạo, cập nhật tiến độ, tick hoàn thành công việc từ câu thoại giọng nói tiếng Việt.
@@ -169,7 +169,7 @@ flowchart TB
 ## 🛡️ Chốt Kiểm Soát Human-in-the-Loop (3 Trigger Gates)
 
 Theo nguyên tắc **"AI đề xuất, Người dùng quyết định" (AI Proposes, Human Disposes)**, OnisAgent bắt buộc người dùng bấm xác nhận trực tiếp trước các thao tác:
-1. **Gate 1 - Xác Nhận Lịch Trả Góp / Quỹ Tiết Kiệm Mới:** Bắt buộc bấm xác nhận trước khi áp dụng lịch trả góp khoản vay hoặc ghi nhận mục tiêu tiết kiệm vào CSDL.
+1. **Gate 1 - Xác Nhận Lịch Trả Góp / Quỹ Tiết Kiệm Mới:** Bắt buộc bấm xác nhận trước khi áp dụng lịch trả góp khoản vay hoặc ghi nhận mục tiêu tiết kiệm vào CSDL. Cảnh báo bất thường chỉ là thông tin để người dùng xem xét, không tự tạo giao dịch hay thay đổi dữ liệu.
 2. **Gate 2 - Đính Chính Phân Loại (Re-classification):** Lưu vết `Correction History` cô lập theo `user_id` mỗi khi người dùng sửa đổi danh mục do AI đề xuất, làm dữ liệu ngữ cảnh tinh chỉnh cá nhân hóa trong tương lai.
 3. **Gate 3 - Thao Tác Rủi Ro Cao (`write_high`):** Chặn đứng tự động và kích hoạt cảnh báo 2 lớp khi phát hiện thao tác sửa đổi số dư ban đầu hoặc xóa công việc hàng loạt.
 
@@ -201,47 +201,36 @@ Theo nguyên tắc **"AI đề xuất, Người dùng quyết định" (AI Propo
 
 ```text
 OnisAgent/
-├── README.md                                   # Tài liệu dự án chuẩn hóa 100%
-├── PRESENTATION_SLIDES.md                      # Slide Pitch Deck thuyết trình & Speaker Notes
-├── requirements.txt                            # Thư viện phụ thuộc Python
-├── .env.example                                # Cấu hình biến môi trường mẫu
-├── .gitignore
 ├── data/
-│   ├── sample_transactions_onis.csv            # 30 giao dịch mẫu đối soát
-│   └── categories_config.json                  # Cấu hình danh mục thu chi
-├── docs/
-│   └── adr/                                    # Bộ hồ sơ quyết định kiến trúc chuẩn
-│       ├── README.md                           # Tổng quan và ma trận ADRs
-│       ├── ADR-0001-decimal-money-calculation.md
-│       ├── ADR-0002-dual-path-architecture-swarm.md
-│       ├── ADR-0003-dynamodb-s3-hybrid-storage.md
-│       ├── ADR-0004-human-in-the-loop-workflow.md
-│       └── ADR-0005-voice-first-pipeline.md
+│   ├── raw/kev_dataset_raw.jsonl
+│   ├── clean/kev_dataset_clean.jsonl
+│   └── splits/kev_{train,val,test}.jsonl
+├── models/checkpoints/.gitkeep                 # Model weights/checkpoints are gitignored
+├── scripts/
+│   ├── data_prep/                              # Cleaning and deterministic splitting
+│   └── training/                               # Training and evaluation entry points
 ├── src/
-│   ├── config.py                               # Quản lý cấu hình hệ thống
+│   ├── models/kev/                             # Dataset formatter and inference adapter
 │   ├── agents/                                 # Multi-Agent Swarm (Strands SDK)
-│   │   ├── base_agent.py                       # Agent cơ sở tích hợp Bedrock
-│   │   ├── categorization.py                   # CategorizationAgent
-│   │   ├── analysis.py                         # Cash-flow analysis agent
-│   │   └── advisory.py                         # FinancialAdvisoryAgent
-│   ├── tools/                                  # Công cụ tính toán xác định
-│   │   ├── calculator.py                       # Python Decimal Math (Loan Amortization, Balance)
-│   │   └── lambda_handlers/                    # AWS Lambda adapters
-│   │       ├── calculate_balance.py            # Lambda handler tính dòng tiền
-│   │       └── calculate_loan.py               # Lambda handler tính khoản vay dư nợ giảm dần
-│   ├── database/                               # Tầng lưu trữ lai
-│   │   ├── dynamodb_client.py                  # Client kết nối DynamoDB
-│   │   └── local_storage.py                    # Fallback CSDL cục bộ (onis_db.json)
-│   └── utils/
-│       ├── data_parser.py                      # Xử lý tiếng Việt & tiếng lóng
-│       └── logger.py                           # Kev telemetry & system logging
-├── app/                                        # Giao diện người dùng
-│   ├── main.py                                 # Streamlit / Web UI chính
-│   └── components/                             # Các thành phần giao diện
-└── tests/                                      # Bộ kiểm thử tự động
-    ├── test_tools.py                           # 8/8 Unit tests cho Decimal & Loan Amortization
-    └── test_agents.py                          # Unit tests cấu hình Agent
+│   ├── tools/                                  # Deterministic calculations and Lambda handlers
+│   ├── database/                               # DynamoDB and local storage
+│   └── utils/                                  # Parsing and logging
+├── docs/adr/                                   # Architecture Decision Records
+├── app/                                        # Streamlit UI
+└── tests/                                      # Unit tests
 ```
+
+Kev scripts live under `scripts/data_prep/`; generated splits are written to `data/splits/`. The `train_kev.py` and `eval_kev.py` entry points use explicit framework/model adapters because this repository does not currently select or depend on a fine-tuning framework or model backbone.
+
+Dataset preparation and formatting commands:
+
+```powershell
+python -m scripts.data_prep.clean_dataset
+python -m scripts.data_prep.split_dataset
+python -m src.models.kev.dataset_formatter --format unsloth --output data/splits/kev_train_unsloth.jsonl
+```
+
+The formatter also supports `llama_factory` (Alpaca) and `ollama` (chat JSONL interchange; Ollama does not fine-tune directly from JSONL). Source files are not changed, and existing outputs are not overwritten unless `--overwrite` is explicitly supplied.
 
 ---
 
@@ -275,9 +264,11 @@ Copy-Item .env.example .env
 ### 3. Chạy Kiểm Thử Tự Động (Unit Tests)
 
 ```powershell
-# Chạy toàn bộ bài kiểm thử logic tiền tệ Decimal (8/8 Pass 100%)
+# Chạy toàn bộ bài kiểm thử (bao gồm số dư sổ cái, lịch vay Decimal và Lambda adapter)
 .\.venv\Scripts\python.exe -m pytest tests/test_tools.py
 ```
+
+Training requires a chosen framework adapter (`module:callable`) and base model; no model is downloaded and no training is started by the project setup scripts.
 
 ### 4. Khởi Chạy Ứng Dụng Web
 
