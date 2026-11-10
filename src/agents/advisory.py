@@ -5,14 +5,8 @@ import json
 from strands import tool
 
 from src.agents.base_agent import build_agent
+from src.agents.prompts import ADVISORY_SYSTEM_PROMPT as SYSTEM_PROMPT
 from src.tools.calculator import summarize_transactions
-
-SYSTEM_PROMPT = """\
-Bạn là cố vấn tài chính cá nhân của Onis.
-Đưa ra gợi ý dễ hiểu theo quy tắc 50/30/20, không thay thế tư vấn chuyên môn.
-Khi cần số liệu thu, chi hoặc số dư, luôn gọi công cụ calculate_cash_flow.
-Không tự bịa hoặc ước lượng các con số tài chính.
-"""
 
 
 @tool
