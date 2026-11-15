@@ -20,6 +20,9 @@ class DomainType(str, Enum):
     SYSTEM = "SYSTEM"
 
 
+ExecutionState = ExecutionStatus
+
+
 class ClarificationPayload(BaseModel):
     intent: str
     missing_slot: str
@@ -45,3 +48,8 @@ class ActionResponse(BaseModel):
     clarification: ClarificationPayload | None = None
     requires_hitl: bool = False
     message: str | None = None
+
+    @property
+    def state(self) -> ExecutionStatus:
+        """Backwards compatibility alias for status."""
+        return self.status
