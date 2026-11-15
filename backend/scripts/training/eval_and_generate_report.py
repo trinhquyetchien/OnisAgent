@@ -10,6 +10,9 @@ Generates interactive, presentation-ready HTML report at:
 
 import json
 from pathlib import Path
+from datetime import datetime
+import glob
+import re
 import joblib
 import numpy as np
 from sklearn.metrics import (
@@ -25,7 +28,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 MODEL_PATH = PROJECT_ROOT / "models" / "checkpoints" / "kev" / "kev_intent_model.joblib"
 SPLITS_DIR = PROJECT_ROOT / "data" / "splits"
 REPORT_DIR = PROJECT_ROOT / "models" / "reports"
+HISTORY_DIR = REPORT_DIR / "history"
 REPORT_DIR.mkdir(parents=True, exist_ok=True)
+HISTORY_DIR.mkdir(parents=True, exist_ok=True)
 
 INTERNAL_TEST_FILE = SPLITS_DIR / "kev_test.jsonl"
 EXTERNAL_TEST_FILE = SPLITS_DIR / "external_eval_benchmark.jsonl"
@@ -340,11 +345,27 @@ def generate_html_report(internal_res, external_res, labels):
 </body>
 </html>
 """
+    # Determine version and timestamp
+    existing_reports = list(HISTORY_DIR.glob("kev_evaluation_v*.html"))
+    max_v = 0
+    for p in existing_reports:
+        m = re.search(r"kev_evaluation_v(\d+)_", p.name)
+        if m:
+            max_v = max(max_v, int(m.group(1)))
+    new_v = max_v + 1
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    versioned_filename = f"kev_evaluation_v{new_v}_{timestamp_str}.html"
+    versioned_path = HISTORY_DIR / versioned_filename
+
     with HTML_OUTPUT_FILE.open("w", encoding="utf-8") as f:
         f.write(html_content)
 
+    with versioned_path.open("w", encoding="utf-8") as f:
+        f.write(html_content)
+
     print(f"\n🌟 BÁO CÁO HTML ĐẸP MẮT ĐÃ ĐƯỢC XUẤT THÀNH CÔNG TẠI:")
-    print(f"  👉 {HTML_OUTPUT_FILE}")
+    print(f"  👉 Bản mới nhất (Latest): {HTML_OUTPUT_FILE}")
+    print(f"  👉 Lưu trữ lịch sử (v{new_v}): {versioned_path}")
 
 
 def main():
