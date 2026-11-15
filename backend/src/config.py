@@ -18,6 +18,9 @@ class Settings:
     user_id: str
     data_source: str
     sample_data_path: Path
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_model: str = "qwen2.5:3b"
+    reasoning_provider: str = "ollama"
 
 
 def load_settings() -> Settings:
@@ -37,4 +40,7 @@ def load_settings() -> Settings:
         user_id=os.getenv("USER_ID", "demo").strip(),
         data_source=data_source,
         sample_data_path=sample_path,
+        ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").strip(),
+        ollama_model=os.getenv("OLLAMA_MODEL", "qwen2.5:3b").strip(),
+        reasoning_provider=os.getenv("REASONING_PROVIDER", "ollama").strip().lower(),
     )

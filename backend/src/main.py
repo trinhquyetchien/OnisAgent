@@ -20,6 +20,7 @@ import joblib
 import numpy as np
 from pydantic import BaseModel, Field
 
+from src.agents.ollama_client import ollama_client
 from src.engine.response_templates import (
     format_currency,
     template_finance_balance,
@@ -375,7 +376,18 @@ def classify_intent(request: ClassifyRequest):
     confidence = float(probs[best_idx])
     latency_ms = (time.perf_counter() - start) * 1000
 
-    route = "FAST_PATH" if confidence >= CONFIDENCE_THRESHOLD else "REASONING_PATH"
+    # If intent belongs to Reasoning Path OR confidence is lower than threshold
+    REASONING_INTENTS = {
+        "finance.financial_report",
+        "task.plan_schedule",
+        "cross.plan_expense_task",
+        "finance.budget_plan",
+    }
+    is_reasoning_intent = (intent in REASONING_INTENTS)
+    if is_reasoning_intent or confidence < CONFIDENCE_THRESHOLD:
+        route = "REASONING_PATH"
+    else:
+        route = "FAST_PATH"
     raw_slots = parse_slots_from_text(request.text, intent)
 
     return ClassifyResponse(
@@ -419,7 +431,18 @@ def chat(request: ChatRequest):
     else:
         active_intent = detected_intent
 
-    route = "FAST_PATH" if confidence >= CONFIDENCE_THRESHOLD else "REASONING_PATH"
+    # If intent belongs to Reasoning Path OR confidence is lower than threshold
+    REASONING_INTENTS = {
+        "finance.financial_report",
+        "task.plan_schedule",
+        "cross.plan_expense_task",
+        "finance.budget_plan",
+    }
+    is_reasoning_intent = (active_intent in REASONING_INTENTS)
+    if is_reasoning_intent or confidence < CONFIDENCE_THRESHOLD:
+        route = "REASONING_PATH"
+    else:
+        route = "FAST_PATH"
 
     # 2. Extract raw slots from user input
     extracted_slots = parse_slots_from_text(request.text, active_intent)
@@ -453,7 +476,7 @@ def chat(request: ChatRequest):
     }
 
     # 4. Handle response states
-    if action_res.status == ExecutionStatus.NEED_CLARIFICATION:
+    if action_res.status == ExecutionStatus.NEED_CLARIFICATION and route == "FAST_PATH":
         clar = action_res.clarification
         msg = clar.message if clar else "Vui lòng cung cấp thêm thông tin."
         return ChatResponse(
@@ -486,6 +509,48 @@ def chat(request: ChatRequest):
             data=None,
             requires_hitl=True,
             latency_ms=latency_ms,
+        )
+
+    # 5. Reasoning Path (System 2: Ollama Local LLM)
+    if route == "REASONING_PATH":
+        reasoning_context = {
+            "intent": active_intent,
+            "confidence": round(confidence, 4),
+            "slots": serializable_slots,
+            "current_balance": 18450000,
+            "monthly_income": 20000000,
+            "monthly_expense": 11000000,
+            "pending_tasks": [
+                {"title": "Hoàn thiện tài liệu OnisAgent", "due": "11:30 hôm nay", "priority": "urgent"},
+                {"title": "Họp nhóm AI4Life", "due": "14:00 hôm nay", "priority": "high"},
+            ],
+            "debts": {
+                "others_owe_me": 700000,
+                "i_owe_others": 150000,
+            },
+        }
+
+        llm_reply = ollama_client.generate_reasoning_response(
+            prompt=request.text,
+            context=reasoning_context,
+        )
+
+        reasoning_chips = ["Xem báo cáo chi tiết", "Lập kế hoạch hành động", "Đặt mục tiêu tài chính"]
+        total_latency_ms = round((time.perf_counter() - start) * 1000, 2)
+
+        return ChatResponse(
+            session_id=request.session_id,
+            intent=action_res.intent,
+            confidence=round(confidence, 4),
+            route="REASONING_PATH",
+            status="READY",
+            message=llm_reply,
+            reply=llm_reply,
+            quick_replies=reasoning_chips,
+            slots=serializable_slots,
+            data={"reasoning_context": reasoning_context, "provider": "ollama", "model": ollama_client.model},
+            requires_hitl=False,
+            latency_ms=total_latency_ms,
         )
 
     # Status is READY -> Execute deterministic action
