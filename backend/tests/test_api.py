@@ -163,3 +163,28 @@ def test_chat_query_debt(client):
     assert data2["intent"] == "finance.query_debt"
     assert "Tuấn" in data2["message"]
     assert "200.000₫" in data2["message"]
+
+
+def test_chat_task_query_today(client):
+    """Test task.query_today returns 3 actionable tasks and action chips."""
+    res = client.post("/api/v1/chat", json={"text": "Hôm nay tôi có những việc gì cần làm"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["intent"] in ["task.query_today", "task.query"]
+    assert data["status"] == "READY"
+    assert "Hôm nay bạn có 3 công việc cần làm" in data["message"]
+    assert "Hoàn thiện tài liệu kiến trúc OnisAgent" in data["message"]
+    assert "Thêm việc mới" in data["quick_replies"]
+    assert data["data"]["count"] == 3
+
+
+def test_chat_task_query_deadline(client):
+    """Test task.query_deadline returns urgent deadlines within 48h."""
+    res = client.post("/api/v1/chat", json={"text": "Kiểm tra hạn chót deadline sắp tới"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["intent"] == "task.query_deadline"
+    assert data["status"] == "READY"
+    assert "Cảnh báo hạn chót (Deadline)" in data["message"]
+    assert "Đã làm xong" in data["quick_replies"]
+    assert data["data"]["count"] == 2
