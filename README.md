@@ -149,6 +149,7 @@ Dự án được tổ chức theo mô hình **Monorepo** chuẩn mực, phân t
 ```
 OnisAgent/
 ├── backend/                           # ⚙️ Python Backend, Kev Model & Multi-Agent Engine
+│   ├── docs/                          # 🎯 Tài liệu đặc tả độc lập (intent_catalog.md,...)
 │   ├── src/                           # Source code nghiệp vụ
 │   │   ├── schemas/                   # Pydantic V2 Schemas (base, finance, task)
 │   │   ├── engine/                    # SlotValidator & Multi-turn SessionManager
@@ -177,7 +178,6 @@ OnisAgent/
 │   └── test/                          # Widget tests
 │
 ├── docs/                              # 📚 Tài liệu dự án
-│   ├── intent_catalog.md              # 🎯 Đặc tả chi tiết toàn bộ Intent & Slot Schema
 │   └── adr/                           # Hệ thống Architecture Decision Records (ADR-0001 -> ADR-0006)
 │       ├── ADR-0001-decimal-money-calculation.md
 │       ├── ADR-0002-dual-path-architecture-swarm.md

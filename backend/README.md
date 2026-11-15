@@ -108,7 +108,7 @@ Hệ thống tuân thủ nghiêm ngặt 6 quyết định kiến trúc chuẩn h
 ## 3. Bản Đặc Tả Toàn Bộ Intent & Slot Schema (Full Intent-Slot Matrix)
 
 Toàn bộ các Schema được định nghĩa bằng **Pydantic V2** với cơ chế xác thực trường kiểu dữ liệu nghiêm ngặt.
-👉 *Xem tài liệu đặc tả đầy đủ kèm 100+ mẫu câu tiếng Việt tại: [docs/intent_catalog.md](file:///home/trinhquyetchien/Projects/Main/Team/OnisAgent/docs/intent_catalog.md)*.
+👉 *Xem tài liệu đặc tả đầy đủ kèm 100+ mẫu câu tiếng Việt tại: [docs/intent_catalog.md](docs/intent_catalog.md)*.
 
 ### 💰 3.1. Miền Tài Chính (Finance Domain – Tiền tố `finance.*`)
 
