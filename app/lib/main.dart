@@ -157,7 +157,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 ],
               ),
             ),
-            Expanded(child: pages[_selectedIndex]),
+            Expanded(
+              child: IndexedStack(
+                index: _selectedIndex,
+                children: pages,
+              ),
+            ),
           ],
         ),
       );
@@ -167,7 +172,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         appBar: AppBar(
           title: const Text('OnisAgent', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
-        body: pages[_selectedIndex],
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: pages,
+        ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _selectedIndex,
           onDestinationSelected: (index) => setState(() => _selectedIndex = index),

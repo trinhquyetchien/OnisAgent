@@ -35,14 +35,17 @@ class AssistantScreen extends StatefulWidget {
   State<AssistantScreen> createState() => _AssistantScreenState();
 }
 
-class _AssistantScreenState extends State<AssistantScreen> {
+class _AssistantScreenState extends State<AssistantScreen> with AutomaticKeepAliveClientMixin {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late final ApiService _apiService;
   bool _isLoading = false;
   bool _isListening = false;
 
-  final List<ChatMessage> _messages = [
+  @override
+  bool get wantKeepAlive => true;
+
+  static final List<ChatMessage> _persistedMessages = [
     ChatMessage(
       text: 'Chào bạn! Mình là trợ lý Onis AI. Bạn có thể ra lệnh ghi nhận thu/chi, tạo việc cần làm hoặc hỏi đáp tài chính.',
       isUser: false,
@@ -54,6 +57,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
       quickReplies: ['Vừa ăn phở 45k', 'Tạo task làm báo cáo AI4Life', 'Số dư hiện tại'],
     ),
   ];
+
+  List<ChatMessage> get _messages => _persistedMessages;
 
   @override
   void initState() {
@@ -224,6 +229,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Column(
       children: [
         // Top Info Bar
