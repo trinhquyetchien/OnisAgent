@@ -530,12 +530,25 @@ def chat(request: ChatRequest):
             },
         }
 
+        custom_system_prompt = None
+        if active_intent == "cross.plan_expense_task":
+            custom_system_prompt = (
+                "Bạn là OnisAgent - Chuyên gia AI lập kế hoạch hành trình và phân bổ tài chính thông minh.\n"
+                "Khi người dùng đưa ra dự định đi du lịch, phượt, sự kiện hoặc mua sắm gắn ngân sách dự kiến:\n"
+                "1. Lập bảng phân bổ ngân sách ước tính chi tiết và thực tế (Ví dụ: Tiền xe/vé di chuyển, Khách sạn/lưu trú, Ăn uống trải nghiệm, Vé tham quan/hoạt động, và Quỹ dự phòng phát sinh ~10-15%).\n"
+                "2. Đưa ra danh sách các việc cần chuẩn bị (To-do / Packing list: Đặt phòng, vé xe, tư trang cần thiết, đồ dùng cá nhân).\n"
+                "3. Trình bày bằng tiếng Việt rõ ràng, dùng bullet point và emoji sinh động, tính toán khớp với tổng ngân sách dự kiến của người dùng."
+            )
+            reasoning_chips = ["Lưu kế hoạch", "Tạo ngân sách", "Thêm việc cần chuẩn bị"]
+        else:
+            reasoning_chips = ["Xem báo cáo chi tiết", "Lập kế hoạch hành động", "Đặt mục tiêu tài chính"]
+
         llm_reply = ollama_client.generate_reasoning_response(
             prompt=request.text,
+            system_prompt=custom_system_prompt,
             context=reasoning_context,
         )
 
-        reasoning_chips = ["Xem báo cáo chi tiết", "Lập kế hoạch hành động", "Đặt mục tiêu tài chính"]
         total_latency_ms = round((time.perf_counter() - start) * 1000, 2)
 
         return ChatResponse(

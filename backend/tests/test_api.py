@@ -188,3 +188,16 @@ def test_chat_task_query_deadline(client):
     assert "Cảnh báo hạn chót (Deadline)" in data["message"]
     assert "Đã làm xong" in data["quick_replies"]
     assert data["data"]["count"] == 2
+
+
+def test_chat_cross_plan_expense_task(client):
+    """Test cross.plan_expense_task routes to REASONING_PATH with Ollama planning & action chips."""
+    res = client.post("/api/v1/chat", json={"text": "tính đi đà lạt 3 ngày dự chi khoảng 3 triệu"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["intent"] == "cross.plan_expense_task"
+    assert data["route"] == "REASONING_PATH"
+    assert data["status"] == "READY"
+    assert len(data["message"]) > 50
+    assert "Lưu kế hoạch" in data["quick_replies"]
+    assert "Tạo ngân sách" in data["quick_replies"]
