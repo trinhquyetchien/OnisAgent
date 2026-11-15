@@ -45,20 +45,20 @@ class SlotValidator:
             normalized_intent = f"finance.{intent}"
             domain = DomainType.FINANCE
 
-        # ----------------- FINANCE DOMAIN -----------------
-        if normalized_intent == "finance.expense.create":
+        # Map new 32-intent naming to validation handlers
+        if normalized_intent in {"finance.expense.create", "finance.add_expense"}:
             return cls._validate_expense_create(normalized_intent, slots)
 
-        if normalized_intent == "finance.income.create":
+        if normalized_intent in {"finance.income.create", "finance.add_income"}:
             return cls._validate_income_create(normalized_intent, slots)
 
-        if normalized_intent == "finance.balance.query":
+        if normalized_intent in {"finance.balance.query", "finance.get_balance"}:
             return cls._validate_balance_query(normalized_intent, slots)
 
-        if normalized_intent == "finance.loan.calculate":
+        if normalized_intent in {"finance.loan.calculate", "finance.loan_installment_plan"}:
             return cls._validate_loan_calculate(normalized_intent, slots)
 
-        if normalized_intent == "finance.savings.create":
+        if normalized_intent in {"finance.savings.create", "finance.savings_goal"}:
             return cls._validate_savings_create(normalized_intent, slots)
 
         # ----------------- TASK DOMAIN -----------------
