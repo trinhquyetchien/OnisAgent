@@ -161,7 +161,21 @@ def parse_slots_from_text(text: str, intent: str) -> dict[str, Any]:
         elif "mẹ cho" in lower or "bố cho" in lower or "ba cho" in lower:
             slots["source"] = "Gia đình chu cấp"
 
-    # 4. Task title extraction
+    # 4. Debt Query heuristic
+    if "query_debt" in intent:
+        if any(w in lower for w in ["ai nợ", "ai vay", "ai mượn", "ai thiếu", "người ta nợ", "con nợ", "cho vay", "cho mượn"]):
+            slots["debt_type"] = "lend"
+        elif any(w in lower for w in ["tôi nợ", "tôi vay", "tôi mượn", "tôi thiếu", "mình nợ", "tao nợ"]):
+            slots["debt_type"] = "borrow"
+        else:
+            slots["debt_type"] = "all"
+
+        for name in ["tuấn", "hải", "lan", "nam", "huy", "hùng", "thảo", "hoàng", "hương", "minh", "linh", "mẹ"]:
+            if name in lower:
+                slots["person"] = name.capitalize()
+                break
+
+    # 5. Task title extraction
     if intent.startswith("task."):
         title = re.sub(
             r"^(tạo task|tạo việc|nhắc tôi|lên lịch|cần làm|thêm việc|hoàn thành|xóa task)\s*",
@@ -243,6 +257,56 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, d
     if intent in {"finance.get_balance", "finance.balance.query"}:
         msg = "Số dư hiện tại khả dụng của bạn là 18.450.000₫ (Tiền mặt: 2.100.000₫, Vietcombank: 16.350.000₫)."
         return msg, {"total_balance": 18450000, "accounts": {"cash": 2100000, "vietcombank": 16350000}}
+
+    if intent == "finance.query_debt":
+        debt_type = slots.get("debt_type", "all")
+        person = slots.get("person")
+
+        # Mock debt database record
+        lend_records = [
+            {"person": "Tuấn", "amount": 200000, "note": "Mượn tiền ăn trưa", "date": "12/11/2026"},
+            {"person": "Hải", "amount": 350000, "note": "Tiền vé xem phim + bắp nước", "date": "08/11/2026"},
+        ]
+        borrow_records = [
+            {"person": "Lan", "amount": 150000, "note": "Tiền trà sữa Gongcha", "date": "14/11/2026"},
+        ]
+
+        if person:
+            matched_lend = [r for r in lend_records if r["person"].lower() == person.lower()]
+            matched_borrow = [r for r in borrow_records if r["person"].lower() == person.lower()]
+            if matched_lend:
+                amt = sum(r["amount"] for r in matched_lend)
+                msg = f"{person} hiện đang nợ bạn {amt:,}₫ ({matched_lend[0]['note']}).".replace(",", ".")
+                return msg, {"person": person, "lend": matched_lend, "borrow": []}
+            elif matched_borrow:
+                amt = sum(r["amount"] for r in matched_borrow)
+                msg = f"Bạn đang nợ {person} {amt:,}₫ ({matched_borrow[0]['note']}).".replace(",", ".")
+                return msg, {"person": person, "lend": [], "borrow": matched_borrow}
+            else:
+                msg = f"Hiện tại bạn và {person} không có khoản nợ nào cần thanh toán."
+                return msg, {"person": person, "lend": [], "borrow": []}
+
+        if debt_type == "lend":
+            total_lend = sum(r["amount"] for r in lend_records)
+            msg = f"Có 2 người đang nợ bạn tổng cộng {total_lend:,}₫: Tuấn (200.000₫), Hải (350.000₫)."
+            msg = msg.replace(",", ".").replace("(200.000₫). Hải", "(200.000₫), Hải")
+            return msg, {"total_lend": total_lend, "records": lend_records}
+
+        if debt_type == "borrow":
+            total_borrow = sum(r["amount"] for r in borrow_records)
+            msg = f"Bạn đang nợ 1 khoản: Lan (150.000₫ - Tiền trà sữa Gongcha).".replace(",", ".")
+            return msg, {"total_borrow": total_borrow, "records": borrow_records}
+
+        # all
+        total_lend = sum(r["amount"] for r in lend_records)
+        total_borrow = sum(r["amount"] for r in borrow_records)
+        msg = (
+            f"Sổ nợ của bạn hiện có: Người khác nợ bạn {total_lend:,}₫ (Tuấn 200k, Hải 350k); "
+            f"Bạn đang nợ Lan {total_borrow:,}₫ (150k)."
+        ).replace(",", ".")
+        # Fix punctuation accidental replace: "200k. Hải" -> "200k, Hải"
+        msg = msg.replace("200k. Hải", "200k, Hải").replace("(200.000₫). Hải", "(200.000₫), Hải")
+        return msg, {"total_lend": total_lend, "total_borrow": total_borrow, "lend_records": lend_records, "borrow_records": borrow_records}
 
     if intent in {"finance.loan_installment_plan", "finance.loan.calculate"}:
         principal = slots.get("principal", 0)
@@ -442,6 +506,11 @@ def chat(request: ChatRequest):
 
     # Status is READY -> Execute deterministic action
     reply_msg, reply_data = execute_fast_path_action(action_res.intent, action_res.slots)
+    quick_replies: list[str] = []
+
+    # Provide helpful action chips for specific intents
+    if action_res.intent == "finance.query_debt":
+        quick_replies = ["Xem ai nợ tôi", "Xem tôi nợ ai", "Ghi nợ mới", "Đã trả nợ"]
 
     return ChatResponse(
         session_id=request.session_id,
@@ -451,7 +520,7 @@ def chat(request: ChatRequest):
         status="READY",
         message=reply_msg,
         reply=reply_msg,
-        quick_replies=[],
+        quick_replies=quick_replies,
         slots=serializable_slots,
         data=reply_data,
         requires_hitl=action_res.requires_hitl,

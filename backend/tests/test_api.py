@@ -20,15 +20,16 @@ def client():
 
 
 def test_health_endpoints(client):
-    """Verify health endpoints report ok status and 32 intents."""
+    """Verify health endpoints report ok status and 33 intents."""
     # Test /health
     res1 = client.get("/health")
     assert res1.status_code == 200
     data1 = res1.json()
     assert data1["status"] == "ok"
     assert data1["model_loaded"] is True
-    assert data1["supported_intents_count"] == 32
+    assert data1["supported_intents_count"] == 33
     assert "finance.add_expense" in data1["intents"]
+    assert "finance.query_debt" in data1["intents"]
     assert "task.create" in data1["intents"]
 
     # Test /api/v1/health
@@ -36,7 +37,7 @@ def test_health_endpoints(client):
     assert res2.status_code == 200
     data2 = res2.json()
     assert data2["status"] == "ok"
-    assert data2["supported_intents_count"] == 32
+    assert data2["supported_intents_count"] == 33
 
 
 def test_classify_intent_endpoint(client):
@@ -141,3 +142,24 @@ def test_chat_blocked_hitl_action(client):
     assert data["status"] == "BLOCKED"
     assert data["requires_hitl"] is True
     assert "Xác nhận" in data["quick_replies"]
+
+
+def test_chat_query_debt(client):
+    """Test finance.query_debt intent returns debt details and action chips."""
+    # General query
+    res = client.post("/api/v1/chat", json={"text": "tôi có nợ ai không"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["intent"] == "finance.query_debt"
+    assert data["status"] == "READY"
+    assert "Lan" in data["message"] or "nợ" in data["message"]
+    assert "Xem ai nợ tôi" in data["quick_replies"]
+    assert "Ghi nợ mới" in data["quick_replies"]
+
+    # Specific person query
+    res2 = client.post("/api/v1/chat", json={"text": "thằng Tuấn có nợ tôi đồng nào không"})
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["intent"] == "finance.query_debt"
+    assert "Tuấn" in data2["message"]
+    assert "200.000₫" in data2["message"]

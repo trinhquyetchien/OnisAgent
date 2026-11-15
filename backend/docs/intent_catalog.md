@@ -1,12 +1,12 @@
 # OnisAgent – Danh Mục Intent & Đặc Tả Slot Toàn Diện (Extended Intent Catalog & Slot Specification)
 
-> **Tài liệu đặc tả chuẩn hóa 27 Intent chuyên sâu cho OnisAgent Core Engine**  
+> **Tài liệu đặc tả chuẩn hóa 33 Intent chuyên sâu cho OnisAgent Core Engine**  
 > Bao quát 4 nhóm: **Miền Tài Chính (Finance)**, **Miền Công Việc & Thời Gian (Task & Schedule)**, **Giao Thoa Miền (Cross-Domain)** và **Hệ Thống (System)**.  
 > Tuân thủ các nguyên tắc [ADR-0001](file:///home/trinhquyetchien/Projects/Main/Team/OnisAgent/docs/adr/ADR-0001-decimal-money-calculation.md), [ADR-0004](file:///home/trinhquyetchien/Projects/Main/Team/OnisAgent/docs/adr/ADR-0004-human-in-the-loop-workflow.md) và [ADR-0006](file:///home/trinhquyetchien/Projects/Main/Team/OnisAgent/docs/adr/ADR-0006-domain-split-intent-slot-clarification.md).
 
 ---
 
-## 📑 Bảng Tra Cứu Toàn Bộ 27 Intent (Master Intent Catalog)
+## 📑 Bảng Tra Cứu Toàn Bộ 33 Intent (Master Intent Catalog)
 
 | STT | Domain | Mã Intent Chuẩn | Ý Nghĩa / Mục Đích | Tuyến Xử Lý | HITL Gate |
 | :---: | :---: | :--- | :--- | :---: | :---: |
@@ -16,32 +16,33 @@
 | **4** | 💰 Finance | `finance.transfer` | Chuyển tiền giữa các ví / Nạp rút ATM | **Fast Path** (~5-12ms) | None |
 | **5** | 💰 Finance | `finance.record_debt` | Ghi sổ nợ / cho mượn tiền | **Fast Path** (~5-12ms) | Gate 2 |
 | **6** | 💰 Finance | `finance.debt_repay` | Trả nợ / Ghi nhận thu nợ về | **Fast Path** (~5-12ms) | None |
-| **7** | 💰 Finance | `finance.split_bill` | Chia tiền hóa đơn nhóm / đi chơi | **Fast Path** + Decimal | None |
-| **8** | 💰 Finance | `finance.pay_bill` | Đóng tiền hóa đơn định kỳ (điện, nước, trọ) | **Fast Path** (~5-12ms) | None |
-| **9** | 💰 Finance | `finance.query_transactions` | Tra cứu / Lọc lịch sử chi tiêu theo kỳ/danh mục | **Fast Path** (~5-12ms) | None |
-| **10** | 💰 Finance | `finance.budget_plan` | Thiết lập hạn mức chi tiêu / ngân sách | **Reasoning Path** (Bedrock) | Gate 1 |
-| **11** | 💰 Finance | `finance.update_budget` | Điều chỉnh hạn mức ngân sách đã có | **Fast Path** (~5-12ms) | Gate 1 |
-| **12** | 💰 Finance | `finance.loan_installment_plan` | Dự toán bảng khấu hao trả góp khoản vay | **Fast Path** + Decimal | Gate 1 |
-| **13** | 💰 Finance | `finance.savings_goal` | Tạo quỹ tiết kiệm / mục tiêu tài chính | **Fast Path** (~5-12ms) | Gate 1 |
-| **14** | 💰 Finance | `finance.financial_report` | Báo cáo tài chính & phân tích dòng tiền sâu | **Reasoning Path** (Bedrock) | None |
-| **15** | 📋 Task | `task.create` | Thêm công việc / Việc cần làm | **Fast Path** (~5-12ms) | None |
-| **16** | 📋 Task | `task.create_recurring` | Công việc / Thói quen lặp lại chu kỳ | **Fast Path** (~5-12ms) | None |
-| **17** | 📋 Task | `task.query_today` | Danh sách công việc hôm nay / Kế hoạch ngày | **Fast Path** (~5-12ms) | None |
-| **18** | 📋 Task | `task.query_deadline` | Cảnh báo / Tra cứu hạn chót deadline gấp | **Fast Path** (~5-12ms) | None |
-| **19** | 📋 Task | `task.query_by_tag` | Lọc việc theo nhãn / dự án (AI4Life, cá nhân) | **Fast Path** (~5-12ms) | None |
-| **20** | 📋 Task | `task.query_completed` | Xem lại các công việc đã hoàn thành | **Fast Path** (~5-12ms) | None |
-| **21** | 📋 Task | `task.schedule_event` | Lịch hẹn / Cuộc họp / Sự kiện có giờ | **Fast Path** (~5-12ms) | None |
-| **22** | 📋 Task | `task.reschedule` | Dời lịch / Đổi hạn chót / Hoãn giờ | **Fast Path** (~5-12ms) | None |
-| **23** | 📋 Task | `task.plan_schedule` | Lập kế hoạch ngày/tuần (Eisenhower Matrix) | **Reasoning Path** (Bedrock) | None |
-| **24** | 📋 Task | `task.complete` | Đánh dấu hoàn thành việc | **Fast Path** (~5-12ms) | None |
-| **25** | 📋 Task | `task.cancel` | Tạm hoãn / Hủy công việc (giữ vết lịch sử) | **Fast Path** (~5-12ms) | None |
-| **26** | 📋 Task | `task.delete` | Xóa vĩnh viễn công việc | **Fast Path** (~5-12ms) | **Gate 3 (BLOCKED)** |
-| **27** | 📋 Task | `task.search` | Tìm kiếm công việc theo từ khóa | **Fast Path** (~5-12ms) | None |
-| **28** | 🔗 Cross | `cross.plan_expense_task` | Kế hoạch công việc gắn dự trù kinh phí | **Reasoning Path** (Bedrock) | Gate 1 |
-| **29** | 🔗 Cross | `cross.bill_due_reminder` | Nhắc hạn thanh toán hóa đơn kèm số tiền | **Fast Path** (~5-12ms) | None |
-| **30** | ⚙️ System | `system.greeting_summary` | Chào buổi sáng & Tóm tắt số dư + top task | **Fast Path** (~5-12ms) | None |
-| **31** | ⚙️ System | `system.help` | Hướng dẫn khả năng & mẫu câu của trợ lý | **Fast Path** (~5-12ms) | None |
-| **32** | ⚙️ System | `system.undo` | Hoàn tác thao tác vừa thực hiện | **Fast Path** (~5-12ms) | Gate 2 |
+| **7** | 💰 Finance | `finance.query_debt` | Tra cứu sổ nợ & danh sách ai nợ ai | **Fast Path** (~5-12ms) | None |
+| **8** | 💰 Finance | `finance.split_bill` | Chia tiền hóa đơn nhóm / đi chơi | **Fast Path** + Decimal | None |
+| **9** | 💰 Finance | `finance.pay_bill` | Đóng tiền hóa đơn định kỳ (điện, nước, trọ) | **Fast Path** (~5-12ms) | None |
+| **10** | 💰 Finance | `finance.query_transactions` | Tra cứu / Lọc lịch sử chi tiêu theo kỳ/danh mục | **Fast Path** (~5-12ms) | None |
+| **11** | 💰 Finance | `finance.budget_plan` | Thiết lập hạn mức chi tiêu / ngân sách | **Reasoning Path** (Bedrock) | Gate 1 |
+| **12** | 💰 Finance | `finance.update_budget` | Điều chỉnh hạn mức ngân sách đã có | **Fast Path** (~5-12ms) | Gate 1 |
+| **13** | 💰 Finance | `finance.loan_installment_plan` | Dự toán bảng khấu hao trả góp khoản vay | **Fast Path** + Decimal | Gate 1 |
+| **14** | 💰 Finance | `finance.savings_goal` | Tạo quỹ tiết kiệm / mục tiêu tài chính | **Fast Path** (~5-12ms) | Gate 1 |
+| **15** | 💰 Finance | `finance.financial_report` | Báo cáo tài chính & phân tích dòng tiền sâu | **Reasoning Path** (Bedrock) | None |
+| **16** | 📋 Task | `task.create` | Thêm công việc / Việc cần làm | **Fast Path** (~5-12ms) | None |
+| **17** | 📋 Task | `task.create_recurring` | Công việc / Thói quen lặp lại chu kỳ | **Fast Path** (~5-12ms) | None |
+| **18** | 📋 Task | `task.query_today` | Danh sách công việc hôm nay / Kế hoạch ngày | **Fast Path** (~5-12ms) | None |
+| **19** | 📋 Task | `task.query_deadline` | Cảnh báo / Tra cứu hạn chót deadline gấp | **Fast Path** (~5-12ms) | None |
+| **20** | 📋 Task | `task.query_by_tag` | Lọc việc theo nhãn / dự án (AI4Life, cá nhân) | **Fast Path** (~5-12ms) | None |
+| **21** | 📋 Task | `task.query_completed` | Xem lại các công việc đã hoàn thành | **Fast Path** (~5-12ms) | None |
+| **22** | 📋 Task | `task.schedule_event` | Lịch hẹn / Cuộc họp / Sự kiện có giờ | **Fast Path** (~5-12ms) | None |
+| **23** | 📋 Task | `task.reschedule` | Dời lịch / Đổi hạn chót / Hoãn giờ | **Fast Path** (~5-12ms) | None |
+| **24** | 📋 Task | `task.plan_schedule` | Lập kế hoạch ngày/tuần (Eisenhower Matrix) | **Reasoning Path** (Bedrock) | None |
+| **25** | 📋 Task | `task.complete` | Đánh dấu hoàn thành việc | **Fast Path** (~5-12ms) | None |
+| **26** | 📋 Task | `task.cancel` | Tạm hoãn / Hủy công việc (giữ vết lịch sử) | **Fast Path** (~5-12ms) | None |
+| **27** | 📋 Task | `task.delete` | Xóa vĩnh viễn công việc | **Fast Path** (~5-12ms) | **Gate 3 (BLOCKED)** |
+| **28** | 📋 Task | `task.search` | Tìm kiếm công việc theo từ khóa | **Fast Path** (~5-12ms) | None |
+| **29** | 🔗 Cross | `cross.plan_expense_task` | Kế hoạch công việc gắn dự trù kinh phí | **Reasoning Path** (Bedrock) | Gate 1 |
+| **30** | 🔗 Cross | `cross.bill_due_reminder` | Nhắc hạn thanh toán hóa đơn kèm số tiền | **Fast Path** (~5-12ms) | None |
+| **31** | ⚙️ System | `system.greeting_summary` | Chào buổi sáng & Tóm tắt số dư + top task | **Fast Path** (~5-12ms) | None |
+| **32** | ⚙️ System | `system.help` | Hướng dẫn khả năng & mẫu câu của trợ lý | **Fast Path** (~5-12ms) | None |
+| **33** | ⚙️ System | `system.undo` | Hoàn tác thao tác vừa thực hiện | **Fast Path** (~5-12ms) | Gate 2 |
 
 ---
 
@@ -113,6 +114,27 @@
   6. *"Đã thanh toán nợ 150k tiền sách cho bạn"*
   7. *"Cái Hằng trả lại 450k tiền vé xem phim qua Momo"*
   8. *"Ghi nhận nhận lại tiền nợ 1 triệu"*
+
+---
+
+### 1.3b. `finance.query_debt` – Tra cứu sổ nợ & các khoản cho vay / mượn tiền
+* **Mục đích:** Tra cứu danh sách các khoản người khác đang nợ mình, các khoản mình đang vay nợ người khác, hoặc kiểm tra dư nợ cụ thể với một người.
+* **Đường dẫn:** **Fast Path (~6ms)**.
+* **Quyền HITL:** Không yêu cầu (`None`).
+* **Slots:**
+  * `debt_type` (`str`, Tùy chọn, mặc định `"all"`): Loại nợ cần lọc (`"borrow"`: tôi đang nợ người khác, `"lend"`: người khác đang nợ tôi, `"all"`: toàn bộ sổ nợ).
+  * `person` (`str`, Tùy chọn, mặc định `None`): Tên người cụ thể cần kiểm tra dư nợ (ví dụ: `"Tuấn"`, `"Hải"`).
+* **Mẫu câu thực tế:**
+  1. *"Tôi có nợ ai không"*
+  2. *"Tôi đang nợ những ai vậy"*
+  3. *"Check xem tôi nợ ai"*
+  4. *"Có ai vay tiền tôi không"*
+  5. *"Ai đang mượn tiền tôi chưa trả"*
+  6. *"Thằng Tuấn có nợ tôi đồng nào không"*
+  7. *"Hải còn nợ tôi tiền không"*
+  8. *"Xem danh sách cho mượn tiền và mượn nợ"*
+  9. *"Tổng tiền người ta nợ tôi là bao nhiêu"*
+  10. *"Hôm nay có khoản nợ nào cần đòi không"*
 
 ---
 

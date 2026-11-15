@@ -61,6 +61,9 @@ class SlotValidator:
         if normalized_intent in {"finance.savings.create", "finance.savings_goal"}:
             return cls._validate_savings_create(normalized_intent, slots)
 
+        if normalized_intent in {"finance.query_debt"}:
+            return cls._validate_debt_query(normalized_intent, slots)
+
         # ----------------- TASK DOMAIN -----------------
         if normalized_intent == "task.create":
             return cls._validate_task_create(normalized_intent, slots)
@@ -287,6 +290,27 @@ class SlotValidator:
 
         try:
             validated = SavingsCreateSlot(**slots)
+            return ActionResponse(
+                status=ExecutionStatus.READY,
+                domain=DomainType.FINANCE,
+                intent=intent,
+                slots=validated.model_dump(),
+            )
+        except (ValidationError, ValueError) as err:
+            return ActionResponse(
+                status=ExecutionStatus.FAILED,
+                domain=DomainType.FINANCE,
+                intent=intent,
+                slots=slots,
+                message=str(err),
+            )
+
+    @classmethod
+    def _validate_debt_query(cls, intent: str, slots: dict[str, Any]) -> ActionResponse:
+        from src.schemas.finance import DebtQuerySlot
+
+        try:
+            validated = DebtQuerySlot(**slots)
             return ActionResponse(
                 status=ExecutionStatus.READY,
                 domain=DomainType.FINANCE,

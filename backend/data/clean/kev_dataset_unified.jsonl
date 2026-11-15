@@ -2798,3 +2798,83 @@
 {"input": "Tháng này tôi đã làm xong được bao nhiêu task?", "target": {"intent": "task.query_completed", "confidence": 0.97, "route": "FAST_PATH", "slots": {"time_range": "tháng này"}}}
 {"input": "Tính kế hoạch trả góp mua điện thoại 100 triệu trong 12 tháng lãi 14%", "target": {"intent": "finance.loan_installment_plan", "confidence": 0.98, "route": "FAST_PATH", "slots": {"principal": 100000000, "term_months": 12, "annual_rate": 0.14, "method": "reducing_balance", "purpose": "mua điện thoại"}}}
 {"input": "Đóng tiền rác tháng này hết 2 lít", "target": {"intent": "finance.pay_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"amount": 200000, "bill_type": "tiền rác"}}}
+{"input": "tôi có nợ ai không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "tôi có đang nợ ai không vậy bot", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "tôi đang nợ những ai", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "check xem tôi nợ ai", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "danh sách các khoản nợ của tôi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "tôi còn thiếu tiền ai không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "kiểm tra các khoản nợ phải trả", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "tổng tiền tôi đang nợ là bao nhiêu", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "xem sổ nợ của tôi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "mở sổ ghi nợ xem nào", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "danh sách nợ nần hiện tại", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "tôi có mượn nợ ai tiền không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "xem danh sách các khoản vay nợ cá nhân", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "danh sách mượn nợ", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "kiểm tra xem tôi có đang vay tiền ai không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "tổng dư nợ hiện tại của tôi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "tôi có thiếu nợ ai đồng nào không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "cho xem danh sách các chủ nợ", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "các khoản tôi cần trả nợ trong tháng này", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "xem lại những ai tôi đang mượn tiền", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "có ai vay tiền tôi không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "có ai đang nợ tiền tôi không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "ai đang mượn tiền tôi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "ai còn thiếu tiền tôi không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "danh sách con nợ", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "danh sách những người đang nợ tôi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "những ai đang vay tiền của tôi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "kiểm tra xem ai nợ tiền tôi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "xem danh sách cho mượn tiền", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "hôm nay có khoản nợ nào cần đòi không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "tổng tiền người ta nợ tôi là bao nhiêu", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "danh sách những người tôi cho vay", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "những ai mượn tiền tôi chưa trả", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "ai chưa trả tiền tôi vậy", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "xem các khoản cho mượn chưa thu hồi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "tiền cho mượn còn bao nhiêu chưa đòi được", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "check xem còn ai thiếu nợ tôi không bot ơi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "danh sách các khoản cho vay cá nhân", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "ai đang giữ tiền của tôi chưa trả", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "tổng số tiền cho bạn bè mượn hiện tại", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "thằng Tuấn có nợ tôi đồng nào không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend", "person": "Tuấn"}}}
+{"input": "Hải còn nợ tôi tiền không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend", "person": "Hải"}}}
+{"input": "Lan có đang mượn tiền tôi không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend", "person": "Lan"}}}
+{"input": "check nợ của Nam", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all", "person": "Nam"}}}
+{"input": "thằng Huy còn thiếu tôi bao nhiêu tiền", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend", "person": "Huy"}}}
+{"input": "tôi có nợ tiền anh Hùng không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow", "person": "anh Hùng"}}}
+{"input": "tôi có nợ gì chị Thảo không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow", "person": "chị Thảo"}}}
+{"input": "kiểm tra nợ với Hoàng", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all", "person": "Hoàng"}}}
+{"input": "bạn cùng phòng còn nợ tôi tiền phòng không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend", "person": "bạn cùng phòng"}}}
+{"input": "thằng bạn thân có nợ tôi không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend", "person": "bạn thân"}}}
+{"input": "check xem tôi nợ Tuấn bao nhiêu", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow", "person": "Tuấn"}}}
+{"input": "Hương đã trả hết nợ cho tôi chưa", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend", "person": "Hương"}}}
+{"input": "khoản nợ của Minh thế nào rồi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all", "person": "Minh"}}}
+{"input": "Linh còn nợ tiền trà sữa không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend", "person": "Linh"}}}
+{"input": "tôi có đang mượn tiền mẹ không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow", "person": "mẹ"}}}
+{"input": "xem sổ nợ nần ai nợ ai", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "tổng hợp nợ nần giúp tôi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "ai nợ ai mượn gì xem hết đi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "tra cứu sổ nợ chi tiết", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "xem tình hình vay mượn tiền", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "check tình hình nợ nần tháng này", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "có đứa nào mượn tiền chưa trả không bot", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "đứa nào đang nợ tiền tao", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "tao có đang nợ tiền ai không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "xem danh sách ai vay tiền", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "xem danh sách ai mượn nợ", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "hỏi xem có ai nợ tôi tiền không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "cho hỏi tôi có đang vay nợ ai không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "báo cáo các khoản nợ cần thu và cần trả", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "xem tiền cho mượn và tiền đi vay", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "check dư nợ với bạn bè", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "danh sách người vay tiền của mình", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "mình có đang nợ ai đồng nào không ta", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "kiểm tra xem ai đang vay nợ tôi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "danh sách những ai đang nợ tiền mình", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "xem ai đang mượn tiền của tôi", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "có ai đang thiếu tiền tôi không", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
+{"input": "cho xem danh sách các khoản nợ", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "all"}}}
+{"input": "tôi có nợ ai tiền không nhỉ", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "borrow"}}}
+{"input": "tra cứu danh sách người nợ tiền", "target": {"intent": "finance.query_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"debt_type": "lend"}}}
