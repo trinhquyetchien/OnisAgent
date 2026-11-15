@@ -177,6 +177,7 @@ OnisAgent/
 │   └── test/                          # Widget tests
 │
 ├── docs/                              # 📚 Tài liệu dự án
+│   ├── intent_catalog.md              # 🎯 Đặc tả chi tiết toàn bộ Intent & Slot Schema
 │   └── adr/                           # Hệ thống Architecture Decision Records (ADR-0001 -> ADR-0006)
 │       ├── ADR-0001-decimal-money-calculation.md
 │       ├── ADR-0002-dual-path-architecture-swarm.md
