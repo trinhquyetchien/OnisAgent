@@ -1,447 +1,402 @@
-# OnisAgent – Danh Mục Intent & Đặc Tả Slot Chi Tiết (Intent Catalog & Slot Specification)
+# OnisAgent – Danh Mục Intent & Đặc Tả Slot Toàn Diện (Extended Intent Catalog & Slot Specification)
 
-> **Tài liệu đặc tả chuẩn hóa Intent, Slot Schema và Chiến lược Hội thoại Làm rõ (Clarification Dialog)**  
-> Thuộc hệ thống **OnisAgent Core Backend** – Tuân thủ [ADR-0004](file:///home/trinhquyetchien/Projects/Main/Team/OnisAgent/docs/adr/ADR-0004-human-in-the-loop-workflow.md) và [ADR-0006](file:///home/trinhquyetchien/Projects/Main/Team/OnisAgent/docs/adr/ADR-0006-domain-split-intent-slot-clarification.md).
-
----
-
-## 📑 Bảng Tra Cứu Nhanh Danh Mục Intent (Intent Quick Reference)
-
-| Domain | Mã Intent Chuẩn | Tên Nghiệp Vụ | Đường Dẫn Nhận Thức | Cấp Độ HITL |
-| :---: | :--- | :--- | :---: | :---: |
-| 💰 **Finance** | [`finance.get_balance`](#1-financeget_balance--tra-cứu-số-dư--tài-chính-hiện-tại) | Tra cứu số dư / Tài chính hiện tại | **Fast Path** (~5-12ms) | None |
-| 💰 **Finance** | [`finance.add_expense`](#2-financeadd_expense--ghi-nhận-khoản-chi-tiêu) | Ghi nhận chi tiêu thường nhật | **Fast Path** (~5-12ms) | Gate 2 |
-| 💰 **Finance** | [`finance.add_income`](#3-financeadd_income--ghi-nhận-khoản-thu-nhập) | Ghi nhận thu nhập | **Fast Path** (~5-12ms) | None |
-| 💰 **Finance** | [`finance.budget_plan`](#4-financebudget_plan--kế-hoạch-chi-tiêu--ngân-sách) | Hạn mức chi tiêu / Ngân sách | **Reasoning Path** (Bedrock) | Gate 1 |
-| 💰 **Finance** | [`finance.loan_installment_plan`](#5-financeloan_installment_plan--kế-hoạch-vay--trả-nợ-góp) | Dự toán khoản vay / Kế hoạch trả góp | **Fast Path** + **Decimal Tool** | Gate 1 |
-| 💰 **Finance** | [`finance.savings_goal`](#6-financesavings_goal--quỹ-tiết-kiệm--mục-tiêu-tài-chính) | Quỹ mục tiêu tiết kiệm | **Fast Path** / **Reasoning** | Gate 1 |
-| 📋 **Task** | [`task.create`](#7-taskcreate--thêm-công-việc--việc-cần-làm) | Tạo công việc / Việc cần làm | **Fast Path** (~5-12ms) | None |
-| 📋 **Task** | [`task.query_today`](#8-taskquery_today--công-việc-hôm-nay) | Tra cứu công việc hôm nay / Kế hoạch ngày | **Fast Path** (~5-12ms) | None |
-| 📋 **Task** | [`task.query_deadline`](#9-taskquery_deadline--tra-cứu-hạn-chót--deadline-gấp) | Cảnh báo / Tra cứu hạn chót deadline | **Fast Path** (~5-12ms) | None |
-| 📋 **Task** | [`task.schedule_event`](#10-taskschedule_event--lịch-hẹn--sự-kiện) | Lên lịch hẹn / Sự kiện có mốc thời gian | **Fast Path** (~5-12ms) | None |
-| 📋 **Task** | [`task.plan_schedule`](#11-taskplan_schedule--lên-kế-hoạch-tổng-thể-ngày-tuần) | Lập kế hoạch ngày/tuần (Eisenhower Matrix) | **Reasoning Path** (Bedrock) | None |
-| 📋 **Task** | [`task.complete`](#12-taskcomplete--đánh-dấu-hoàn-thành-công-việc) | Đánh dấu hoàn thành việc | **Fast Path** (~5-12ms) | None |
-| 📋 **Task** | [`task.delete`](#13-taskdelete--xóa--hủy-bỏ-công-việc) | Xóa công việc khỏi hệ thống | **Fast Path** (~5-12ms) | **Gate 3 (BLOCKED)** |
+> **Tài liệu đặc tả chuẩn hóa 27 Intent chuyên sâu cho OnisAgent Core Engine**  
+> Bao quát 4 nhóm: **Miền Tài Chính (Finance)**, **Miền Công Việc & Thời Gian (Task & Schedule)**, **Giao Thoa Miền (Cross-Domain)** và **Hệ Thống (System)**.  
+> Tuân thủ các nguyên tắc [ADR-0001](file:///home/trinhquyetchien/Projects/Main/Team/OnisAgent/docs/adr/ADR-0001-decimal-money-calculation.md), [ADR-0004](file:///home/trinhquyetchien/Projects/Main/Team/OnisAgent/docs/adr/ADR-0004-human-in-the-loop-workflow.md) và [ADR-0006](file:///home/trinhquyetchien/Projects/Main/Team/OnisAgent/docs/adr/ADR-0006-domain-split-intent-slot-clarification.md).
 
 ---
 
-# 💰 MIỀN TÀI CHÍNH (FINANCE DOMAIN)
+## 📑 Bảng Tra Cứu Toàn Bộ 27 Intent (Master Intent Catalog)
+
+| STT | Domain | Mã Intent Chuẩn | Ý Nghĩa / Mục Đích | Tuyến Xử Lý | HITL Gate |
+| :---: | :---: | :--- | :--- | :---: | :---: |
+| **1** | 💰 Finance | `finance.get_balance` | Tra cứu số dư ví / tài sản hiện có | **Fast Path** (~5-12ms) | None |
+| **2** | 💰 Finance | `finance.add_expense` | Ghi nhận chi tiêu thường nhật | **Fast Path** (~5-12ms) | Gate 2 |
+| **3** | 💰 Finance | `finance.add_income` | Ghi nhận thu nhập | **Fast Path** (~5-12ms) | None |
+| **4** | 💰 Finance | `finance.transfer` | Chuyển tiền giữa các ví / Nạp rút ATM | **Fast Path** (~5-12ms) | None |
+| **5** | 💰 Finance | `finance.record_debt` | Ghi sổ nợ / cho mượn tiền | **Fast Path** (~5-12ms) | Gate 2 |
+| **6** | 💰 Finance | `finance.debt_repay` | Trả nợ / Ghi nhận thu nợ về | **Fast Path** (~5-12ms) | None |
+| **7** | 💰 Finance | `finance.split_bill` | Chia tiền hóa đơn nhóm / đi chơi | **Fast Path** + Decimal | None |
+| **8** | 💰 Finance | `finance.pay_bill` | Đóng tiền hóa đơn định kỳ (điện, nước, trọ) | **Fast Path** (~5-12ms) | None |
+| **9** | 💰 Finance | `finance.query_transactions` | Tra cứu / Lọc lịch sử chi tiêu theo kỳ/danh mục | **Fast Path** (~5-12ms) | None |
+| **10** | 💰 Finance | `finance.budget_plan` | Thiết lập hạn mức chi tiêu / ngân sách | **Reasoning Path** (Bedrock) | Gate 1 |
+| **11** | 💰 Finance | `finance.update_budget` | Điều chỉnh hạn mức ngân sách đã có | **Fast Path** (~5-12ms) | Gate 1 |
+| **12** | 💰 Finance | `finance.loan_installment_plan` | Dự toán bảng khấu hao trả góp khoản vay | **Fast Path** + Decimal | Gate 1 |
+| **13** | 💰 Finance | `finance.savings_goal` | Tạo quỹ tiết kiệm / mục tiêu tài chính | **Fast Path** (~5-12ms) | Gate 1 |
+| **14** | 💰 Finance | `finance.financial_report` | Báo cáo tài chính & phân tích dòng tiền sâu | **Reasoning Path** (Bedrock) | None |
+| **15** | 📋 Task | `task.create` | Thêm công việc / Việc cần làm | **Fast Path** (~5-12ms) | None |
+| **16** | 📋 Task | `task.create_recurring` | Công việc / Thói quen lặp lại chu kỳ | **Fast Path** (~5-12ms) | None |
+| **17** | 📋 Task | `task.query_today` | Danh sách công việc hôm nay / Kế hoạch ngày | **Fast Path** (~5-12ms) | None |
+| **18** | 📋 Task | `task.query_deadline` | Cảnh báo / Tra cứu hạn chót deadline gấp | **Fast Path** (~5-12ms) | None |
+| **19** | 📋 Task | `task.query_by_tag` | Lọc việc theo nhãn / dự án (AI4Life, cá nhân) | **Fast Path** (~5-12ms) | None |
+| **20** | 📋 Task | `task.query_completed` | Xem lại các công việc đã hoàn thành | **Fast Path** (~5-12ms) | None |
+| **21** | 📋 Task | `task.schedule_event` | Lịch hẹn / Cuộc họp / Sự kiện có giờ | **Fast Path** (~5-12ms) | None |
+| **22** | 📋 Task | `task.reschedule` | Dời lịch / Đổi hạn chót / Hoãn giờ | **Fast Path** (~5-12ms) | None |
+| **23** | 📋 Task | `task.plan_schedule` | Lập kế hoạch ngày/tuần (Eisenhower Matrix) | **Reasoning Path** (Bedrock) | None |
+| **24** | 📋 Task | `task.complete` | Đánh dấu hoàn thành việc | **Fast Path** (~5-12ms) | None |
+| **25** | 📋 Task | `task.cancel` | Tạm hoãn / Hủy công việc (giữ vết lịch sử) | **Fast Path** (~5-12ms) | None |
+| **26** | 📋 Task | `task.delete` | Xóa vĩnh viễn công việc | **Fast Path** (~5-12ms) | **Gate 3 (BLOCKED)** |
+| **27** | 📋 Task | `task.search` | Tìm kiếm công việc theo từ khóa | **Fast Path** (~5-12ms) | None |
+| **28** | 🔗 Cross | `cross.plan_expense_task` | Kế hoạch công việc gắn dự trù kinh phí | **Reasoning Path** (Bedrock) | Gate 1 |
+| **29** | 🔗 Cross | `cross.bill_due_reminder` | Nhắc hạn thanh toán hóa đơn kèm số tiền | **Fast Path** (~5-12ms) | None |
+| **30** | ⚙️ System | `system.greeting_summary` | Chào buổi sáng & Tóm tắt số dư + top task | **Fast Path** (~5-12ms) | None |
+| **31** | ⚙️ System | `system.help` | Hướng dẫn khả năng & mẫu câu của trợ lý | **Fast Path** (~5-12ms) | None |
+| **32** | ⚙️ System | `system.undo` | Hoàn tác thao tác vừa thực hiện | **Fast Path** (~5-12ms) | Gate 2 |
 
 ---
 
-### 1. `finance.get_balance` – Tra cứu số dư / Tài chính hiện tại
-* **Mục đích:** Truy vấn tức thì số dư khả dụng của từng ví cụ thể hoặc tổng hợp toàn bộ tài sản hiện có của người dùng.
-* **Đường dẫn nhận thức:** **Fast Path (System 1)** – Độ trễ ~5–12ms, 0 Token LLM.
-* **Mức độ HITL:** `None` (Truy vấn đọc, không làm thay đổi trạng thái dữ liệu).
+# 💰 1. MIỀN TÀI CHÍNH NÂNG CAO (FINANCE ADVANCED)
 
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `account` | `str` | Tùy chọn | `"all"` | Tên tài khoản/ví cần xem (ví dụ: `"momo"`, `"vietcombank"`, `"tiền mặt"`, `"all"`). |
-| `period` | `str` | Tùy chọn | `"current"` | Mốc thời gian đối soát số dư (`"current"`, `"today"`, `"this_month"`). |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* Không chặn thực thi. Nếu người dùng chỉ nói *"tôi còn bao nhiêu tiền"*, hệ thống mặc định lấy `account="all"` và tính toán tổng số dư toàn bộ các ví khả dụng.
-* Nếu người dùng sở hữu $\ge 3$ tài khoản và câu lệnh mơ hồ, hiển thị Quick-Reply Chips: `["Tất cả ví", "Ví Tiền mặt", "Vietcombank", "Ví Momo"]`.
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Số dư hiện tại của tôi còn bao nhiêu?"*
-2. *"Ví Momo còn tiền không em?"*
-3. *"Tổng tài sản hiện có của anh là bao nhiêu?"*
-4. *"Kiểm tra tk vietcombank còn nhiêu tiền"*
-5. *"Ví tiền mặt còn bao nhiêu xị"*
-6. *"Cho xem số dư tài khoản ngân hàng"*
-7. *"Tài chính của tôi hôm nay thế nào"*
-8. *"Check số dư khả dụng tất cả các ví"*
-9. *"Tài khoản MB Bank còn bao nhiêu củ"*
-10. *"Tiền tiết kiệm và tiền tiêu còn lại nhiêu z"*
-
----
-
-### 2. `finance.add_expense` – Ghi nhận khoản chi tiêu
-* **Mục đích:** Ghi nhận một giao dịch chi tiêu vào sổ quỹ, tự động phân loại danh mục và khấu trừ số dư chính xác bằng Python `Decimal`.
-* **Đường dẫn nhận thức:** **Fast Path (System 1)** – Ghi dữ liệu tức thì.
-* **Mức độ HITL:** `Gate 2` (Đính chính phân loại: Lưu vết `Correction History` nếu người dùng chỉnh sửa lại danh mục do AI gán).
-
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `amount` | `Decimal` | **Bắt buộc** | *Không có* | Số tiền chi tiêu (> 0). Chuẩn hóa tiếng lóng (k, củ, tr, lít, xị). |
-| `category` | `str` | **Bắt buộc\*** | `"Khác"` | Danh mục chi tiêu (Ăn uống, Nhà ở, Di chuyển, Mua sắm, Hóa đơn,...). |
-| `note` | `str` | **Bắt buộc\*** | *Không có* | Mô tả chi tiết khoản chi. (\*Bắt buộc phải có ít nhất `category` hoặc `note`). |
-| `account` | `str` | Tùy chọn | `"default_account"`| Tài khoản nguồn trừ tiền (`"tiền mặt"`, `"vcb"`,...). |
-| `date` | `datetime` | Tùy chọn | `datetime.now()` | Thời điểm phát sinh chi tiêu. |
-| `payment_method` | `str` | Tùy chọn | `None` | Phương thức thanh toán (`"tiền mặt"`, `"chuyển khoản"`, `"quẹt thẻ"`). |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* **Khi thiếu `amount`:** Chuyển trạng thái sang `NEED_CLARIFICATION`.
-  * *Câu hỏi làm rõ:* *"Bạn đã chi bao nhiêu tiền cho khoản '{note/category}' này vậy?"*
-  * *Quick-Reply Chips:* `["30.000₫", "45.000₫", "100.000₫", "200.000₫"]`
-* **Khi thiếu cả `category` và `note`:**
-  * *Câu hỏi làm rõ:* *"Khoản tiền này bạn chi cho mục đích hoặc nội dung gì vậy?"*
-  * *Quick-Reply Chips:* `["Ăn uống", "Đi lại", "Mua sắm", "Hóa đơn", "Nhà ở"]`
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Chi 45k trà sữa trưa nay"*
-2. *"Vừa chuyển khoản 1tr5 tiền nhà cho chủ trọ"*
-3. *"Đổ xăng hết 2 xị bằng tiền mặt"*
-4. *"Sáng nay ăn phở bò hết 55 nghìn"*
-5. *"Đóng tiền điện tháng này 780k qua VCB"*
-6. *"Quẹt thẻ mua đôi giày 1tr2 ở Vincom"*
-7. *"Đi siêu thị hết 850 ngàn"*
-8. *"Vừa mua gói bánh 25k"*
-9. *"Mới nạp card điện thoại 100k"*
-10. *"Ăn lẩu với cty hết 350 cành share đôi"*
-
----
-
-### 3. `finance.add_income` – Ghi nhận khoản thu nhập
-* **Mục đích:** Ghi nhận dòng tiền đi vào (lương, thưởng, quà biếu, lãi đầu tư) và cộng dồn số dư ví bằng `Decimal`.
-* **Đường dẫn nhận thức:** **Fast Path (System 1)**.
+### 1.1. `finance.transfer` – Chuyển tiền giữa các ví / Nạp rút tiền
+* **Mục đích:** Luân chuyển số dư giữa các tài khoản nội bộ (vd: từ Vietcombank sang ví Momo, hoặc rút tiền ATM về ví tiền mặt).
+* **Đường dẫn:** **Fast Path (System 1)**.
 * **Mức độ HITL:** `None`.
-
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `amount` | `Decimal` | **Bắt buộc** | *Không có* | Số tiền thu vào (> 0). |
-| `source` | `str` | Tùy chọn | `"Thu nhập khác"` | Nguồn tiền thu về (Lương, Thưởng, Bán hàng, Bố mẹ cho,...). |
-| `account` | `str` | Tùy chọn | `"default_account"`| Tài khoản đích nhận tiền. |
-| `date` | `datetime` | Tùy chọn | `datetime.now()` | Thời điểm nhận tiền. |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* **Khi thiếu `amount`:**
-  * *Câu hỏi làm rõ:* *"Bạn đã nhận được số tiền là bao nhiêu từ '{source}'?"*
-  * *Quick-Reply Chips:* `["1.000.000₫", "2.000.000₫", "5.000.000₫", "10.000.000₫"]`
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Nhận lương tháng 11 rồi nè 20 triệu"*
-2. *"Bố gửi cho 2 củ tiêu vặt"*
-3. *"Khách vừa chuyển tiền dự án freelance 5.5tr"*
-4. *"Thưởng dự án AI4Life được 10 củ vào tài khoản Momo"*
-5. *"Bán cái máy giặt cũ được 1tr5 tiền mặt"*
-6. *"Công ty bắn thưởng quý 8 triệu rưỡi"*
-7. *"Vừa nhận lại tiền nợ 500k từ thằng Nam"*
-8. *"Cổ tức vừa về tài khoản 3 triệu 2"*
-9. *"Mẹ cho 5 xị đi sinh nhật"*
-10. *"Thu tiền nhà phòng 201 được 3 củ rưỡi"*
+* **Slots:**
+  * `amount` (`Decimal`, **Bắt buộc**): Số tiền cần chuyển.
+  * `from_account` (`str`, **Bắt buộc**): Tài khoản nguồn trừ tiền.
+  * `to_account` (`str`, **Bắt buộc**): Tài khoản đích nhận tiền.
+  * `fee` (`Decimal`, Tùy chọn, fallback `0`): Phí chuyển tiền nếu có.
+  * `date` (`datetime`, Tùy chọn, fallback `now`).
+* **Chiến lược làm rõ:**
+  * Thiếu `amount`: *"Bạn muốn chuyển số tiền là bao nhiêu?"* $\rightarrow$ `["200.000₫", "500.000₫", "1.000.000₫", "2.000.000₫"]`
+  * Thiếu `to_account`: *"Bạn muốn chuyển tiền đến ví hoặc tài khoản nào?"* $\rightarrow$ `["Ví Momo", "Ví Tiền mặt", "Vietcombank", "MB Bank"]`
+* **Mẫu câu thực tế:**
+  1. *"Chuyển 500k từ Vietcombank sang ví Momo giúp mình"*
+  2. *"Rút 2 củ từ ATM về ví tiền mặt"*
+  3. *"Nạp 1 triệu từ tài khoản ngân hàng vào ví điện tử ZaloPay"*
+  4. *"Bắn 300k từ Momo qua MB Bank"*
+  5. *"Chuyển 5 củ từ tài khoản lương sang tài khoản tiết kiệm"*
+  6. *"Rút 5 xị tiền mặt tiêu vặt"*
+  7. *"Nạp 200 nghìn vào ShopeePay từ VCB"*
+  8. *"Chuyển 1tr2 từ quỹ chung sang ví cá nhân"*
 
 ---
 
-### 4. `finance.budget_plan` – Kế hoạch chi tiêu / Ngân sách
-* **Mục đích:** Thiết lập hạn mức chi tiêu theo tuần/tháng, kiểm tra cảnh báo bội chi và theo dõi ngân sách cho từng danh mục.
-* **Đường dẫn nhận thức:** **Reasoning Path (System 2)** – Bedrock LLM kết hợp dữ liệu dòng tiền thực tế.
-* **Mức độ HITL:** `Gate 1` (Yêu cầu xác nhận áp dụng hạn mức ngân sách mới vào hệ thống).
-
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `limit_amount` | `Decimal` | **Bắt buộc** | *Không có* | Số tiền hạn mức tối đa thiết lập. |
-| `category` | `str` | Tùy chọn | `"all"` | Danh mục áp dụng hạn mức (Ăn uống, Giải trí, Mua sắm, hoặc Toàn bộ). |
-| `period` | `str` | Tùy chọn | `"this_month"` | Chu kỳ ngân sách (`"this_week"`, `"this_month"`). |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* **Khi thiếu `limit_amount`:**
-  * *Câu hỏi làm rõ:* *"Bạn muốn đặt hạn mức ngân sách cho '{category}' là bao nhiêu tiền?"*
-  * *Quick-Reply Chips:* `["2.000.000₫", "3.000.000₫", "5.000.000₫", "10.000.000₫"]`
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Đặt hạn mức chi tiêu tháng này 5 triệu"*
-2. *"Kiểm tra ngân sách ăn uống tuần này còn bao nhiêu"*
-3. *"Cài đặt ngân sách tiền ăn tháng 11 tối đa 3 củ"*
-4. *"Tháng này tôi còn được tiêu bao nhiêu tiền nữa"*
-5. *"Giới hạn tiền mua sắm quần áo dưới 1tr5 một tháng"*
-6. *"Xem tiến độ chi tiêu theo ngân sách tuần này"*
-7. *"Thiết lập hạn mức tổng chi tiêu trong tháng là 12 triệu"*
-8. *"Cảnh báo khi tiền ăn uống vượt quá 80% ngân sách"*
-9. *"Kiểm tra xem tuần này đã phung phí bao nhiêu phần trăm rồi"*
-10. *"Lập ngân sách tiết kiệm cho sinh viên 4 triệu/tháng"*
+### 1.2. `finance.record_debt` – Quản lý nợ / Cho mượn tiền
+* **Mục đích:** Ghi nhận khoản tiền cho người khác vay mượn hoặc khoản tiền mình đi vay từ người khác.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Mức độ HITL:** `Gate 2` (Đính chính thông tin người nợ/con nợ).
+* **Slots:**
+  * `amount` (`Decimal`, **Bắt buộc**): Số tiền vay/cho mượn.
+  * `person` (`str`, **Bắt buộc**): Tên người liên quan.
+  * `debt_type` (`str`, **Bắt buộc**): `"lend"` (cho mượn) hoặc `"borrow"` (đi mượn).
+  * `due_date` (`datetime`, Tùy chọn): Ngày hẹn trả.
+  * `note` (`str`, Tùy chọn): Lý do mượn tiền.
+* **Chiến lược làm rõ:**
+  * Thiếu `person`: *"Khoản tiền này bạn cho ai mượn hoặc mượn từ ai vậy?"*
+  * Thiếu `amount`: *"Số tiền mượn/cho mượn là bao nhiêu?"* $\rightarrow$ `["50.000₫", "100.000₫", "500.000₫", "1.000.000₫"]`
+* **Mẫu câu thực tế:**
+  1. *"Cho thằng Nam mượn 500k hẹn cuối tháng trả"*
+  2. *"Mượn anh Tuấn 2 xị ăn trưa mai trả"*
+  3. *"Ghi sổ cho Lan vay 2 củ đóng tiền phòng"*
+  4. *"Vừa vay mẹ 5 triệu mua laptop"*
+  5. *"Thằng Huy mượn 300 ngàn đổ xăng"*
+  6. *"Cho bạn cùng phòng vay 1 triệu tiền ăn"*
+  7. *"Mượn tiền đứa bạn 150k mua sách"*
+  8. *"Ghi nợ cái Hằng 450k tiền vé xem phim"*
 
 ---
 
-### 5. `finance.loan_installment_plan` – Kế hoạch vay / Trả nợ góp
-* **Mục đích:** Tính toán chính xác bảng khấu hao khoản vay theo phương thức dư nợ giảm dần, tính gốc + lãi từng tháng và kỳ cuối điều chỉnh.
-* **Đường dẫn nhận thức:** **Fast Path** + **Deterministic Decimal Calculator** (AWS Lambda `calculate_loan`).
-* **Mức độ HITL:** `Gate 1` (Bắt buộc người dùng nhấn xác nhận nếu muốn lưu kế hoạch trả góp vào lịch nhắc nhở).
-
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `principal` | `Decimal` | **Bắt buộc** | *Không có* | Số tiền gốc vay (> 0). |
-| `term_months` | `int` | **Bắt buộc** | *Không có* | Thời hạn trả góp tính theo tháng. |
-| `annual_rate` | `Decimal` | **Bắt buộc** | *Không có* | Lãi suất theo năm (hỗ trợ nhập dạng `12%` hoặc `0.12`). |
-| `method` | `str` | Tùy chọn | `"reducing_balance"`| Phương thức tính: `"reducing_balance"` (dư nợ giảm dần) hoặc `"straight_line"`. |
-| `purpose` | `str` | Tùy chọn | `None` | Mục đích vay (mua xe, mua laptop, sửa nhà,...). |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* **Khi thiếu `principal`:** *"Số tiền bạn dự định vay hoặc trả góp là bao nhiêu?"* $\rightarrow$ `["20.000.000₫", "50.000.000₫", "100.000.000₫"]`
-* **Khi thiếu `term_months`:** *"Bạn dự định trả trong thời hạn bao nhiêu tháng?"* $\rightarrow$ `["6 tháng", "12 tháng", "24 tháng", "36 tháng"]`
-* **Khi thiếu `annual_rate`:** *"Lãi suất khoản vay là bao nhiêu % một năm?"* $\rightarrow$ `["8%/năm", "10%/năm", "12%/năm", "15%/năm"]`
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Tính kế hoạch trả góp laptop 20 triệu trong 6 tháng lãi 12%"*
-2. *"Vay mua xe 50 triệu 24 tháng lãi 10%/năm mỗi tháng trả bao nhiêu"*
-3. *"Tính khoản vay mua nhà 1 tỷ trả trong 10 năm lãi 9% một năm"*
-4. *"Bảng trả nợ góp 30 củ trong 12 tháng dư nợ giảm dần"*
-5. *"Nếu vay 15tr trong 1 năm lãi 11% thì tháng đầu trả bao nhiêu"*
-6. *"Vay ngân hàng 200 triệu kỳ hạn 36 tháng lãi suất 8.5%"*
-7. *"Lập lịch trả góp điện thoại 25 củ trong 9 tháng"*
-8. *"Vay tiêu dùng 40 triệu lãi 14% một năm chia 18 tháng tính sao"*
-9. *"Tính tiền lãi và gốc hàng tháng cho khoản vay 80 triệu 2 năm"*
-10. *"Dự toán khoản nợ xe máy 35tr trả trong 15 tháng lãi 1% tháng"*
+### 1.3. `finance.debt_repay` – Trả nợ / Ghi nhận thu nợ về
+* **Mục đích:** Cập nhật hoặc tất toán khoản nợ khi người khác trả tiền cho mình hoặc khi mình thanh toán nợ cho người khác.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Slots:**
+  * `amount` (`Decimal`, **Bắt buộc**): Số tiền trả nợ.
+  * `person` (`str`, **Bắt buộc**): Tên người trả hoặc người nhận.
+  * `account` (`str`, Tùy chọn, fallback `"default_account"`).
+* **Mẫu câu thực tế:**
+  1. *"Thằng Nam vừa trả 500k tiền nợ hôm bữa"*
+  2. *"Đã trả 2 xị cho anh Tuấn tiền ăn trưa"*
+  3. *"Lan chuyển khoản trả 2 củ tiền phòng rồi"*
+  4. *"Vừa gửi trả mẹ 5 triệu tiền vay"*
+  5. *"Thu được nợ 300k từ thằng Huy"*
+  6. *"Đã thanh toán nợ 150k tiền sách cho bạn"*
+  7. *"Cái Hằng trả lại 450k tiền vé xem phim qua Momo"*
+  8. *"Ghi nhận nhận lại tiền nợ 1 triệu"*
 
 ---
 
-### 6. `finance.savings_goal` – Quỹ tiết kiệm / Mục tiêu tài chính
-* **Mục đích:** Khởi tạo quỹ tích lũy mục tiêu, tính toán số tiền cần gửi định kỳ mỗi tháng để đạt mục tiêu đúng hạn.
-* **Đường dẫn nhận thức:** **Fast Path (System 1)** cho khởi tạo nhanh; **Reasoning Path** khi yêu cầu cố vấn chiến lược tích lũy.
-* **Mức độ HITL:** `Gate 1` (Xác nhận cam kết tạo quỹ mới vào DynamoDB).
-
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `goal_name` | `str` | **Bắt buộc** | *Không có* | Tên quỹ hoặc mục đích tiết kiệm. |
-| `target_amount` | `Decimal` | **Bắt buộc** | *Không có* | Số tiền mục tiêu cần đạt (> 0). |
-| `deadline` | `datetime` | Tùy chọn | `None` | Mốc thời gian hoàn thành mục tiêu. |
-| `monthly_contribution` | `Decimal` | Tùy chọn | `None` | Số tiền dự kiến tích lũy mỗi tháng. |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* **Khi thiếu `goal_name`:** *"Mục tiêu hoặc tên quỹ tiết kiệm của bạn là gì?"* $\rightarrow$ `["Quỹ khẩn cấp", "Mua xe mới", "Du lịch Nhật", "Mua laptop"]`
-* **Khi thiếu `target_amount`:** *"Bạn muốn tích lũy số tiền bao nhiêu cho mục tiêu '{goal_name}'?"* $\rightarrow$ `["10.000.000₫", "20.000.000₫", "50.000.000₫", "100.000.000₫"]`
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Tạo quỹ tiết kiệm mua xe 50 triệu trước Tết"*
-2. *"Đã gửi vào tiết kiệm 2 củ mua laptop"*
-3. *"Tôi muốn để dành 100 củ đi du lịch Nhật cuối năm sau"*
-4. *"Lập quỹ khẩn cấp 6 tháng chi tiêu 40 triệu"*
-5. *"Mục tiêu tiết kiệm 15 triệu mua iPhone mới"*
-6. *"Tạo hũ tiết kiệm cưới vợ 200 triệu hạn 2 năm"*
-7. *"Thêm quỹ tích lũy học phí học kỳ sau 12 củ"*
-8. *"Xem tiến độ các quỹ tiết kiệm hiện có"*
-9. *"Để dành mỗi tháng 3 triệu để mua vàng"*
-10. *"Mở quỹ tiết kiệm mua máy tính 30tr trong 8 tháng"*
+### 1.4. `finance.split_bill` – Chia tiền nhóm / Chia hóa đơn
+* **Mục đích:** Tính toán số tiền mỗi thành viên phải trả khi đi ăn uống, du lịch nhóm và tạo các khoản nợ tương ứng.
+* **Đường dẫn:** **Fast Path** + **Deterministic Decimal Calculator**.
+* **Slots:**
+  * `total_amount` (`Decimal`, **Bắt buộc**): Tổng giá trị hóa đơn.
+  * `members_count` (`int`, **Bắt buộc**): Số người cùng chia.
+  * `description` (`str`, Tùy chọn, fallback `"Hóa đơn chung"`).
+  * `my_share` (`Decimal`, Tùy chọn, tự tính toán).
+* **Chiến lược làm rõ:**
+  * Thiếu `members_count`: *"Hóa đơn này chia đều cho bao nhiêu người vậy bạn?"* $\rightarrow$ `["2 người", "3 người", "4 người", "5 người"]`
+* **Mẫu câu thực tế:**
+  1. *"Hóa đơn lẩu 1tr2 chia đều cho 4 người"*
+  2. *"Ăn trưa hết 350k chia 5 người thì mỗi người bao nhiêu"*
+  3. *"Tiền phòng karaoke 800 nghìn share cho 4 đứa"*
+  4. *"Đi cà phê hết 180k chia 3"*
+  5. *"Tính tiền ăn uống 2 triệu rưỡi chia 6 người"*
+  6. *"Hóa đơn Grab 90k chia đôi với Nam"*
+  7. *"Tiền homestay Đà Lạt 3 củ chia cho 5 người"*
+  8. *"Chia tiền tiệc sinh nhật 4 triệu 8 người"*
 
 ---
 
-# 📋 MIỀN CÔNG VIỆC & THỜI GIAN (TASK & SCHEDULE DOMAIN)
+### 1.5. `finance.pay_bill` – Đóng tiền hóa đơn định kỳ
+* **Mục đích:** Thanh toán các chi phí sinh hoạt định kỳ (tiền phòng trọ, điện, nước, internet, rác).
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Slots:**
+  * `amount` (`Decimal`, **Bắt buộc**): Số tiền hóa đơn.
+  * `bill_type` (`str`, **Bắt buộc**): `"điện"`, `"nước"`, `"internet"`, `"tiền phòng"`, `"học phí"`.
+  * `account` (`str`, Tùy chọn, fallback `"default_account"`).
+* **Mẫu câu thực tế:**
+  1. *"Đóng tiền trọ tháng này 3 triệu 5"*
+  2. *"Vừa thanh toán tiền điện 650k qua banking"*
+  3. *"Đóng tiền nước tháng 11 hết 120 ngàn"*
+  4. *"Nộp tiền mạng internet FPT 220k"*
+  5. *"Đóng học phí kỳ 1 hết 11 củ"*
+  6. *"Thanh toán hóa đơn truyền hình cáp 150k"*
+  7. *"Vừa nộp tiền rác và phí chung cư 300k"*
+  8. *"Đóng tiền phí giữ xe máy 120k"*
 
 ---
 
-### 7. `task.create` – Thêm công việc / Việc cần làm
-* **Mục đích:** Thêm nhanh một công việc cần làm vào danh sách nhiệm vụ cá nhân, phân loại ưu tiên và gắn nhãn dự án.
-* **Đường dẫn nhận thức:** **Fast Path (System 1)** – Phản xạ tức thì ~5–12ms.
+### 1.6. `finance.query_transactions` – Tra cứu / Lọc lịch sử chi tiêu
+* **Mục đích:** Tìm kiếm và lọc danh sách các giao dịch thu chi trong quá khứ theo danh mục, thời gian, từ khóa.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Slots:**
+  * `category` (`str`, Tùy chọn): Danh mục cần lọc (`"ăn uống"`, `"nhà ở"`).
+  * `time_range` (`str`, Tùy chọn, fallback `"this_month"`): `"hôm nay"`, `"tuần này"`, `"tháng trước"`.
+  * `transaction_type` (`str`, Tùy chọn): `"expense"`, `"income"`, `"all"`.
+* **Mẫu câu thực tế:**
+  1. *"Tuần này tôi chi bao nhiêu tiền cà phê rồi?"*
+  2. *"Xem lịch sử chi tiêu tiền ăn uống tháng này"*
+  3. *"Tháng trước tôi kiếm được bao nhiêu tiền thu nhập"*
+  4. *"Hôm qua tôi đã tiêu những khoản nào"*
+  5. *"Lọc các giao dịch trên 1 triệu trong tháng"*
+  6. *"Xem các khoản chi mua sắm quần áo tuần vừa rồi"*
+  7. *"Liệt kê các khoản thu chi hôm nay"*
+  8. *"Kiểm tra lịch sử đóng tiền học phí"*
+
+---
+
+### 1.7. `finance.financial_report` – Báo cáo tài chính & Phân tích chuyên sâu
+* **Mục đích:** Tổng hợp dòng tiền, phân tích tỷ trọng chi tiêu (expense ratio), đánh giá sức khỏe tài chính và tư vấn tối ưu.
+* **Đường dẫn:** **Reasoning Path (System 2)** – `FinancialAdvisoryAgent` via Amazon Bedrock.
+* **Slots:**
+  * `period` (`str`, Tùy chọn, fallback `"this_month"`): Khoảng thời gian phân tích.
+  * `focus_area` (`str`, Tùy chọn): `"khoản chi lãng phí"`, `"tỷ lệ tiết kiệm"`, `"tổng thể"`.
+* **Mẫu câu thực tế:**
+  1. *"Báo cáo tài chính tháng này của tôi thế nào?"*
+  2. *"Tháng này tôi phung phí ở đâu nhiều nhất?"*
+  3. *"Phân tích tỷ trọng chi tiêu tuần này giúp mình"*
+  4. *"So sánh chi tiêu tháng 11 với tháng 10 xem tăng giảm ra sao"*
+  5. *"Tôi có đang chi tiêu vượt mức an toàn không"*
+  6. *"Tổng kết dòng tiền thu chi quý vừa rồi"*
+  7. *"Đánh giá tình hình tiết kiệm của tôi hiện tại"*
+  8. *"Gợi ý cách cắt giảm chi tiêu để cuối năm dư 20 triệu"*
+
+---
+
+### 1.8. `finance.update_budget` – Điều chỉnh hạn mức ngân sách
+* **Mục đích:** Nâng hoặc hạ trần ngân sách cho một danh mục khi kế hoạch tài chính thay đổi.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Mức độ HITL:** `Gate 1`.
+* **Slots:**
+  * `category` (`str`, **Bắt buộc**): Danh mục cần chỉnh (`"ăn uống"`, `"mua sắm"`, `"tổng thể"`).
+  * `new_limit` (`Decimal`, **Bắt buộc**): Hạn mức mới.
+* **Mẫu câu thực tế:**
+  1. *"Tăng ngân sách ăn uống tháng này lên 4 triệu"*
+  2. *"Giảm hạn mức mua sắm xuống còn 1 củ"*
+  3. *"Đổi ngân sách tổng chi tiêu tuần này thành 2tr5"*
+  4. *"Chỉnh lại hạn mức tiền đi lại là 500k"*
+
+---
+
+# 📋 2. MIỀN CÔNG VIỆC & THỜI GIAN NÂNG CAO (TASK ADVANCED)
+
+### 2.1. `task.create_recurring` – Công việc / Thói quen lặp lại
+* **Mục đích:** Tạo thói quen hoặc nhiệm vụ tự động lặp lại theo chu kỳ (mỗi ngày, các thứ 2-4-6, mỗi tuần).
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Slots:**
+  * `title` (`str`, **Bắt buộc**): Tên công việc/thói quen.
+  * `recurrence` (`str`, **Bắt buộc**): Tần suất (`"daily"`, `"weekdays"`, `"weekly"`, `"t2_t4_t6"`).
+  * `time_of_day` (`str`, Tùy chọn): Giờ thực hiện (vd: `"19:00"`, `"sáng"`).
+* **Mẫu câu thực tế:**
+  1. *"Nhắc tôi đi tập gym vào thứ 2, 4, 6 lúc 18h"*
+  2. *"Đặt lịch uống thuốc mỗi ngày lúc 8h sáng"*
+  3. *"Thêm thói quen đọc sách 30 phút mỗi tối 22h"*
+  4. *"Nhắc dọn phòng vào mỗi sáng Chủ nhật"*
+  5. *"Lập lịch học tiếng Anh hàng ngày 20h"*
+  6. *"Nhắc sao lưu dữ liệu máy tính vào cuối mỗi tuần"*
+  7. *"Mỗi sáng thứ Hai nhắc xem lại mục tiêu tuần"*
+  8. *"Lên lịch tưới cây mỗi ngày lúc 17h chiều"*
+
+---
+
+### 2.2. `task.reschedule` – Dời lịch / Đổi hạn chót / Lùi giờ
+* **Mục đích:** Thay đổi hạn chót (deadline) hoặc giờ hẹn của một công việc đã có từ trước.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Slots:**
+  * `title` (`str`, **Bắt buộc**): Tên công việc cần dời.
+  * `new_deadline` (`datetime`, **Bắt buộc**): Thời gian mới.
+* **Mẫu câu thực tế:**
+  1. *"Dời deadline nộp slide đồ án sang 20h tối mai"*
+  2. *"Hoãn cuộc họp nhóm sang 15h chiều thứ 4"*
+  3. *"Lùi lịch hẹn cà phê với anh Tuấn lại 1 tiếng"*
+  4. *"Đổi hạn nộp bài tập sang Chủ nhật tuần này"*
+  5. *"Chuyển lịch đi khám răng sang 9h sáng thứ Bảy"*
+  6. *"Dời lịch phỏng vấn thực tập sang tuần sau"*
+  7. *"Gia hạn deadline báo cáo thêm 2 ngày"*
+  8. *"Đổi giờ đi đá bóng chiều nay thành 17h30"*
+
+---
+
+### 2.3. `task.query_by_tag` – Lọc việc theo nhãn / Dự án
+* **Mục đích:** Tra cứu danh sách các công việc thuộc một danh mục hoặc dự án chuyên biệt.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Slots:**
+  * `tag` (`str`, **Bắt buộc**): Tên nhãn (`"AI4Life"`, `"Đồ án tốt nghiệp"`, `"VKU"`, `"Cá nhân"`, `"Học tập"`).
+* **Mẫu câu thực tế:**
+  1. *"Xem các công việc thuộc dự án AI4Life"*
+  2. *"Lọc danh sách việc môn Lập trình Web"*
+  3. *"Có những task nào gắn nhãn Cá nhân"*
+  4. *"Xem toàn bộ việc của dự án tốt nghiệp VKU"*
+  5. *"Kiểm tra các việc trong nhóm Học tập"*
+  6. *"Liệt kê danh sách việc gắn tag Công việc cty"*
+  7. *"Xem các task liên quan đến bảo vệ đồ án"*
+  8. *"Lọc các đầu việc của kỳ thi học kỳ"*
+
+---
+
+### 2.4. `task.query_completed` – Xem danh sách việc đã hoàn thành
+* **Mục đích:** Tổng kết năng suất, xem lại những việc đã làm xong trong ngày, tuần hoặc tháng.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Slots:**
+  * `time_range` (`str`, Tùy chọn, fallback `"today"`): Khoảng thời gian tra cứu.
+* **Mẫu câu thực tế:**
+  1. *"Xem lại các việc tôi đã hoàn thành hôm nay"*
+  2. *"Tuần này tôi đã làm xong được bao nhiêu task?"*
+  3. *"Kiểm tra danh sách công việc đã hoàn thành trong tháng"*
+  4. *"Hôm qua tôi đã tick xong những việc gì"*
+  5. *"Xem tổng kết các đầu việc đã giải quyết tuần qua"*
+  6. *"Cho xem lịch sử các task đã done"*
+  7. *"Hôm nay đã làm được những gì rồi Onis"*
+  8. *"Liệt kê việc đã hoàn tất ngày hôm qua"*
+
+---
+
+### 2.5. `task.cancel` – Tạm hoãn / Hủy bỏ công việc (Không xóa mất dữ liệu)
+* **Mục đích:** Chuyển trạng thái task sang `cancelled`, giữ lại dữ liệu lịch sử chứ không xóa vĩnh viễn khỏi CSDL như `task.delete`.
+* **Đường dẫn:** **Fast Path (System 1)**.
 * **Mức độ HITL:** `None`.
-
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `title` | `str` | **Bắt buộc** | *Không có* | Tiêu đề hoặc nội dung việc cần làm. |
-| `deadline` | `datetime` | Tùy chọn | `None` | Hạn chót công việc (ngày & giờ). |
-| `priority` | `TaskPriority`| Tùy chọn | `TaskPriority.MEDIUM`| Mức ưu tiên (`"low"`, `"medium"`, `"high"`, `"urgent"`). |
-| `category` | `str` | Tùy chọn | `"Chung"` | Phân loại dự án/nhóm việc (Học tập, VKU, Công ty, Cá nhân,...). |
-| `reminder` | `bool` | Tùy chọn | `False` | Có bật chuông/thông báo đẩy nhắc nhở không. |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* **Khi thiếu `title`:**
-  * *Câu hỏi làm rõ:* *"Nội dung công việc hoặc việc bạn cần làm là gì?"*
-  * *Quick-Reply Chips:* `["Nộp bài tập", "Gửi email cho sếp", "Đi chợ", "Họp nhóm"]`
-* **Khi chưa có `deadline` (Hỏi nhẹ - Soft prompt):**
-  * Tự động lưu task với `deadline=None`, đồng thời kèm thông báo: *"Đã tạo task '{title}'. Bạn có muốn gắn thêm hạn chót không?"* $\rightarrow$ `["Hôm nay 18:00", "Ngày mai", "Cuối tuần này"]`.
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Thêm việc nộp báo cáo AI4Life trước 5h chiều mai"*
-2. *"Nhắc tôi mua sữa cho con chiều nay"*
-3. *"Tạo task chuẩn bị slide thuyết trình VKU"*
-4. *"Ghi chú việc gọi điện cho khách hàng lúc 9h sáng thứ 2"*
-5. *"Thêm công việc sửa lỗi backend OnisAgent gấp"*
-6. *"Nhắc anh đi tập gym lúc 19h tối nay"*
-7. *"Tạo nhiệm vụ đọc 2 chương sách chuyên ngành"*
-8. *"Ghi lại việc mua quà sinh nhật cho mẹ cuối tuần"*
-9. *"Nhắc tôi nộp tiền mạng trước ngày 20"*
-10. *"Tạo task gửi tài liệu nghiệm thu cho thầy hướng dẫn"*
+* **Slots:**
+  * `title` (`str`, **Bắt buộc**): Tên việc cần hủy.
+  * `reason` (`str`, Tùy chọn): Lý do hủy.
+* **Mẫu câu thực tế:**
+  1. *"Hủy cuộc họp nhóm chiều nay do thầy bận"*
+  2. *"Hủy bỏ task đi bơi tối nay"*
+  3. *"Tạm hoãn việc mua sách sang tuần sau"*
+  4. *"Bỏ cuộc hẹn với khách hàng chiều thứ 3"*
+  5. *"Hủy lịch đá bóng vì trời mưa"*
+  6. *"Hủy task đi siêu thị hôm nay"*
 
 ---
 
-### 8. `task.query_today` – Công việc hôm nay / Kế hoạch ngày
-* **Mục đích:** Liệt kê toàn bộ công việc, nhiệm vụ và sự kiện cần hoàn tất trong ngày hôm nay kèm trạng thái hoàn thành.
-* **Đường dẫn nhận thức:** **Fast Path (System 1)**.
-* **Mức độ HITL:** `None`.
-
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `date_filter` | `str` | Tùy chọn | `"today"` | Mốc lọc ngày (`"today"`, `"current_day"`). |
-| `status` | `str` | Tùy chọn | `"pending"` | Trạng thái việc (`"all"`, `"pending"`, `"completed"`). |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* Luôn tự động thực thi ngay lập tức. Không yêu cầu người dùng cung cấp thêm slot.
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Hôm nay tôi có những việc gì cần làm?"*
-2. *"Lên danh sách việc hôm nay"*
-3. *"Xem task ngày hôm nay của tôi"*
-4. *"Hôm nay có việc gì gấp không Onis"*
-5. *"Lịch làm việc hôm nay thế nào"*
-6. *"Cho tôi xem các đầu việc cần giải quyết hôm nay"*
-7. *"Hôm nay còn việc nào chưa hoàn thành"*
-8. *"Danh sách to-do list hôm nay"*
-9. *"Check task ngày 15/11 giúp mình"*
-10. *"Xem tổng hợp công việc ngày hôm nay"*
+### 2.6. `task.search` – Tìm kiếm công việc theo từ khóa
+* **Mục đích:** Tìm kiếm toàn văn (Full-text search) các công việc trong quá khứ hoặc hiện tại theo từ khóa người dùng nhập.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Slots:**
+  * `keyword` (`str`, **Bắt buộc**): Từ khóa tìm kiếm.
+* **Mẫu câu thực tế:**
+  1. *"Tìm các công việc có chữ slide"*
+  2. *"Tìm kiếm task liên quan đến tiền điện"*
+  3. *"Tìm lịch hẹn có tên anh Tuấn"*
+  4. *"Tra cứu việc có từ khóa báo cáo"*
+  5. *"Tìm xem tôi có ghi việc mua quà không"*
+  6. *"Kiểm tra xem có task nào nhắc nộp hồ sơ không"*
 
 ---
 
-### 9. `task.query_deadline` – Tra cứu hạn chót / Deadline gấp
-* **Mục đích:** Rà soát và cảnh báo các mốc deadline quan trọng sắp đến hạn trong vòng 24–72 giờ tới, đếm ngược thời gian còn lại.
-* **Đường dẫn nhận thức:** **Fast Path (System 1)**.
-* **Mức độ HITL:** `None`.
+# 🔗 3. NHÓM GIAO THOA TIỀN & VIỆC (CROSS-DOMAIN)
 
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `time_range` | `str` | Tùy chọn | `"upcoming_48h"`| Khoảng thời gian tra cứu (`"today"`, `"this_week"`, `"all"`). |
-| `urgency_only`| `bool`| Tùy chọn | `False` | Chỉ lọc những task thuộc mức khẩn cấp (`urgent` / `high`). |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* Tự động quét toàn bộ task có `deadline != None` và sắp xếp theo thứ tự thời gian tăng dần.
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Tuần này có deadline nào gấp không?"*
-2. *"Hạn nộp đồ án VKU là khi nào?"*
-3. *"Kiểm tra các deadline sắp tới trong 3 ngày tới"*
-4. *"Có bài tập nào sắp hết hạn nộp không"*
-5. *"Xem những hạn chót cần làm gấp trong 24h tới"*
-6. *"Deadline bài báo khoa học còn bao nhiêu tiếng nữa"*
-7. *"Liệt kê các hạn chót chưa xong trong tuần này"*
-8. *"Khi nào tới hạn nộp slide thuyết trình"*
-9. *"Check xem có việc nào sắp quá hạn không em"*
-10. *"Thời hạn đóng học phí là ngày mấy thế"*
+### 3.1. `cross.plan_expense_task` – Kế hoạch công việc gắn liền dự trù kinh phí
+* **Mục đích:** Lên danh sách các việc cần chuẩn bị cho một sự kiện (du lịch, tổ chức sinh nhật, đám cưới) đồng thời dự toán kinh phí cho từng đầu việc.
+* **Đường dẫn:** **Reasoning Path (System 2)** – Phối hợp giữa `TaskManagerAgent` và `FinancialAdvisoryAgent`.
+* **Mức độ HITL:** `Gate 1`.
+* **Slots:**
+  * `event_name` (`str`, **Bắt buộc**): Tên sự kiện (`"Du lịch Đà Nẵng"`, `"Tiệc tất niên"`).
+  * `budget` (`Decimal`, Tùy chọn): Ngân sách tối đa dự kiến.
+  * `duration` (`str`, Tùy chọn): Thời lượng sự kiện (vd: `"3 ngày 2 đêm"`).
+* **Mẫu câu thực tế:**
+  1. *"Lập kế hoạch đi du lịch Đà Nẵng 3 ngày 2 đêm ngân sách 5 triệu"*
+  2. *"Lên danh sách việc cần làm và dự trù chi phí tổ chức tiệc sinh nhật 2 củ"*
+  3. *"Lập plan tổ chức workshop AI cho CLB với kinh phí 10 triệu"*
+  4. *"Lên kế hoạch chuyển phòng trọ mới kèm dự toán chi phí vận chuyển"*
+  5. *"Kế hoạch đi phượt Hà Giang và tính tiền xăng xe ăn ở"*
+  6. *"Chuẩn bị kế hoạch cưới vợ và dự toán ngân sách từng hạng mục"*
+  7. *"Lên danh sách mua sắm đồ Tết và giới hạn chi tiêu 8 triệu"*
+  8. *"Lập bảng việc cần làm và chi phí tổ chức giải bóng đá sinh viên"*
 
 ---
 
-### 10. `task.schedule_event` – Lịch hẹn / Sự kiện
-* **Mục đích:** Ghi nhận cuộc hẹn, cuộc họp nhóm, sự kiện ngoại khóa có thời gian bắt đầu và địa điểm cụ thể.
-* **Đường dẫn nhận thức:** **Fast Path (System 1)**.
-* **Mức độ HITL:** `None`.
-
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `title` | `str` | **Bắt buộc** | *Không có* | Tiêu đề cuộc hẹn hoặc sự kiện. |
-| `start_time` | `datetime` | **Bắt buộc** | *Không có* | Thời gian bắt đầu cuộc hẹn. |
-| `location` | `str` | Tùy chọn | `None` | Địa điểm diễn ra (Google Meet, Highlands, VKU,...). |
-| `participants`| `list[str]`| Tùy chọn | `[]` | Người tham gia cùng. |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* **Khi thiếu `start_time`:**
-  * *Câu hỏi làm rõ:* *"Sự kiện '{title}' diễn ra vào thời gian nào vậy bạn?"*
-  * *Quick-Reply Chips:* `["9h sáng mai", "14h chiều nay", "8h tối nay", "9h sáng thứ Hai"]`
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Đặt lịch hẹn cà phê với anh Tuấn 9h sáng mai"*
-2. *"Lịch họp nhóm lúc 2h chiều thứ 2 tại phòng Lab"*
-3. *"Hẹn gặp thầy hướng dẫn lúc 15h30 chiều thứ 5 ở VKU"*
-4. *"Lên lịch phỏng vấn thực tập 10h sáng thứ Sáu qua Google Meet"*
-5. *"Hẹn ăn tối với đối tác 19h tối mốt tại Pizza 4P"*
-6. *"Thêm lịch họp online lúc 20h tối nay"*
-7. *"Đặt lịch khám răng lúc 8h sáng Chủ nhật"*
-8. *"Ghi lịch bảo vệ đồ án tốt nghiệp sáng 25/11"*
-9. *"Chiều nay 16h có hẹn đá bóng với công ty"*
-10. *"Họp ban chủ nhiệm CLB AI lúc 17h thứ 4 tuần sau"*
+### 3.2. `cross.bill_due_reminder` – Nhắc hạn đóng tiền / Hóa đơn định kỳ
+* **Mục đích:** Tạo một công việc deadline thanh toán hóa đơn gắn liền với số tiền cụ thể trong sổ thu chi.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Slots:**
+  * `bill_name` (`str`, **Bắt buộc**): Tên khoản tiền cần nộp (tiền trọ, tiền mạng, học phí).
+  * `amount` (`Decimal`, **Bắt buộc**): Số tiền cần thanh toán.
+  * `due_date` (`datetime`, **Bắt buộc**): Ngày đến hạn.
+* **Mẫu câu thực tế:**
+  1. *"Nhắc tôi đóng tiền trọ 3tr5 vào ngày 25 hàng tháng"*
+  2. *"Tạo lịch nhắc nộp học phí 12 củ trước ngày 20/11"*
+  3. *"Nhắc thanh toán tiền điện 700k vào ngày mai"*
+  4. *"Đặt lịch nhắc trả tiền thẻ tín dụng 4 triệu ngày 15"*
+  5. *"Nhắc đóng tiền bảo hiểm xe máy 150k cuối tuần này"*
+  6. *"Tạo nhắc nhở thanh toán cước internet 250k trước thứ 6"*
+  7. *"Nhắc nộp tiền rác 60 nghìn đầu tháng sau"*
+  8. *"Nhắc chuyển khoản tiền thuê mặt bằng 15 triệu ngày 1"*
 
 ---
 
-### 11. `task.plan_schedule` – Lên kế hoạch tổng thể (Ngày / Tuần)
-* **Mục đích:** Sử dụng mô hình tư duy sâu (Reasoning Path) để phân tích khối lượng công việc, sắp xếp lịch trình tối ưu theo ma trận Eisenhower và cân đối thời gian biểu.
-* **Đường dẫn nhận thức:** **Reasoning Path (System 2)** – Điều phối bởi `TaskManagerAgent` qua Amazon Bedrock.
-* **Mức độ HITL:** `None` (Đưa ra bảng đề xuất thời gian biểu cho người dùng tham khảo).
+# ⚙️ 4. NHÓM HỆ THỐNG & ĐIỀU KHIỂN (SYSTEM DOMAIN)
 
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `time_frame` | `str` | Tùy chọn | `"today"` | Khung thời gian lập kế hoạch (`"today"`, `"tomorrow"`, `"next_week"`). |
-| `focus_goal` | `str` | Tùy chọn | `None` | Mục tiêu trọng tâm cần ưu tiên hoàn thành trước. |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* Không chặn thực thi. Agent tự động truy vấn toàn bộ task đang `pending` trong database, tổng hợp mức độ khẩn cấp và sinh ra thời gian biểu khuyến nghị.
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Lên kế hoạch công việc cho tuần tới giúp mình"*
-2. *"Sắp xếp thứ tự ưu tiên các việc hôm nay theo ma trận Eisenhower"*
-3. *"Lập lịch trình làm việc ngày mai sao cho hiệu quả nhất"*
-4. *"Tối ưu hóa thời gian biểu tuần này để kịp nộp đồ án"*
-5. *"Hôm nay có nhiều task quá, nên làm việc gì trước"*
-6. *"Phân bổ thời gian học tập và làm việc cho ngày thứ 7"*
-7. *"Lập kế hoạch ôn thi tuần tới cho 3 môn chuyên ngành"*
-8. *"Giúp mình sắp xếp lịch làm việc hôm nay để không bị trễ deadline"*
-9. *"Gợi ý thời gian biểu cho ngày mai từ 8h sáng đến 18h"*
-10. *"Kế hoạch hành động tuần này để đạt mục tiêu hoàn thành đồ án"*
+### 4.1. `system.greeting_summary` – Chào buổi sáng & Tóm tắt nhanh
+* **Mục đích:** Chào hỏi đầu ngày, tổng hợp nhanh số dư khả dụng và 3 công việc quan trọng nhất cần giải quyết hôm nay.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Mẫu câu thực tế:**
+  1. *"Chào buổi sáng Onis"*
+  2. *"Bắt đầu ngày mới tóm tắt tình hình giúp mình"*
+  3. *"Good morning, hôm nay thế nào rồi"*
+  4. *"Tóm tắt nhanh số dư và task hôm nay"*
+  5. *"Onis ơi, chào bạn"*
+  6. *"Hôm nay có gì mới không em"*
+  7. *"Báo cáo đầu ngày cho tôi"*
+  8. *"Chào OnisAgent, tóm tắt ngày hôm nay"*
 
 ---
 
-### 12. `task.complete` – Đánh dấu hoàn thành công việc
-* **Mục đích:** Cập nhật trạng thái một công việc sang `isCompleted = True`, ghi nhận thời gian hoàn tất.
-* **Đường dẫn nhận thức:** **Fast Path (System 1)**.
-* **Mức độ HITL:** `None`.
-
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `title` | `str` | **Bắt buộc\*** | *Không có* | Tiêu đề công việc cần hoàn thành. |
-| `task_id` | `str` | **Bắt buộc\*** | *Không có* | ID định danh công việc (\*Phải có ít nhất `title` hoặc `task_id`). |
-| `completion_date`| `datetime` | Tùy chọn | `datetime.now()` | Thời điểm hoàn thành. |
-
-#### Chiến Lược Làm Rõ (Clarification Strategy)
-* **Khi nói chung chung (vd: *"xong việc rồi"*):**
-  * *Câu hỏi làm rõ:* *"Bạn muốn đánh dấu hoàn thành công việc nào trong danh sách dưới đây?"*
-  * *Quick-Reply Chips:* Danh sách 3-4 task đang `pending` gần nhất.
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Xong task báo cáo AI rồi nè"*
-2. *"Đánh dấu hoàn thành việc đặt vé máy bay giúp mình"*
-3. *"Đã làm xong bài tập lập trình Java"*
-4. *"Tick hoàn thành task nộp tiền điện"*
-5. *"Hoàn tất việc gửi mail cho khách hàng rồi"*
-6. *"Việc mua sữa đã làm xong nhé"*
-7. *"Check done task chuẩn bị slide"*
-8. *"Vừa họp nhóm xong, tick hoàn thành giùm"*
-9. *"Đã hoàn thành công việc đi siêu thị"*
-10. *"Xong hết việc hôm nay rồi"*
+### 4.2. `system.help` – Hướng dẫn sử dụng & Khả năng của Agent
+* **Mục đích:** Cung cấp danh mục các câu lệnh mẫu, hướng dẫn người dùng cách ra lệnh bằng giọng nói và tương tác.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Mẫu câu thực tế:**
+  1. *"Bạn có thể giúp được gì cho tôi?"*
+  2. *"Hướng dẫn sử dụng OnisAgent"*
+  3. *"Trợ lý này làm được những việc gì"*
+  4. *"Cho tôi xem các câu lệnh mẫu"*
+  5. *"Làm sao để ghi chi tiêu bằng giọng nói"*
+  6. *"Cách dùng app OnisAgent thế nào"*
+  7. *"Trợ lý có tính được tiền lãi vay ngân hàng không"*
+  8. *"Help me, hướng dẫn tính năng"*
 
 ---
 
-### 13. `task.delete` – Xóa / Hủy bỏ công việc
-* **Mục đích:** Xóa một hoặc nhiều nhiệm vụ khỏi danh sách. Đây là thao tác có nguy cơ phá hủy dữ liệu.
-* **Đường dẫn nhận thức:** **Fast Path (System 1)** $\longrightarrow$ **Chuyển sang trạng thái `BLOCKED`**.
-* **Mức độ HITL:** **Gate 3 (Bắt buộc xác nhận trực tiếp)**. Hệ thống không bao giờ tự ý xóa nếu người dùng chưa bấm xác nhận hoặc gõ chữ đồng ý.
-
-#### Bảng Danh Sách Slot
-| Tên Slot | Kiểu Dữ Liệu | Bắt Buộc? | Mặc Định (Fallback) | Mô Tả |
-| :--- | :--- | :---: | :--- | :--- |
-| `title` | `str` | **Bắt buộc\*** | *Không có* | Tên công việc muốn xóa. |
-| `task_id` | `str` | **Bắt buộc\*** | *Không có* | ID công việc muốn xóa. |
-| `requires_hitl`| `bool`| Tự động gán | `True` | Cờ bảo mật kích hoạt Modal cảnh báo đỏ. |
-
-#### Chiến Lược Làm Rõ & Xác Nhận (HITL Confirmation Dialog)
-* **Khi xác định được task cần xóa:**
-  * Trả về: `ExecutionStatus.BLOCKED`
-  * *Cảnh báo UI:* *"Xác nhận xóa: Bạn có chắc chắn muốn xóa vĩnh viễn công việc '{title}' không?"*
-  * *Nút bấm hành động:* `[Hủy bỏ]`, `[Xác nhận xóa]`
-
-#### Mẫu Câu Huấn Luyện (Example Utterances)
-1. *"Xóa task đi chợ chiều nay"*
-2. *"Hủy việc họp nhóm với bên marketing"*
-3. *"Xóa bỏ công việc nộp báo cáo cũ"*
-4. *"Bỏ task đặt vé xe đi không cần nữa"*
-5. *"Xóa nhiệm vụ đi xem phim tối nay"*
-6. *"Hủy lịch hẹn cà phê ngày mai"*
-7. *"Delete task sửa lỗi giao diện"*
-8. *"Bỏ công việc kiểm tra mail buổi sáng"*
-9. *"Xóa task có id 1731635892"*
-10. *"Hủy toàn bộ việc đã lên lịch hôm nay"*
-
----
-
-## 🛡️ Tích Hợp Vào Engine & Flutter App
-
-1. **Backend Validation:** Mọi Intent trên đều được ánh xạ 1:1 qua `backend/src/schemas/finance.py`, `backend/src/schemas/task.py` và kiểm tra hợp lệ bởi `backend/src/engine/slot_validator.py`.
-2. **Session Persistence:** Quá trình hội thoại làm rõ được duy trì trạng thái phiên đa lượt thông qua `backend/src/engine/session_manager.py`.
-3. **Frontend Interaction:** Ứng dụng Flutter hiển thị thẻ câu hỏi tự nhiên cùng dãy nút `Quick-Reply Chips` giúp người dùng phản hồi nhanh chỉ bằng 1 cú chạm.
+### 4.3. `system.undo` – Hoàn tác thao tác vừa ghi nhận
+* **Mục đích:** Hủy bỏ ngay lập tức giao dịch thu chi hoặc công việc vừa ghi nhận sai lầm ở lượt thoại trước đó.
+* **Đường dẫn:** **Fast Path (System 1)**.
+* **Mức độ HITL:** `Gate 2` (Đính chính giao dịch).
+* **Mẫu câu thực tế:**
+  1. *"Ủa nhầm rồi, hoàn tác lại giúp mình"*
+  2. *"Hủy giao dịch vừa ghi nhận"*
+  3. *"Tôi vừa nói nhầm, xóa khoản chi vừa rồi đi"*
+  4. *"Undo lại thao tác trước đó"*
+  5. *"Nhầm số tiền rồi, hủy lệnh vừa tạo"*
+  6. *"Không phải task đó, hoàn tác lại"*
+  7. *"Xóa khoản vừa ghi sổ đi mình đọc lộn"*
+  8. *"Quay lại bước trước giúp tôi"*
