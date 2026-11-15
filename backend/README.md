@@ -14,11 +14,27 @@
 
 ## 📑 Mục Lục
 1. [Thiết Kế Hệ Thống Tổng Thể (System Architecture)](#1-thiết-kế-hệ-thống-tổng-thể-system-architecture)
-2. [Nguyên Tắc Kiến Trúc Cốt Lõi (ADR Matrix)](#2-nguyên-tắc-kiến-trúc-cốt-lõi-adr-matrix)
-3. [Bản Đặc Tả Toàn Bộ Intent & Slot Schema (Full Intent-Slot Matrix)](#3-bản-đặc-tả-toàn-bộ-intent--slot-schema-full-intent-slot-matrix)
-4. [Cơ Chế Hội Thoại Làm Rõ Đa Lượt (Multi-turn Clarification Dialog Flow)](#4-cơ-chế-hội-thoại-làm-rõ-đa-lượt-multi-turn-clarification-dialog-flow)
-5. [Cấu Trúc Thư Mục & Vai Trò Các Module (Folder Structure & Module Reference)](#5-cấu-trúc-thư-mục--vai-trò-các-module)
-6. [Hướng Dẫn Cài Đặt, Cấu Hình Môi Trường & Kiểm Thử](#6-hướng-dẫn-cài-đặt-cấu-hình-môi-trường--kiểm-thử)
+2. [Đặc Tả Luồng Hoạt Động End-to-End (6 Kịch Bản Chi Tiết)](#-đặc-tả-luồng-hoạt-động-end-to-end-toàn-diện)
+3. [Nguyên Tắc Kiến Trúc Cốt Lõi (ADR Matrix)](#2-nguyên-tắc-kiến-trúc-cốt-lõi-adr-matrix)
+4. [Bản Đặc Tả Toàn Bộ Intent & Slot Schema (Full Intent-Slot Matrix)](#3-bản-đặc-tả-toàn-bộ-intent--slot-schema-full-intent-slot-matrix)
+5. [Cơ Chế Hội Thoại Làm Rõ Đa Lượt (Multi-turn Clarification Dialog Flow)](#4-cơ-chế-hội-thoại-làm-rõ-đa-lượt-multi-turn-clarification-dialog-flow)
+6. [Cấu Trúc Thư Mục & Vai Trò Các Module (Folder Structure & Module Reference)](#5-cấu-trúc-thư-mục--vai-trò-các-module)
+7. [Hướng Dẫn Cài Đặt, Cấu Hình Môi Trường & Kiểm Thử](#6-hướng-dẫn-cài-đặt-cấu-hình-môi-trường--kiểm-thử)
+
+---
+
+### 🚀 Đặc Tả Luồng Hoạt Động End-to-End Toàn Diện
+> Chi tiết tài liệu kiến trúc 5 tầng và 6 kịch bản hoạt động end-to-end (kèm sơ đồ Mermaid Sequence chi tiết):  
+> 👉 Xem tại: **[backend/docs/end_to_end_flow.md](file:///home/trinhquyetchien/Projects/Main/Team/OnisAgent/backend/docs/end_to_end_flow.md)**  
+> Bao quát:
+> - **Kịch bản 1:** Fast Path hoàn chỉnh (~6-10ms, 0 Token).
+> - **Kịch bản 2:** Hội thoại làm rõ đa lượt (Multi-turn Clarification Flow).
+> - **Kịch bản 3:** Chốt an toàn Human-in-the-Loop (HITL Safety Gate).
+> - **Kịch bản 4:** Reasoning Path (Phân tích chuyên sâu qua Ollama Local LLM `qwen2.5:3b`).
+> - **Kịch bản 5:** Giao thoa tiền & việc (Cross-Domain: Dự định đi đâu gắn ngân sách).
+> - **Kịch bản 6:** Xử lý ngoại lệ & dự phòng (Graceful Fallback & Recovery).
+
+---
 
 ---
 
