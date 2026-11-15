@@ -20,6 +20,19 @@ import joblib
 import numpy as np
 from pydantic import BaseModel, Field
 
+from src.engine.response_templates import (
+    format_currency,
+    template_finance_balance,
+    template_finance_pay_bill,
+    template_finance_query_debt,
+    template_finance_split_bill,
+    template_system_greeting_summary,
+    template_system_help,
+    template_task_create,
+    template_task_complete,
+    template_task_query_deadline,
+    template_task_query_today,
+)
 from src.engine.session_manager import SessionManager
 from src.engine.slot_validator import SlotValidator
 from src.schemas.base import ExecutionStatus
@@ -233,8 +246,8 @@ class ChatResponse(BaseModel):
 
 # ----------------- DETERMINISTIC ACTION EXECUTOR -----------------
 def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, dict[str, Any] | None, list[str]]:
-    """Execute zero-LLM deterministic action using pure Decimal calculator or domain handlers.
-    
+    """Execute zero-LLM deterministic action using pure Decimal calculator or response templates.
+
     Returns:
         (reply_message, result_data, quick_replies)
     """
@@ -242,77 +255,47 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, d
         k: float(v) if isinstance(v, Decimal) else v
         for k, v in slots.items()
     }
-    quick_replies: list[str] = []
+
+    # 1. Task Domain Templates
+    if intent in {"task.query_today", "task.query"}:
+        return template_task_query_today()
+
+    if intent == "task.query_deadline":
+        return template_task_query_deadline()
+
+    if intent == "task.create":
+        return template_task_create(clean_slots)
+
+    if intent == "task.complete":
+        return template_task_complete(clean_slots)
+
+    # 2. Finance Domain Templates & Calculators
+    if intent in {"finance.get_balance", "finance.balance.query"}:
+        return template_finance_balance()
+
+    if intent == "finance.query_debt":
+        return template_finance_query_debt(clean_slots)
+
+    if intent == "finance.split_bill":
+        return template_finance_split_bill(clean_slots)
+
+    if intent == "finance.pay_bill":
+        return template_finance_pay_bill(clean_slots)
 
     if intent in {"finance.add_expense", "finance.expense.create"}:
         amt = slots.get("amount", 0)
         note = slots.get("note") or slots.get("category", "chi tiêu")
         acc = slots.get("account", "Ví mặc định")
-        formatted_amt = f"{int(amt):,}₫".replace(",", ".")
+        formatted_amt = format_currency(amt)
         msg = f"Đã ghi nhận khoản chi {formatted_amt} cho '{note}' (Nguồn: {acc})."
         return msg, {"transaction_type": "expense", "recorded": clean_slots}, ["Xem số dư", "Ghi thêm khoản chi", "Lịch sử chi tiêu"]
 
     if intent in {"finance.add_income", "finance.income.create"}:
         amt = slots.get("amount", 0)
         source = slots.get("source", "khoản thu")
-        formatted_amt = f"{int(amt):,}₫".replace(",", ".")
+        formatted_amt = format_currency(amt)
         msg = f"Đã ghi nhận khoản thu {formatted_amt} từ '{source}' vào tài khoản."
         return msg, {"transaction_type": "income", "recorded": clean_slots}, ["Xem số dư", "Ghi thêm thu nhập", "Báo cáo tài chính"]
-
-    if intent in {"finance.get_balance", "finance.balance.query"}:
-        msg = "Số dư hiện tại khả dụng của bạn là 18.450.000₫ (Tiền mặt: 2.100.000₫, Vietcombank: 16.350.000₫)."
-        return msg, {"total_balance": 18450000, "accounts": {"cash": 2100000, "vietcombank": 16350000}}, ["Chi 50k ăn trưa", "Xem sổ nợ", "Xem việc hôm nay"]
-
-    if intent == "finance.query_debt":
-        debt_type = slots.get("debt_type", "all")
-        person = slots.get("person")
-        debt_chips = ["Xem ai nợ tôi", "Xem tôi nợ ai", "Ghi nợ mới", "Đã trả nợ"]
-
-        if person:
-            if person.lower() in ["tuấn", "tuan"]:
-                msg = f"{person} hiện đang nợ bạn 200.000₫ (Mượn tiền ăn trưa)."
-                return msg, {"person": person, "lend": [{"person": "Tuấn", "amount": 200000, "note": "Mượn tiền ăn trưa"}]}, debt_chips
-            elif person.lower() in ["huy"]:
-                msg = f"{person} hiện đang nợ bạn 500.000₫ (Mượn hôm nọ)."
-                return msg, {"person": person, "lend": [{"person": "Huy", "amount": 500000, "note": "Mượn hôm nọ"}]}, debt_chips
-            elif person.lower() in ["nam"]:
-                msg = f"Bạn đang nợ {person} 150.000₫ (Nợ Nam tiền đổ xăng)."
-                return msg, {"person": person, "borrow": [{"person": "Nam", "amount": 150000, "note": "Tiền đổ xăng"}]}, debt_chips
-            else:
-                msg = f"Hiện tại bạn và {person} không có khoản nợ nào cần thanh toán."
-                return msg, {"person": person, "lend": [], "borrow": []}, debt_chips
-
-        if debt_type == "lend":
-            msg = (
-                "🤝 Danh sách người đang nợ bạn:\n"
-                "• Tuấn: 200.000₫ (Mượn tiền ăn trưa)\n"
-                "• Huy: 500.000₫ (Mượn hôm nọ)\n"
-                "👉 Tổng tiền người khác nợ bạn: 700.000₫."
-            )
-            return msg, {"total_lend": 700000, "records": [{"person": "Tuấn", "amount": 200000}, {"person": "Huy", "amount": 500000}]}, debt_chips
-
-        if debt_type == "borrow":
-            msg = (
-                "🤝 Các khoản bạn đang nợ người khác:\n"
-                "• Nam: 150.000₫ (Nợ Nam tiền đổ xăng)\n"
-                "👉 Tổng nợ cần trả: 150.000₫."
-            )
-            return msg, {"total_borrow": 150000, "records": [{"person": "Nam", "amount": 150000}]}, debt_chips
-
-        # default 'all'
-        msg = (
-            "🤝 Sổ theo dõi nợ cá nhân của bạn hiện tại:\n"
-            "• Người khác đang nợ bạn: 700.000₫ (Tuấn: 200k ăn trưa, Huy: 500k mượn hôm nọ).\n"
-            "• Bạn đang nợ người khác: 150.000₫ (Nợ Nam tiền đổ xăng).\n"
-            "👉 Bạn đang có số dư cho mượn ròng là +550.000₫."
-        )
-        return msg, {
-            "total_lend": 700000,
-            "total_borrow": 150000,
-            "net_balance": 550000,
-            "lend_records": [{"person": "Tuấn", "amount": 200000}, {"person": "Huy", "amount": 500000}],
-            "borrow_records": [{"person": "Nam", "amount": 150000}],
-        }, debt_chips
 
     if intent in {"finance.loan_installment_plan", "finance.loan.calculate"}:
         principal = slots.get("principal", 0)
@@ -325,8 +308,8 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, d
                 months=int(term_months),
             )
             monthly_payment = amortization.get("monthly_payment", 0)
-            formatted_principal = f"{int(principal):,}₫".replace(",", ".")
-            formatted_monthly = f"{int(monthly_payment):,}₫".replace(",", ".")
+            formatted_principal = format_currency(principal)
+            formatted_monthly = format_currency(monthly_payment)
             msg = (
                 f"Kế hoạch trả góp gói vay {formatted_principal} trong {term_months} tháng "
                 f"(lãi suất {annual_rate}%/năm): Trả hàng tháng khoảng {formatted_monthly}."
@@ -340,43 +323,12 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, d
         except Exception:
             return f"Đã lập kế hoạch vay {principal} trong {term_months} tháng.", {"loan": clean_slots}, []
 
-    if intent in {"task.query_today", "task.query"}:
-        msg = (
-            "📅 Hôm nay bạn có 3 công việc cần làm:\n"
-            "1. 🔴 [Khẩn cấp] Hoàn thiện tài liệu kiến trúc OnisAgent (Hạn: 11:30)\n"
-            "2. 🟡 [Quan trọng] Họp nhóm dự án AI4Life (Hạn: 14:00)\n"
-            "3. 🟢 [Bình thường] Đọc tài liệu Flutter & Bedrock (Hạn: 22:00)"
-        )
-        tasks_data = [
-            {"id": "t1", "title": "Hoàn thiện tài liệu kiến trúc OnisAgent", "priority": "urgent", "due": "11:30"},
-            {"id": "t2", "title": "Họp nhóm dự án AI4Life", "priority": "high", "due": "14:00"},
-            {"id": "t3", "title": "Đọc tài liệu Flutter & Bedrock", "priority": "normal", "due": "22:00"},
-        ]
-        return msg, {"tasks": tasks_data, "count": 3}, ["Thêm việc mới", "Hoàn thành việc 1", "Xem deadline tuần"]
+    # 3. System Domain Templates
+    if intent == "system.greeting_summary":
+        return template_system_greeting_summary()
 
-    if intent == "task.query_deadline":
-        msg = (
-            "⏰ Cảnh báo hạn chót (Deadline) trong 48h tới:\n"
-            "• [Còn 2 giờ] Nộp báo cáo tiến độ đồ án AI4Life (Hạn: 11:30 hôm nay)\n"
-            "• [Còn 26 giờ] Hoàn tất slide thuyết trình ban giám khảo (Hạn: 12:00 ngày mai)"
-        )
-        deadline_data = [
-            {"title": "Nộp báo cáo tiến độ đồ án AI4Life", "due": "11:30 hôm nay", "hours_left": 2},
-            {"title": "Hoàn tất slide thuyết trình ban giám khảo", "due": "12:00 ngày mai", "hours_left": 26},
-        ]
-        return msg, {"deadlines": deadline_data, "count": 2}, ["Đã làm xong", "Dời hạn chót", "Xem việc hôm nay"]
-
-    if intent == "task.create":
-        title = slots.get("title", "công việc")
-        due = slots.get("due_date", "hôm nay")
-        prio = slots.get("priority", "medium")
-        msg = f"Đã tạo công việc '{title}' (Hạn: {due}, Ưu tiên: {prio})."
-        return msg, {"task": clean_slots}, ["Xem việc hôm nay", "Tạo thêm việc", "Xem deadline"]
-
-    if intent == "task.complete":
-        title = slots.get("title") or slots.get("task_id", "công việc")
-        msg = f"Đã đánh dấu hoàn thành công việc: '{title}'! 🎉"
-        return msg, {"completed_task": clean_slots}, ["Xem việc hôm nay", "Xem việc đã xong"]
+    if intent == "system.help":
+        return template_system_help()
 
     return f"Đã xử lý xong yêu cầu '{intent}'.", {"slots": clean_slots}, []
 

@@ -172,7 +172,7 @@ def test_chat_task_query_today(client):
     data = res.json()
     assert data["intent"] in ["task.query_today", "task.query"]
     assert data["status"] == "READY"
-    assert "Hôm nay bạn có 3 công việc cần làm" in data["message"]
+    assert "Danh sách công việc hôm nay của bạn" in data["message"]
     assert "Hoàn thiện tài liệu kiến trúc OnisAgent" in data["message"]
     assert "Thêm việc mới" in data["quick_replies"]
     assert data["data"]["count"] == 3
