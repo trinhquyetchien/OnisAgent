@@ -5,6 +5,7 @@ import 'screens/finance_screen.dart';
 import 'screens/tasks_screen.dart';
 import 'screens/deadlines_screen.dart';
 import 'screens/assistant_screen.dart';
+import 'services/mock_data_service.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -40,12 +41,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   @override
   Widget build(BuildContext context) {
     final isDesktopOrWeb = MediaQuery.of(context).size.width >= 850;
+    final dataService = MockDataService();
 
     final List<Widget> pages = [
       HomeScreen(
         onNavigateToFinance: () => setState(() => _selectedIndex = 1),
         onNavigateToTasks: () => setState(() => _selectedIndex = 2),
         onNavigateToDeadlines: () => setState(() => _selectedIndex = 3),
+        onNavigateToAssistant: () => setState(() => _selectedIndex = 4),
       ),
       const FinanceScreen(),
       const TasksScreen(),
@@ -53,129 +56,197 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       const AssistantScreen(),
     ];
 
-    final navigationDestinations = const [
-      NavigationDestination(
-        icon: Icon(Icons.dashboard_outlined),
-        selectedIcon: Icon(Icons.dashboard_rounded, color: AppColors.primaryLight),
-        label: 'Tổng quan',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.account_balance_wallet_outlined),
-        selectedIcon: Icon(Icons.account_balance_wallet_rounded, color: AppColors.primaryLight),
-        label: 'Tài chính',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.task_alt_outlined),
-        selectedIcon: Icon(Icons.task_alt_rounded, color: AppColors.primaryLight),
-        label: 'Công việc',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.alarm_on_outlined),
-        selectedIcon: Icon(Icons.alarm_on_rounded, color: AppColors.primaryLight),
-        label: 'Deadline',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.smart_toy_outlined),
-        selectedIcon: Icon(Icons.smart_toy_rounded, color: AppColors.primaryLight),
-        label: 'Trợ lý AI',
-      ),
-    ];
+    return ListenableBuilder(
+      listenable: dataService,
+      builder: (context, _) {
+        final pendingTasks = dataService.pendingTasksCount;
+        final urgentDeadlines = dataService.urgentDeadlinesCount;
 
-    if (isDesktopOrWeb) {
-      // Desktop / Web layout with Sidebar NavigationRail
-      return Scaffold(
-        body: Row(
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                color: AppColors.surfaceDark,
-                border: Border(right: BorderSide(color: Color(0xFF334155), width: 1)),
-              ),
-              child: NavigationRail(
-                selectedIndex: _selectedIndex,
-                onDestinationSelected: (index) => setState(() => _selectedIndex = index),
-                backgroundColor: AppColors.surfaceDark,
-                extended: MediaQuery.of(context).size.width >= 1100,
-                minExtendedWidth: 220,
-                leading: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 24),
-                      ),
-                      if (MediaQuery.of(context).size.width >= 1100) ...[
-                        const SizedBox(width: 12),
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'OnisAgent',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+        final navigationDestinations = [
+          const NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard_rounded, color: AppColors.primaryLight),
+            label: 'Tổng quan',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet_rounded, color: AppColors.primaryLight),
+            label: 'Tài chính',
+          ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: pendingTasks > 0,
+              label: Text('$pendingTasks'),
+              backgroundColor: AppColors.warning,
+              child: const Icon(Icons.task_alt_outlined),
+            ),
+            selectedIcon: Badge(
+              isLabelVisible: pendingTasks > 0,
+              label: Text('$pendingTasks'),
+              backgroundColor: AppColors.warning,
+              child: const Icon(Icons.task_alt_rounded, color: AppColors.primaryLight),
+            ),
+            label: 'Công việc',
+          ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: urgentDeadlines > 0,
+              label: Text('$urgentDeadlines'),
+              backgroundColor: AppColors.expense,
+              child: const Icon(Icons.alarm_on_outlined),
+            ),
+            selectedIcon: Badge(
+              isLabelVisible: urgentDeadlines > 0,
+              label: Text('$urgentDeadlines'),
+              backgroundColor: AppColors.expense,
+              child: const Icon(Icons.alarm_on_rounded, color: AppColors.primaryLight),
+            ),
+            label: 'Deadline',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.smart_toy_outlined),
+            selectedIcon: Icon(Icons.smart_toy_rounded, color: AppColors.primaryLight),
+            label: 'Trợ lý AI',
+          ),
+        ];
+
+        if (isDesktopOrWeb) {
+          // Desktop / Web layout with Sidebar NavigationRail
+          return Scaffold(
+            body: Row(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    color: AppColors.surfaceDark,
+                    border: Border(right: BorderSide(color: AppColors.borderDark, width: 1)),
+                  ),
+                  child: NavigationRail(
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+                    backgroundColor: AppColors.surfaceDark,
+                    extended: MediaQuery.of(context).size.width >= 1100,
+                    minExtendedWidth: 220,
+                    leading: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            Text(
-                              'AI Task & Finance',
-                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 24),
+                          ),
+                          if (MediaQuery.of(context).size.width >= 1100) ...[
+                            const SizedBox(width: 12),
+                            const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'OnisAgent',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                                Text(
+                                  'AI Task & Finance',
+                                  style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                                ),
+                              ],
                             ),
                           ],
+                        ],
+                      ),
+                    ),
+                    destinations: [
+                      const NavigationRailDestination(
+                        icon: Icon(Icons.dashboard_outlined),
+                        selectedIcon: Icon(Icons.dashboard_rounded, color: AppColors.primaryLight),
+                        label: Text('Tổng quan'),
+                      ),
+                      const NavigationRailDestination(
+                        icon: Icon(Icons.account_balance_wallet_outlined),
+                        selectedIcon: Icon(Icons.account_balance_wallet_rounded, color: AppColors.primaryLight),
+                        label: Text('Tài chính'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Badge(
+                          isLabelVisible: pendingTasks > 0,
+                          label: Text('$pendingTasks'),
+                          backgroundColor: AppColors.warning,
+                          child: const Icon(Icons.task_alt_outlined),
                         ),
-                      ],
+                        selectedIcon: Badge(
+                          isLabelVisible: pendingTasks > 0,
+                          label: Text('$pendingTasks'),
+                          backgroundColor: AppColors.warning,
+                          child: const Icon(Icons.task_alt_rounded, color: AppColors.primaryLight),
+                        ),
+                        label: const Text('Công việc'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Badge(
+                          isLabelVisible: urgentDeadlines > 0,
+                          label: Text('$urgentDeadlines'),
+                          backgroundColor: AppColors.expense,
+                          child: const Icon(Icons.alarm_on_outlined),
+                        ),
+                        selectedIcon: Badge(
+                          isLabelVisible: urgentDeadlines > 0,
+                          label: Text('$urgentDeadlines'),
+                          backgroundColor: AppColors.expense,
+                          child: const Icon(Icons.alarm_on_rounded, color: AppColors.primaryLight),
+                        ),
+                        label: const Text('Deadline'),
+                      ),
+                      const NavigationRailDestination(
+                        icon: Icon(Icons.smart_toy_outlined),
+                        selectedIcon: Icon(Icons.smart_toy_rounded, color: AppColors.primaryLight),
+                        label: Text('Trợ lý AI'),
+                      ),
                     ],
                   ),
                 ),
-                destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.dashboard_outlined),
-                    selectedIcon: Icon(Icons.dashboard_rounded, color: AppColors.primaryLight),
-                    label: Text('Tổng quan'),
+                Expanded(child: pages[_selectedIndex]),
+              ],
+            ),
+          );
+        } else {
+          // Mobile layout with Bottom Navigation Bar
+          return Scaffold(
+            appBar: AppBar(
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 18),
                   ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.account_balance_wallet_outlined),
-                    selectedIcon: Icon(Icons.account_balance_wallet_rounded, color: AppColors.primaryLight),
-                    label: Text('Tài chính'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.task_alt_outlined),
-                    selectedIcon: Icon(Icons.task_alt_rounded, color: AppColors.primaryLight),
-                    label: Text('Công việc'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.alarm_on_outlined),
-                    selectedIcon: Icon(Icons.alarm_on_rounded, color: AppColors.primaryLight),
-                    label: Text('Deadline'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.smart_toy_outlined),
-                    selectedIcon: Icon(Icons.smart_toy_rounded, color: AppColors.primaryLight),
-                    label: Text('Trợ lý AI'),
-                  ),
+                  const SizedBox(width: 10),
+                  const Text('OnisAgent', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                 ],
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.smart_toy_rounded, color: AppColors.primaryLight),
+                  tooltip: 'Trợ lý AI',
+                  onPressed: () => setState(() => _selectedIndex = 4),
+                ),
+              ],
             ),
-            Expanded(child: pages[_selectedIndex]),
-          ],
-        ),
-      );
-    } else {
-      // Mobile layout with Bottom Navigation Bar
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('OnisAgent', style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
-        body: pages[_selectedIndex],
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: (index) => setState(() => _selectedIndex = index),
-          backgroundColor: AppColors.surfaceDark,
-          indicatorColor: AppColors.primary.withAlpha(50),
-          destinations: navigationDestinations,
-        ),
-      );
-    }
+            body: pages[_selectedIndex],
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+              backgroundColor: AppColors.surfaceDark,
+              indicatorColor: AppColors.primary.withAlpha(40),
+              destinations: navigationDestinations,
+            ),
+          );
+        }
+      },
+    );
   }
 }

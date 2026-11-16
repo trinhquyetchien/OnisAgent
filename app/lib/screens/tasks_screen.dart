@@ -12,7 +12,8 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
-  String _selectedFilter = 'Tất cả';
+  String _viewMode = 'list'; // 'list' or 'matrix'
+  String _statusFilter = 'all'; // 'all', 'pending', 'completed'
 
   @override
   Widget build(BuildContext context) {
@@ -21,21 +22,19 @@ class _TasksScreenState extends State<TasksScreen> {
     return ListenableBuilder(
       listenable: dataService,
       builder: (context, _) {
-        final filteredTasks = dataService.tasks.where((task) {
-          if (_selectedFilter == 'Chưa xong') return !task.isCompleted;
-          if (_selectedFilter == 'Đã hoàn thành') return task.isCompleted;
+        final allTasks = dataService.tasks;
+        final filteredTasks = allTasks.where((task) {
+          if (_statusFilter == 'pending' && task.isCompleted) return false;
+          if (_statusFilter == 'completed' && !task.isCompleted) return false;
           return true;
         }).toList();
 
-        final pendingCount = dataService.tasks.where((t) => !t.isCompleted).length;
-        final completedCount = dataService.tasks.where((t) => t.isCompleted).length;
-
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
+              // Header & Add Task Button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -44,81 +43,98 @@ class _TasksScreenState extends State<TasksScreen> {
                     children: [
                       const Text(
                         'Quản Lý Công Việc',
-                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$pendingCount việc cần làm • $completedCount việc đã hoàn thành',
-                        style: const TextStyle(color: Colors.grey, fontSize: 14),
+                        '${dataService.pendingTasksCount} việc cần làm • ${dataService.completedTasksCount} đã xong',
+                        style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
                       ),
                     ],
                   ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () => _showAddTaskDialog(context),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Tạo công việc'),
+                  FilledButton.icon(
+                    onPressed: () => _showAddTaskBottomSheet(context, dataService),
+                    icon: const Icon(Icons.add_task_rounded, size: 18),
+                    label: const Text('Tạo task'),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-
-              // Filter Chips
-              Row(
-                children: ['Tất cả', 'Chưa xong', 'Đã hoàn thành'].map((filter) {
-                  final isSelected = _selectedFilter == filter;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(filter),
-                      selected: isSelected,
-                      onSelected: (_) => setState(() => _selectedFilter = filter),
-                      selectedColor: AppColors.primary,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : Colors.grey[400],
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                      backgroundColor: AppColors.surfaceDark,
-                    ),
-                  );
-                }).toList(),
-              ),
               const SizedBox(height: 20),
 
-              // Task List
-              if (filteredTasks.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(40),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceDark,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF334155)),
+              // View Mode Selector (List vs Eisenhower Matrix)
+              Row(
+                children: [
+                  Expanded(
+                    child: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: 'list',
+                          icon: Icon(Icons.list_alt_rounded, size: 18),
+                          label: Text('Danh sách'),
+                        ),
+                        ButtonSegment(
+                          value: 'matrix',
+                          icon: Icon(Icons.grid_view_rounded, size: 18),
+                          label: Text('Ma trận Eisenhower'),
+                        ),
+                      ],
+                      selected: {_viewMode},
+                      onSelectionChanged: (val) => setState(() => _viewMode = val.first),
+                      style: ButtonStyle(
+                        shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      ),
+                    ),
                   ),
-                  child: const Column(
-                    children: [
-                      Icon(Icons.task_alt_rounded, size: 48, color: Colors.grey),
-                      SizedBox(height: 12),
-                      Text('Không có công việc nào', style: TextStyle(color: Colors.grey, fontSize: 16)),
-                    ],
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filteredTasks.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final task = filteredTasks[index];
-                    return _buildTaskCard(task, dataService);
-                  },
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Content based on View Mode
+              if (_viewMode == 'matrix')
+                _buildEisenhowerMatrixView(allTasks, dataService)
+              else ...[
+                // Filter chips for List View
+                Row(
+                  children: [
+                    _buildFilterChip('Tất cả (${allTasks.length})', 'all'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Chưa xong (${dataService.pendingTasksCount})', 'pending'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Đã xong (${dataService.completedTasksCount})', 'completed'),
+                  ],
                 ),
+                const SizedBox(height: 16),
+
+                // Task List Items
+                if (filteredTasks.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceDark,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.borderDark),
+                    ),
+                    child: const Column(
+                      children: [
+                        Icon(Icons.check_circle_outline_rounded, size: 40, color: Color(0xFF64748B)),
+                        SizedBox(height: 8),
+                        Text('Không có công việc nào', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14)),
+                      ],
+                    ),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: filteredTasks.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final task = filteredTasks[index];
+                      return _buildTaskCard(task, dataService);
+                    },
+                  ),
+              ],
             ],
           ),
         );
@@ -126,222 +142,402 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  Widget _buildTaskCard(TaskItem task, MockDataService dataService) {
-    Color priorityColor;
-    String priorityText;
-    switch (task.priority) {
-      case Priority.urgent:
-        priorityColor = AppColors.expense;
-        priorityText = 'Khẩn cấp';
-        break;
-      case Priority.high:
-        priorityColor = AppColors.warning;
-        priorityText = 'Ưu tiên cao';
-        break;
-      case Priority.medium:
-        priorityColor = AppColors.info;
-        priorityText = 'Bình thường';
-        break;
-      case Priority.low:
-        priorityColor = Colors.grey;
-        priorityText = 'Thấp';
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: task.isCompleted ? const Color(0xFF1E293B) : const Color(0xFF334155),
-        ),
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _statusFilter == value;
+    return FilterChip(
+      label: Text(label, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : const Color(0xFF94A3B8))),
+      selected: isSelected,
+      onSelected: (_) => setState(() => _statusFilter = value),
+      selectedColor: AppColors.primary,
+      backgroundColor: AppColors.surfaceDark,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: isSelected ? AppColors.primary : AppColors.borderDark),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Checkbox(
-            value: task.isCompleted,
-            activeColor: AppColors.accent,
-            onChanged: (_) => dataService.toggleTask(task.id),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: priorityColor.withAlpha(30),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        priorityText,
-                        style: TextStyle(color: priorityColor, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardDark,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        task.category,
-                        style: const TextStyle(color: Colors.grey, fontSize: 11),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  task.title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    decoration: task.isCompleted ? TextDecoration.lineThrough : null,
-                    color: task.isCompleted ? Colors.grey : Colors.white,
-                  ),
-                ),
-                if (task.description != null && task.description!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+      showCheckmark: false,
+    );
+  }
+
+  Widget _buildTaskCard(TaskItem task, MockDataService service) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: task.isCompleted,
+              activeColor: AppColors.accent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              onChanged: (_) => service.toggleTask(task.id),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    task.description!,
+                    task.title,
                     style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 13,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: task.isCompleted ? const Color(0xFF64748B) : Colors.white,
                       decoration: task.isCompleted ? TextDecoration.lineThrough : null,
                     ),
                   ),
-                ],
-                if (task.deadline != null) ...[
+                  if (task.description != null && task.description!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      task.description!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: task.isCompleted ? const Color(0xFF475569) : const Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      const Icon(Icons.schedule_rounded, size: 14, color: AppColors.warning),
-                      const SizedBox(width: 4),
-                      Text(
-                        DateFormat('HH:mm - dd/MM/yyyy').format(task.deadline!),
-                        style: const TextStyle(color: AppColors.warning, fontSize: 12, fontWeight: FontWeight.w500),
+                      // Priority Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: task.priority.color.withAlpha(25),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: task.priority.color.withAlpha(70)),
+                        ),
+                        child: Text(
+                          task.priority.label,
+                          style: TextStyle(color: task.priority.color, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
                       ),
+                      const SizedBox(width: 8),
+                      // Category Tag
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF334155),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          task.category,
+                          style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11),
+                        ),
+                      ),
+                      if (task.deadline != null) ...[
+                        const Spacer(),
+                        Icon(
+                          Icons.schedule_rounded,
+                          size: 13,
+                          color: task.isCompleted ? const Color(0xFF64748B) : AppColors.warning,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          DateFormat('dd/MM HH:mm').format(task.deadline!),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: task.isCompleted ? const Color(0xFF64748B) : AppColors.warning,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
-            onPressed: () => dataService.deleteTask(task.id),
-          ),
-        ],
+            IconButton(
+              icon: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+              onPressed: () => service.deleteTask(task.id),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  void _showAddTaskDialog(BuildContext context) {
-    final titleController = TextEditingController();
-    final descController = TextEditingController();
-    Priority priority = Priority.medium;
-    DateTime? selectedDate = DateTime.now().add(const Duration(days: 1));
+  Widget _buildEisenhowerMatrixView(List<TaskItem> allTasks, MockDataService service) {
+    // 4 Quadrants
+    final q1 = allTasks.where((t) => t.isUrgentQuadrant && t.isImportant).toList();
+    final q2 = allTasks.where((t) => !t.isUrgentQuadrant && t.isImportant).toList();
+    final q3 = allTasks.where((t) => t.isUrgentQuadrant && !t.isImportant).toList();
+    final q4 = allTasks.where((t) => !t.isUrgentQuadrant && !t.isImportant).toList();
 
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => StatefulBuilder(
-        builder: (context, setModalState) => AlertDialog(
-          backgroundColor: AppColors.surfaceDark,
-          title: const Text('Tạo Công Việc Mới'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+    return Column(
+      children: [
+        _buildMatrixQuadrant(
+          title: '🔥 Khẩn cấp & Quan trọng (Làm ngay)',
+          subtitle: 'Nhiệm vụ quyết định, áp lực hạn chót',
+          tasks: q1,
+          badgeColor: AppColors.expense,
+          service: service,
+        ),
+        const SizedBox(height: 12),
+        _buildMatrixQuadrant(
+          title: '🎯 Quan trọng & Không khẩn cấp (Lập kế hoạch)',
+          subtitle: 'Mục tiêu chiến lược, phát triển bản thân',
+          tasks: q2,
+          badgeColor: AppColors.info,
+          service: service,
+        ),
+        const SizedBox(height: 12),
+        _buildMatrixQuadrant(
+          title: '⚡ Khẩn cấp & Ít quan trọng (Ủy quyền / Tối ưu)',
+          subtitle: 'Việc gián đoạn, thao tác nhanh',
+          tasks: q3,
+          badgeColor: AppColors.warning,
+          service: service,
+        ),
+        const SizedBox(height: 12),
+        _buildMatrixQuadrant(
+          title: '💤 Không khẩn cấp & Không quan trọng (Hạn chế)',
+          subtitle: 'Việc gây xao nhãng, có thể dời lại',
+          tasks: q4,
+          badgeColor: const Color(0xFF64748B),
+          service: service,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMatrixQuadrant({
+    required String title,
+    required String subtitle,
+    required List<TaskItem> tasks,
+    required Color badgeColor,
+    required MockDataService service,
+  }) {
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: badgeColor.withAlpha(80), width: 1.2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Tiêu đề công việc *',
-                    border: OutlineInputBorder(),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: TextStyle(color: badgeColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                      Text(subtitle, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Mô tả chi tiết',
-                    border: OutlineInputBorder(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withAlpha(30),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<Priority>(
-                  initialValue: priority,
-                  decoration: const InputDecoration(
-                    labelText: 'Mức độ ưu tiên',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: Priority.low, child: Text('Thấp')),
-                    DropdownMenuItem(value: Priority.medium, child: Text('Bình thường')),
-                    DropdownMenuItem(value: Priority.high, child: Text('Ưu tiên cao')),
-                    DropdownMenuItem(value: Priority.urgent, child: Text('Khẩn cấp')),
-                  ],
-                  onChanged: (p) => setModalState(() => priority = p ?? Priority.medium),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_month_rounded, color: AppColors.primaryLight),
-                  title: Text(
-                    selectedDate != null
-                        ? 'Hạn chót: ${DateFormat('dd/MM/yyyy').format(selectedDate!)}'
-                        : 'Chọn hạn chót',
-                  ),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate ?? DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (picked != null) {
-                        setModalState(() => selectedDate = picked);
-                      }
-                    },
-                    child: const Text('Thay đổi'),
+                  child: Text(
+                    '${tasks.where((t) => !t.isCompleted).length} việc',
+                    style: TextStyle(color: badgeColor, fontWeight: FontWeight.bold, fontSize: 11),
                   ),
                 ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-              onPressed: () {
-                if (titleController.text.isNotEmpty) {
-                  MockDataService().addTask(
-                    TaskItem(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      title: titleController.text,
-                      description: descController.text,
-                      deadline: selectedDate,
-                      priority: priority,
-                    ),
-                  );
-                  Navigator.pop(dialogCtx);
-                }
-              },
-              child: const Text('Tạo', style: TextStyle(color: Colors.white)),
-            ),
+            const SizedBox(height: 12),
+            if (tasks.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('Không có nhiệm vụ nào trong nhóm này', style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+              )
+            else
+              ...tasks.map(
+                (task) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: task.isCompleted,
+                          activeColor: AppColors.accent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          onChanged: (_) => service.toggleTask(task.id),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          task.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: task.isCompleted ? const Color(0xFF64748B) : Colors.white,
+                            decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showAddTaskBottomSheet(BuildContext context, MockDataService service) {
+    final titleController = TextEditingController();
+    final descController = TextEditingController();
+    Priority priority = Priority.high;
+    bool isImportant = true;
+    DateTime? selectedDeadline = DateTime.now().add(const Duration(hours: 12));
+    String category = 'Cuộc thi';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tạo công việc mới',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+
+                // Title
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Tiêu đề công việc',
+                    prefixIcon: Icon(Icons.task_alt_rounded, color: AppColors.primaryLight),
+                    hintText: 'Ví dụ: Hoàn tất slide thuyết trình',
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Description
+                TextField(
+                  controller: descController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Mô tả chi tiết (tùy chọn)',
+                    prefixIcon: Icon(Icons.notes_rounded, color: AppColors.primaryLight),
+                    hintText: 'Ghi chú thêm về yêu cầu, checklist...',
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Priority Selector M3
+                const Text('Mức độ ưu tiên:', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8))),
+                const SizedBox(height: 8),
+                Row(
+                  children: Priority.values.map((p) {
+                    final isSel = priority == p;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ChoiceChip(
+                        label: Text(p.label, style: TextStyle(fontSize: 11, color: isSel ? Colors.white : const Color(0xFF94A3B8))),
+                        selected: isSel,
+                        selectedColor: p.color,
+                        backgroundColor: const Color(0xFF0F172A),
+                        onSelected: (_) => setModalState(() => priority = p),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+
+                // Importance switch (Eisenhower)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Tính chất Quan trọng (Eisenhower)', style: TextStyle(fontSize: 13, color: Colors.white)),
+                  subtitle: const Text('Đánh dấu việc có tác động dài hạn', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                  value: isImportant,
+                  thumbColor: WidgetStatePropertyAll(AppColors.primaryLight),
+                  onChanged: (val) => setModalState(() => isImportant = val),
+                ),
+                const SizedBox(height: 8),
+
+                // Deadline Picker Button
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_month_rounded, color: AppColors.warning),
+                  title: Text(
+                    selectedDeadline != null
+                        ? 'Hạn chót: ${DateFormat('dd/MM/yyyy HH:mm', 'vi').format(selectedDeadline!)}'
+                        : 'Chưa đặt hạn chót',
+                    style: const TextStyle(fontSize: 13, color: Colors.white),
+                  ),
+                  trailing: TextButton(
+                    onPressed: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDeadline ?? DateTime.now(),
+                        firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (pickedDate != null) {
+                        setModalState(() {
+                          selectedDeadline = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            18,
+                            0,
+                          );
+                        });
+                      }
+                    },
+                    child: const Text('Chọn ngày', style: TextStyle(color: AppColors.primaryLight)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      final title = titleController.text.trim();
+                      if (title.isNotEmpty) {
+                        service.addTask(
+                          TaskItem(
+                            id: 't_${DateTime.now().millisecondsSinceEpoch}',
+                            title: title,
+                            description: descController.text.trim().isEmpty ? null : descController.text.trim(),
+                            deadline: selectedDeadline,
+                            priority: priority,
+                            isImportant: isImportant,
+                            category: category,
+                          ),
+                        );
+                        Navigator.pop(ctx);
+                      }
+                    },
+                    child: const Text('Lưu công việc'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

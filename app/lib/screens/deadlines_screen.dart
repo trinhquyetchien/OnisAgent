@@ -14,123 +14,139 @@ class DeadlinesScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: dataService,
       builder: (context, _) {
+        final now = DateTime.now();
         final tasksWithDeadlines = dataService.tasks
             .where((t) => t.deadline != null)
             .toList()
           ..sort((a, b) => a.deadline!.compareTo(b.deadline!));
 
-        final urgentDeadlines = tasksWithDeadlines
-            .where((t) => !t.isCompleted && t.deadline!.difference(DateTime.now()).inHours <= 24)
+        // Grouping
+        final overdue = tasksWithDeadlines.where((t) => !t.isCompleted && t.deadline!.isBefore(now)).toList();
+        final dueWithin24h = tasksWithDeadlines
+            .where((t) => !t.isCompleted && !t.deadline!.isBefore(now) && t.deadline!.difference(now).inHours <= 24)
             .toList();
-
-        final upcomingDeadlines = tasksWithDeadlines
-            .where((t) => !t.isCompleted && t.deadline!.difference(DateTime.now()).inHours > 24)
+        final dueThisWeek = tasksWithDeadlines
+            .where((t) => !t.isCompleted && t.deadline!.difference(now).inHours > 24 && t.deadline!.difference(now).inDays <= 7)
             .toList();
+        final dueLater = tasksWithDeadlines
+            .where((t) => !t.isCompleted && t.deadline!.difference(now).inDays > 7)
+            .toList();
+        final completed = tasksWithDeadlines.where((t) => t.isCompleted).toList();
 
-        final completedDeadlines = tasksWithDeadlines.where((t) => t.isCompleted).toList();
+        final totalTracked = tasksWithDeadlines.length;
+        final completionRate = totalTracked > 0 ? (completed.length / totalTracked) : 0.0;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Quản Lý Deadline & Mốc Thời Gian',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Đếm ngược thời gian, cảnh báo hạn chót và theo dõi tiến độ',
-                    style: TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                ],
+              const Text(
+                'Quản Lý Deadline & Mốc Thời Gian',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 4),
+              const Text(
+                'Theo dõi thời gian thực, đếm ngược và kiểm soát hạn chót',
+                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+              ),
+              const SizedBox(height: 20),
 
-              // Urgent Deadlines Banner
-              if (urgentDeadlines.isNotEmpty) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.expense.withAlpha(20),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.expense.withAlpha(80)),
-                  ),
-                  child: Row(
+              // Progress Overview Card
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.warning_amber_rounded, color: AppColors.expense, size: 28),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Cảnh báo: Có deadline cần hoàn tất trong 24 giờ tới!',
-                              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.expense, fontSize: 15),
-                            ),
-                            Text(
-                              'Hãy tập trung giải quyết ${urgentDeadlines.length} công việc này trước để tránh trễ hạn.',
-                              style: TextStyle(color: Colors.grey[300], fontSize: 13),
-                            ),
-                          ],
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.track_changes_rounded, color: AppColors.primaryLight, size: 20),
+                              SizedBox(width: 8),
+                              Text('Tiến độ giải quyết hạn chót', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            ],
+                          ),
+                          Text(
+                            '${(completionRate * 100).toInt()}%',
+                            style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: completionRate,
+                          minHeight: 8,
+                          backgroundColor: const Color(0xFF334155),
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${completed.length}/$totalTracked mốc đã hoàn tất',
+                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                          ),
+                          Text(
+                            dueWithin24h.isNotEmpty ? '🔥 ${dueWithin24h.length} hạn chót trong 24h' : 'Không có việc khẩn',
+                            style: TextStyle(
+                              color: dueWithin24h.isNotEmpty ? AppColors.expense : AppColors.accent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 24),
+
+              // 1. Overdue Section (if any)
+              if (overdue.isNotEmpty) ...[
+                _buildSectionHeader('🚨 Đã quá hạn', overdue.length, AppColors.expense),
+                const SizedBox(height: 8),
+                ...overdue.map((t) => _buildDeadlineItem(t, dataService, now, isOverdue: true)),
                 const SizedBox(height: 24),
-                const Text('🔥 Cần hoàn tất gấp (< 24 giờ)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: urgentDeadlines.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) => _buildDeadlineCard(urgentDeadlines[index], dataService, isUrgent: true),
-                ),
-                const SizedBox(height: 32),
               ],
 
-              // Upcoming Deadlines
-              const Text('📅 Sắp tới', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              if (upcomingDeadlines.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceDark,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Center(
-                    child: Text('Không có hạn chót sắp tới.', style: TextStyle(color: Colors.grey)),
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: upcomingDeadlines.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) => _buildDeadlineCard(upcomingDeadlines[index], dataService),
-                ),
+              // 2. Due within 24 hours (Urgent)
+              if (dueWithin24h.isNotEmpty) ...[
+                _buildSectionHeader('🔥 Cần xong gấp (< 24 giờ)', dueWithin24h.length, AppColors.expense),
+                const SizedBox(height: 8),
+                ...dueWithin24h.map((t) => _buildDeadlineItem(t, dataService, now, isUrgent: true)),
+                const SizedBox(height: 24),
+              ],
 
-              const SizedBox(height: 32),
+              // 3. Due this week
+              if (dueThisWeek.isNotEmpty) ...[
+                _buildSectionHeader('📅 Trong tuần này', dueThisWeek.length, AppColors.warning),
+                const SizedBox(height: 8),
+                ...dueThisWeek.map((t) => _buildDeadlineItem(t, dataService, now)),
+                const SizedBox(height: 24),
+              ],
 
-              // Completed Deadlines
-              if (completedDeadlines.isNotEmpty) ...[
-                const Text('✅ Đã hoàn thành đúng hạn', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: completedDeadlines.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) => _buildDeadlineCard(completedDeadlines[index], dataService),
-                ),
+              // 4. Due later
+              if (dueLater.isNotEmpty) ...[
+                _buildSectionHeader('🗓️ Các tuần tiếp theo', dueLater.length, AppColors.info),
+                const SizedBox(height: 8),
+                ...dueLater.map((t) => _buildDeadlineItem(t, dataService, now)),
+                const SizedBox(height: 24),
+              ],
+
+              // 5. Completed Deadlines
+              if (completed.isNotEmpty) ...[
+                _buildSectionHeader('✅ Đã hoàn thành', completed.length, AppColors.accent),
+                const SizedBox(height: 8),
+                ...completed.map((t) => _buildDeadlineItem(t, dataService, now, isCompleted: true)),
               ],
             ],
           ),
@@ -139,98 +155,133 @@ class DeadlinesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDeadlineCard(TaskItem task, MockDataService dataService, {bool isUrgent = false}) {
-    final diff = task.deadline!.difference(DateTime.now());
-    String countdown;
-    if (task.isCompleted) {
-      countdown = 'Đã xong';
-    } else if (diff.isNegative) {
-      countdown = 'Quá hạn';
-    } else if (diff.inDays > 0) {
-      countdown = 'Còn ${diff.inDays} ngày ${diff.inHours % 24} giờ';
-    } else if (diff.inHours > 0) {
-      countdown = 'Còn ${diff.inHours} giờ ${diff.inMinutes % 60} phút';
+  Widget _buildSectionHeader(String title, int count, Color color) {
+    return Row(
+      children: [
+        Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withAlpha(25),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            '$count',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeadlineItem(
+    TaskItem task,
+    MockDataService service,
+    DateTime now, {
+    bool isUrgent = false,
+    bool isOverdue = false,
+    bool isCompleted = false,
+  }) {
+    final diff = task.deadline!.difference(now);
+    String countdownText;
+    Color countdownColor;
+
+    if (isCompleted) {
+      countdownText = 'Đã xong';
+      countdownColor = AppColors.accent;
+    } else if (isOverdue) {
+      final hoursAgo = (-diff.inHours);
+      countdownText = hoursAgo < 24 ? 'Quá hạn ${hoursAgo}h' : 'Quá hạn ${(-diff.inDays)} ngày';
+      countdownColor = AppColors.expense;
+    } else if (diff.inHours <= 1) {
+      countdownText = 'Còn ${diff.inMinutes} phút';
+      countdownColor = AppColors.expense;
+    } else if (diff.inHours <= 24) {
+      countdownText = 'Còn ${diff.inHours} giờ';
+      countdownColor = AppColors.expense;
     } else {
-      countdown = 'Còn ${diff.inMinutes} phút';
+      countdownText = 'Còn ${diff.inDays} ngày';
+      countdownColor = isUrgent ? AppColors.expense : AppColors.warning;
     }
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isUrgent && !task.isCompleted ? AppColors.expense.withAlpha(120) : const Color(0xFF334155),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: isUrgent ? AppColors.expense.withAlpha(80) : AppColors.borderDark,
+          width: isUrgent ? 1.2 : 1,
         ),
       ),
-      child: Row(
-        children: [
-          Checkbox(
-            value: task.isCompleted,
-            activeColor: AppColors.accent,
-            onChanged: (_) => dataService.toggleTask(task.id),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  task.title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    decoration: task.isCompleted ? TextDecoration.lineThrough : null,
-                    color: task.isCompleted ? Colors.grey : Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Checkbox(
+              value: task.isCompleted,
+              activeColor: AppColors.accent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              onChanged: (_) => service.toggleTask(task.id),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isCompleted ? const Color(0xFF64748B) : Colors.white,
+                      decoration: isCompleted ? TextDecoration.lineThrough : null,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today_rounded, size: 13, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      DateFormat('HH:mm - dd/MM/yyyy').format(task.deadline!),
-                      style: TextStyle(color: Colors.grey[400], fontSize: 13),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardDark,
-                        borderRadius: BorderRadius.circular(6),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF334155),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          task.category,
+                          style: const TextStyle(fontSize: 10, color: Color(0xFFCBD5E1)),
+                        ),
                       ),
-                      child: Text(task.category, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: task.isCompleted
-                  ? AppColors.accent.withAlpha(20)
-                  : isUrgent
-                      ? AppColors.expense.withAlpha(30)
-                      : AppColors.warning.withAlpha(30),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              countdown,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: task.isCompleted
-                    ? AppColors.accent
-                    : isUrgent
-                        ? AppColors.expense
-                        : AppColors.warning,
+                      const SizedBox(width: 8),
+                      Text(
+                        DateFormat('dd/MM/yyyy HH:mm', 'vi').format(task.deadline!),
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: countdownColor.withAlpha(25),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: countdownColor.withAlpha(70)),
+              ),
+              child: Text(
+                countdownText,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: countdownColor,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
