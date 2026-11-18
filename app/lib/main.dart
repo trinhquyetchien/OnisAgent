@@ -8,6 +8,11 @@ import 'screens/assistant_screen.dart';
 import 'services/mock_data_service.dart';
 import 'theme/app_theme.dart';
 
+// Global Theme Controller: Mặc định Light Mode, hỗ trợ chuyển đổi tức thì
+final ValueNotifier<ThemeMode> appThemeModeNotifier = ValueNotifier<ThemeMode>(
+  ThemeMode.light,
+);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('vi', null);
@@ -19,11 +24,18 @@ class OnisApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'OnisAgent | Quản lý Tài chính & Công việc',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: const MainNavigationShell(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: appThemeModeNotifier,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          title: 'OnisAgent | Quản lý Tài chính & Công việc',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeMode,
+          home: const MainNavigationShell(),
+        );
+      },
     );
   }
 }
@@ -40,6 +52,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isDesktopOrWeb = MediaQuery.of(context).size.width >= 850;
     final dataService = MockDataService();
 
@@ -63,14 +77,20 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         final urgentDeadlines = dataService.urgentDeadlinesCount;
 
         final navigationDestinations = [
-          const NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded, color: AppColors.primaryLight),
+          NavigationDestination(
+            icon: const Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(
+              Icons.dashboard_rounded,
+              color: theme.colorScheme.primary,
+            ),
             label: 'Tổng quan',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: Icon(Icons.account_balance_wallet_rounded, color: AppColors.primaryLight),
+          NavigationDestination(
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(
+              Icons.account_balance_wallet_rounded,
+              color: theme.colorScheme.primary,
+            ),
             label: 'Tài chính',
           ),
           NavigationDestination(
@@ -84,7 +104,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               isLabelVisible: pendingTasks > 0,
               label: Text('$pendingTasks'),
               backgroundColor: AppColors.warning,
-              child: const Icon(Icons.task_alt_rounded, color: AppColors.primaryLight),
+              child: Icon(
+                Icons.task_alt_rounded,
+                color: theme.colorScheme.primary,
+              ),
             ),
             label: 'Công việc',
           ),
@@ -99,13 +122,19 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               isLabelVisible: urgentDeadlines > 0,
               label: Text('$urgentDeadlines'),
               backgroundColor: AppColors.expense,
-              child: const Icon(Icons.alarm_on_rounded, color: AppColors.primaryLight),
+              child: Icon(
+                Icons.alarm_on_rounded,
+                color: theme.colorScheme.primary,
+              ),
             ),
             label: 'Deadline',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.smart_toy_outlined),
-            selectedIcon: Icon(Icons.smart_toy_rounded, color: AppColors.primaryLight),
+          NavigationDestination(
+            icon: const Icon(Icons.smart_toy_outlined),
+            selectedIcon: Icon(
+              Icons.smart_toy_rounded,
+              color: theme.colorScheme.primary,
+            ),
             label: 'Trợ lý AI',
           ),
         ];
@@ -116,18 +145,27 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             body: Row(
               children: [
                 Container(
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceDark,
-                    border: Border(right: BorderSide(color: AppColors.borderDark, width: 1)),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    border: Border(
+                      right: BorderSide(
+                        color: theme.colorScheme.outline,
+                        width: 1,
+                      ),
+                    ),
                   ),
                   child: NavigationRail(
                     selectedIndex: _selectedIndex,
-                    onDestinationSelected: (index) => setState(() => _selectedIndex = index),
-                    backgroundColor: AppColors.surfaceDark,
+                    onDestinationSelected: (index) =>
+                        setState(() => _selectedIndex = index),
+                    backgroundColor: theme.colorScheme.surface,
                     extended: MediaQuery.of(context).size.width >= 1100,
                     minExtendedWidth: 220,
                     leading: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
                       child: Row(
                         children: [
                           Container(
@@ -136,20 +174,33 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                               color: AppColors.primary,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 24),
+                            child: const Icon(
+                              Icons.bolt_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                           if (MediaQuery.of(context).size.width >= 1100) ...[
                             const SizedBox(width: 12),
-                            const Column(
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'OnisAgent',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
                                 ),
                                 Text(
                                   'AI Task & Finance',
-                                  style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B),
+                                  ),
                                 ),
                               ],
                             ),
@@ -157,16 +208,46 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         ],
                       ),
                     ),
-                    destinations: [
-                      const NavigationRailDestination(
-                        icon: Icon(Icons.dashboard_outlined),
-                        selectedIcon: Icon(Icons.dashboard_rounded, color: AppColors.primaryLight),
-                        label: Text('Tổng quan'),
+                    trailing: Expanded(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: IconButton.filledTonal(
+                            icon: Icon(
+                              isDark
+                                  ? Icons.light_mode_rounded
+                                  : Icons.dark_mode_rounded,
+                              size: 20,
+                            ),
+                            tooltip: isDark
+                                ? 'Chuyển sang Giao diện Sáng'
+                                : 'Chuyển sang Giao diện Tối',
+                            onPressed: () {
+                              appThemeModeNotifier.value = isDark
+                                  ? ThemeMode.light
+                                  : ThemeMode.dark;
+                            },
+                          ),
+                        ),
                       ),
-                      const NavigationRailDestination(
-                        icon: Icon(Icons.account_balance_wallet_outlined),
-                        selectedIcon: Icon(Icons.account_balance_wallet_rounded, color: AppColors.primaryLight),
-                        label: Text('Tài chính'),
+                    ),
+                    destinations: [
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.dashboard_outlined),
+                        selectedIcon: Icon(
+                          Icons.dashboard_rounded,
+                          color: theme.colorScheme.primary,
+                        ),
+                        label: const Text('Tổng quan'),
+                      ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.account_balance_wallet_outlined),
+                        selectedIcon: Icon(
+                          Icons.account_balance_wallet_rounded,
+                          color: theme.colorScheme.primary,
+                        ),
+                        label: const Text('Tài chính'),
                       ),
                       NavigationRailDestination(
                         icon: Badge(
@@ -179,7 +260,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           isLabelVisible: pendingTasks > 0,
                           label: Text('$pendingTasks'),
                           backgroundColor: AppColors.warning,
-                          child: const Icon(Icons.task_alt_rounded, color: AppColors.primaryLight),
+                          child: Icon(
+                            Icons.task_alt_rounded,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
                         label: const Text('Công việc'),
                       ),
@@ -194,14 +278,20 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           isLabelVisible: urgentDeadlines > 0,
                           label: Text('$urgentDeadlines'),
                           backgroundColor: AppColors.expense,
-                          child: const Icon(Icons.alarm_on_rounded, color: AppColors.primaryLight),
+                          child: Icon(
+                            Icons.alarm_on_rounded,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
                         label: const Text('Deadline'),
                       ),
-                      const NavigationRailDestination(
-                        icon: Icon(Icons.smart_toy_outlined),
-                        selectedIcon: Icon(Icons.smart_toy_rounded, color: AppColors.primaryLight),
-                        label: Text('Trợ lý AI'),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.smart_toy_outlined),
+                        selectedIcon: Icon(
+                          Icons.smart_toy_rounded,
+                          color: theme.colorScheme.primary,
+                        ),
+                        label: const Text('Trợ lý AI'),
                       ),
                     ],
                   ),
@@ -222,27 +312,67 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 18),
+                    child: const Icon(
+                      Icons.bolt_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                   const SizedBox(width: 10),
-                  const Text('OnisAgent', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  Text(
+                    'OnisAgent',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
                 ],
               ),
               actions: [
+                // Nút chuyển đổi nhanh Light / Dark Mode
                 IconButton(
-                  icon: const Icon(Icons.smart_toy_rounded, color: AppColors.primaryLight),
+                  icon: Icon(
+                    isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                    color: isDark ? const Color(0xFFFBBF24) : AppColors.primary,
+                  ),
+                  tooltip: isDark
+                      ? 'Chuyển sang Giao diện Sáng'
+                      : 'Chuyển sang Giao diện Tối',
+                  onPressed: () {
+                    appThemeModeNotifier.value = isDark
+                        ? ThemeMode.light
+                        : ThemeMode.dark;
+                  },
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.smart_toy_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
                   tooltip: 'Trợ lý AI',
                   onPressed: () => setState(() => _selectedIndex = 4),
                 ),
+                const SizedBox(width: 4),
               ],
             ),
             body: pages[_selectedIndex],
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) => setState(() => _selectedIndex = index),
-              backgroundColor: AppColors.surfaceDark,
-              indicatorColor: AppColors.primary.withAlpha(40),
-              destinations: navigationDestinations,
+            bottomNavigationBar: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: theme.colorScheme.outline, width: 0.8),
+                ),
+              ),
+              child: NavigationBar(
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: (index) =>
+                    setState(() => _selectedIndex = index),
+                backgroundColor: theme.colorScheme.surface,
+                indicatorColor: theme.colorScheme.primary.withAlpha(
+                  isDark ? 40 : 25,
+                ),
+                destinations: navigationDestinations,
+              ),
             ),
           );
         }
