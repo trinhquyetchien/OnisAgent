@@ -12,20 +12,23 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
-  String _viewMode = 'list'; // 'list' or 'matrix'
-  String _statusFilter = 'all'; // 'all', 'pending', 'completed'
+  String _viewMode = 'list'; // 'list' | 'matrix'
+  String _statusFilter = 'all'; // 'all' | 'pending' | 'completed'
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final dataService = MockDataService();
 
     return ListenableBuilder(
       listenable: dataService,
       builder: (context, _) {
         final allTasks = dataService.tasks;
+
         final filteredTasks = allTasks.where((task) {
-          if (_statusFilter == 'pending' && task.isCompleted) return false;
-          if (_statusFilter == 'completed' && !task.isCompleted) return false;
+          if (_statusFilter == 'pending') return !task.isCompleted;
+          if (_statusFilter == 'completed') return task.isCompleted;
           return true;
         }).toList();
 
@@ -41,19 +44,29 @@ class _TasksScreenState extends State<TasksScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Quản Lý Công Việc',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${dataService.pendingTasksCount} việc cần làm • ${dataService.completedTasksCount} đã xong',
-                        style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                        style: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
                   FilledButton.icon(
-                    onPressed: () => _showAddTaskBottomSheet(context, dataService),
+                    onPressed: () =>
+                        _showAddTaskBottomSheet(context, dataService),
                     icon: const Icon(Icons.add_task_rounded, size: 18),
                     label: const Text('Tạo task'),
                   ),
@@ -79,9 +92,14 @@ class _TasksScreenState extends State<TasksScreen> {
                         ),
                       ],
                       selected: {_viewMode},
-                      onSelectionChanged: (val) => setState(() => _viewMode = val.first),
+                      onSelectionChanged: (val) =>
+                          setState(() => _viewMode = val.first),
                       style: ButtonStyle(
-                        shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        shape: WidgetStateProperty.all(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -91,16 +109,28 @@ class _TasksScreenState extends State<TasksScreen> {
 
               // Content based on View Mode
               if (_viewMode == 'matrix')
-                _buildEisenhowerMatrixView(allTasks, dataService)
+                _buildEisenhowerMatrixView(context, allTasks, dataService)
               else ...[
                 // Filter chips for List View
                 Row(
                   children: [
-                    _buildFilterChip('Tất cả (${allTasks.length})', 'all'),
+                    _buildFilterChip(
+                      context,
+                      'Tất cả (${allTasks.length})',
+                      'all',
+                    ),
                     const SizedBox(width: 8),
-                    _buildFilterChip('Chưa xong (${dataService.pendingTasksCount})', 'pending'),
+                    _buildFilterChip(
+                      context,
+                      'Chưa xong (${dataService.pendingTasksCount})',
+                      'pending',
+                    ),
                     const SizedBox(width: 8),
-                    _buildFilterChip('Đã xong (${dataService.completedTasksCount})', 'completed'),
+                    _buildFilterChip(
+                      context,
+                      'Đã xong (${dataService.completedTasksCount})',
+                      'completed',
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -111,15 +141,29 @@ class _TasksScreenState extends State<TasksScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(32),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.borderDark),
+                      border: Border.all(color: theme.colorScheme.outline),
                     ),
-                    child: const Column(
+                    child: Column(
                       children: [
-                        Icon(Icons.check_circle_outline_rounded, size: 40, color: Color(0xFF64748B)),
-                        SizedBox(height: 8),
-                        Text('Không có công việc nào', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14)),
+                        Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 40,
+                          color: isDark
+                              ? const Color(0xFF64748B)
+                              : const Color(0xFF94A3B8),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Không có công việc nào',
+                          style: TextStyle(
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
                     ),
                   )
@@ -128,10 +172,11 @@ class _TasksScreenState extends State<TasksScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: filteredTasks.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final task = filteredTasks[index];
-                      return _buildTaskCard(task, dataService);
+                      return _buildTaskCard(context, task, dataService);
                     },
                   ),
               ],
@@ -142,23 +187,43 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, String value) {
+  Widget _buildFilterChip(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isSelected = _statusFilter == value;
+
     return FilterChip(
-      label: Text(label, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : const Color(0xFF94A3B8))),
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          color: isSelected
+              ? Colors.white
+              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+        ),
+      ),
       selected: isSelected,
       onSelected: (_) => setState(() => _statusFilter = value),
       selectedColor: AppColors.primary,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: isSelected ? AppColors.primary : AppColors.borderDark),
+        side: BorderSide(
+          color: isSelected ? AppColors.primary : theme.colorScheme.outline,
+        ),
       ),
       showCheckmark: false,
     );
   }
 
-  Widget _buildTaskCard(TaskItem task, MockDataService service) {
+  Widget _buildTaskCard(
+    BuildContext context,
+    TaskItem task,
+    MockDataService service,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -168,7 +233,9 @@ class _TasksScreenState extends State<TasksScreen> {
             Checkbox(
               value: task.isCompleted,
               activeColor: AppColors.accent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
               onChanged: (_) => service.toggleTask(task.id),
             ),
             const SizedBox(width: 8),
@@ -181,11 +248,18 @@ class _TasksScreenState extends State<TasksScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: task.isCompleted ? const Color(0xFF64748B) : Colors.white,
-                      decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                      color: task.isCompleted
+                          ? (isDark
+                                ? const Color(0xFF64748B)
+                                : const Color(0xFF94A3B8))
+                          : theme.colorScheme.onSurface,
+                      decoration: task.isCompleted
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
-                  if (task.description != null && task.description!.isNotEmpty) ...[
+                  if (task.description != null &&
+                      task.description!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       task.description!,
@@ -193,7 +267,13 @@ class _TasksScreenState extends State<TasksScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
-                        color: task.isCompleted ? const Color(0xFF475569) : const Color(0xFF94A3B8),
+                        color: task.isCompleted
+                            ? (isDark
+                                  ? const Color(0xFF475569)
+                                  : const Color(0xFF94A3B8))
+                            : (isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
                       ),
                     ),
                   ],
@@ -202,28 +282,51 @@ class _TasksScreenState extends State<TasksScreen> {
                     children: [
                       // Priority Badge
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: task.priority.color.withAlpha(25),
+                          color: task.priority.color.withAlpha(
+                            isDark ? 25 : 20,
+                          ),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: task.priority.color.withAlpha(70)),
+                          border: Border.all(
+                            color: task.priority.color.withAlpha(
+                              isDark ? 70 : 50,
+                            ),
+                          ),
                         ),
                         child: Text(
                           task.priority.label,
-                          style: TextStyle(color: task.priority.color, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: task.priority.color,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       // Category Tag
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF334155),
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           task.category,
-                          style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11),
+                          style: TextStyle(
+                            color: isDark
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF475569),
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                       if (task.deadline != null) ...[
@@ -231,14 +334,18 @@ class _TasksScreenState extends State<TasksScreen> {
                         Icon(
                           Icons.schedule_rounded,
                           size: 13,
-                          color: task.isCompleted ? const Color(0xFF64748B) : AppColors.warning,
+                          color: task.isCompleted
+                              ? const Color(0xFF94A3B8)
+                              : AppColors.warning,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           DateFormat('dd/MM HH:mm').format(task.deadline!),
                           style: TextStyle(
                             fontSize: 11,
-                            color: task.isCompleted ? const Color(0xFF64748B) : AppColors.warning,
+                            color: task.isCompleted
+                                ? const Color(0xFF94A3B8)
+                                : AppColors.warning,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -249,7 +356,13 @@ class _TasksScreenState extends State<TasksScreen> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+              icon: Icon(
+                Icons.close_rounded,
+                size: 16,
+                color: isDark
+                    ? const Color(0xFF64748B)
+                    : const Color(0xFF94A3B8),
+              ),
               onPressed: () => service.deleteTask(task.id),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -260,16 +373,29 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  Widget _buildEisenhowerMatrixView(List<TaskItem> allTasks, MockDataService service) {
+  Widget _buildEisenhowerMatrixView(
+    BuildContext context,
+    List<TaskItem> allTasks,
+    MockDataService service,
+  ) {
     // 4 Quadrants
-    final q1 = allTasks.where((t) => t.isUrgentQuadrant && t.isImportant).toList();
-    final q2 = allTasks.where((t) => !t.isUrgentQuadrant && t.isImportant).toList();
-    final q3 = allTasks.where((t) => t.isUrgentQuadrant && !t.isImportant).toList();
-    final q4 = allTasks.where((t) => !t.isUrgentQuadrant && !t.isImportant).toList();
+    final q1 = allTasks
+        .where((t) => t.isUrgentQuadrant && t.isImportant)
+        .toList();
+    final q2 = allTasks
+        .where((t) => !t.isUrgentQuadrant && t.isImportant)
+        .toList();
+    final q3 = allTasks
+        .where((t) => t.isUrgentQuadrant && !t.isImportant)
+        .toList();
+    final q4 = allTasks
+        .where((t) => !t.isUrgentQuadrant && !t.isImportant)
+        .toList();
 
     return Column(
       children: [
         _buildMatrixQuadrant(
+          context: context,
           title: '🔥 Khẩn cấp & Quan trọng (Làm ngay)',
           subtitle: 'Nhiệm vụ quyết định, áp lực hạn chót',
           tasks: q1,
@@ -278,6 +404,7 @@ class _TasksScreenState extends State<TasksScreen> {
         ),
         const SizedBox(height: 12),
         _buildMatrixQuadrant(
+          context: context,
           title: '🎯 Quan trọng & Không khẩn cấp (Lập kế hoạch)',
           subtitle: 'Mục tiêu chiến lược, phát triển bản thân',
           tasks: q2,
@@ -286,6 +413,7 @@ class _TasksScreenState extends State<TasksScreen> {
         ),
         const SizedBox(height: 12),
         _buildMatrixQuadrant(
+          context: context,
           title: '⚡ Khẩn cấp & Ít quan trọng (Ủy quyền / Tối ưu)',
           subtitle: 'Việc gián đoạn, thao tác nhanh',
           tasks: q3,
@@ -294,6 +422,7 @@ class _TasksScreenState extends State<TasksScreen> {
         ),
         const SizedBox(height: 12),
         _buildMatrixQuadrant(
+          context: context,
           title: '💤 Không khẩn cấp & Không quan trọng (Hạn chế)',
           subtitle: 'Việc gây xao nhãng, có thể dời lại',
           tasks: q4,
@@ -305,16 +434,23 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   Widget _buildMatrixQuadrant({
+    required BuildContext context,
     required String title,
     required String subtitle,
     required List<TaskItem> tasks,
     required Color badgeColor,
     required MockDataService service,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: badgeColor.withAlpha(80), width: 1.2),
+        side: BorderSide(
+          color: badgeColor.withAlpha(isDark ? 80 : 50),
+          width: 1.2,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -328,29 +464,59 @@ class _TasksScreenState extends State<TasksScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: TextStyle(color: badgeColor, fontWeight: FontWeight.bold, fontSize: 14)),
-                      Text(subtitle, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: badgeColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
+                          fontSize: 11,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: badgeColor.withAlpha(30),
+                    color: badgeColor.withAlpha(isDark ? 30 : 20),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${tasks.where((t) => !t.isCompleted).length} việc',
-                    style: TextStyle(color: badgeColor, fontWeight: FontWeight.bold, fontSize: 11),
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             if (tasks.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('Không có nhiệm vụ nào trong nhóm này', style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Không có nhiệm vụ nào trong nhóm này',
+                  style: TextStyle(
+                    color: isDark
+                        ? const Color(0xFF64748B)
+                        : const Color(0xFF94A3B8),
+                    fontSize: 12,
+                  ),
+                ),
               )
             else
               ...tasks.map(
@@ -364,7 +530,9 @@ class _TasksScreenState extends State<TasksScreen> {
                         child: Checkbox(
                           value: task.isCompleted,
                           activeColor: AppColors.accent,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
                           onChanged: (_) => service.toggleTask(task.id),
                         ),
                       ),
@@ -376,8 +544,14 @@ class _TasksScreenState extends State<TasksScreen> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 13,
-                            color: task.isCompleted ? const Color(0xFF64748B) : Colors.white,
-                            decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                            color: task.isCompleted
+                                ? (isDark
+                                      ? const Color(0xFF64748B)
+                                      : const Color(0xFF94A3B8))
+                                : theme.colorScheme.onSurface,
+                            decoration: task.isCompleted
+                                ? TextDecoration.lineThrough
+                                : null,
                           ),
                         ),
                       ),
@@ -392,6 +566,8 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   void _showAddTaskBottomSheet(BuildContext context, MockDataService service) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final titleController = TextEditingController();
     final descController = TextEditingController();
     Priority priority = Priority.high;
@@ -415,9 +591,13 @@ class _TasksScreenState extends State<TasksScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Tạo công việc mới',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 16),
 
@@ -426,7 +606,10 @@ class _TasksScreenState extends State<TasksScreen> {
                   controller: titleController,
                   decoration: const InputDecoration(
                     labelText: 'Tiêu đề công việc',
-                    prefixIcon: Icon(Icons.task_alt_rounded, color: AppColors.primaryLight),
+                    prefixIcon: Icon(
+                      Icons.task_alt_rounded,
+                      color: AppColors.primary,
+                    ),
                     hintText: 'Ví dụ: Hoàn tất slide thuyết trình',
                   ),
                 ),
@@ -438,14 +621,25 @@ class _TasksScreenState extends State<TasksScreen> {
                   maxLines: 2,
                   decoration: const InputDecoration(
                     labelText: 'Mô tả chi tiết (tùy chọn)',
-                    prefixIcon: Icon(Icons.notes_rounded, color: AppColors.primaryLight),
+                    prefixIcon: Icon(
+                      Icons.notes_rounded,
+                      color: AppColors.primary,
+                    ),
                     hintText: 'Ghi chú thêm về yêu cầu, checklist...',
                   ),
                 ),
                 const SizedBox(height: 16),
 
                 // Priority Selector M3
-                const Text('Mức độ ưu tiên:', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8))),
+                Text(
+                  'Mức độ ưu tiên:',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: Priority.values.map((p) {
@@ -453,10 +647,22 @@ class _TasksScreenState extends State<TasksScreen> {
                     return Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: ChoiceChip(
-                        label: Text(p.label, style: TextStyle(fontSize: 11, color: isSel ? Colors.white : const Color(0xFF94A3B8))),
+                        label: Text(
+                          p.label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isSel
+                                ? Colors.white
+                                : (isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF475569)),
+                          ),
+                        ),
                         selected: isSel,
                         selectedColor: p.color,
-                        backgroundColor: const Color(0xFF0F172A),
+                        backgroundColor: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF1F5F9),
                         onSelected: (_) => setModalState(() => priority = p),
                       ),
                     );
@@ -467,10 +673,24 @@ class _TasksScreenState extends State<TasksScreen> {
                 // Importance switch (Eisenhower)
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Tính chất Quan trọng (Eisenhower)', style: TextStyle(fontSize: 13, color: Colors.white)),
-                  subtitle: const Text('Đánh dấu việc có tác động dài hạn', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                  title: Text(
+                    'Tính chất Quan trọng (Eisenhower)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Đánh dấu việc có tác động dài hạn',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
                   value: isImportant,
-                  thumbColor: WidgetStatePropertyAll(AppColors.primaryLight),
+                  thumbColor: const WidgetStatePropertyAll(AppColors.primary),
                   onChanged: (val) => setModalState(() => isImportant = val),
                 ),
                 const SizedBox(height: 8),
@@ -478,19 +698,27 @@ class _TasksScreenState extends State<TasksScreen> {
                 // Deadline Picker Button
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_month_rounded, color: AppColors.warning),
+                  leading: const Icon(
+                    Icons.calendar_month_rounded,
+                    color: AppColors.warning,
+                  ),
                   title: Text(
                     selectedDeadline != null
                         ? 'Hạn chót: ${DateFormat('dd/MM/yyyy HH:mm', 'vi').format(selectedDeadline!)}'
                         : 'Chưa đặt hạn chót',
-                    style: const TextStyle(fontSize: 13, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                   trailing: TextButton(
                     onPressed: () async {
                       final pickedDate = await showDatePicker(
                         context: context,
                         initialDate: selectedDeadline ?? DateTime.now(),
-                        firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                        firstDate: DateTime.now().subtract(
+                          const Duration(days: 1),
+                        ),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
                       );
                       if (pickedDate != null) {
@@ -505,7 +733,10 @@ class _TasksScreenState extends State<TasksScreen> {
                         });
                       }
                     },
-                    child: const Text('Chọn ngày', style: TextStyle(color: AppColors.primaryLight)),
+                    child: const Text(
+                      'Chọn ngày',
+                      style: TextStyle(color: AppColors.primary),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -521,7 +752,9 @@ class _TasksScreenState extends State<TasksScreen> {
                           TaskItem(
                             id: 't_${DateTime.now().millisecondsSinceEpoch}',
                             title: title,
-                            description: descController.text.trim().isEmpty ? null : descController.text.trim(),
+                            description: descController.text.trim().isEmpty
+                                ? null
+                                : descController.text.trim(),
                             deadline: selectedDeadline,
                             priority: priority,
                             isImportant: isImportant,

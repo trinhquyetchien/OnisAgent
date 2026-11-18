@@ -49,11 +49,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
   void _processBotResponse(String text, MockDataService dataService) {
     final lower = text.toLowerCase();
 
-    if (lower.contains('quỹ laptop') || (lower.contains('trích') && lower.contains('tiết kiệm'))) {
+    if (lower.contains('quỹ laptop') ||
+        (lower.contains('trích') && lower.contains('tiết kiệm'))) {
       // Human-in-the-Loop Workflow (ADR-0004)
       final hitlMsg = ChatMessage(
         id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-        text: 'OnisAgent đã nhận lệnh trích tiền. Theo chốt kiểm soát an toàn Human-in-the-Loop (ADR-0004), xin vui lòng xác nhận trước khi thực hiện:',
+        text:
+            'OnisAgent đã nhận lệnh trích tiền. Theo chốt kiểm soát an toàn Human-in-the-Loop (ADR-0004), xin vui lòng xác nhận trước khi thực hiện:',
         isUser: false,
         time: DateTime.now(),
         fastPathTag: 'Reasoning Path • HITL Gate',
@@ -61,14 +63,18 @@ class _AssistantScreenState extends State<AssistantScreen> {
           id: 'hitl_${DateTime.now().millisecondsSinceEpoch}',
           actionType: 'transfer_savings',
           title: 'Trích ngân sách vào Quỹ Laptop AI',
-          details: 'Chuyển 500.000 ₫ từ Số dư khả dụng sang quỹ "Đổi Laptop chạy Local AI Model".',
+          details:
+              'Chuyển 500.000 ₫ từ Số dư khả dụng sang quỹ "Đổi Laptop chạy Local AI Model".',
           amount: 500000,
           targetName: 'Đổi Laptop chạy Local AI Model (RTX GPU)',
           timestamp: DateTime.now(),
         ),
       );
       dataService.addChatMessage(hitlMsg);
-    } else if (lower.contains('cà phê') || lower.contains('chi') || lower.contains('ăn') || lower.contains('mua')) {
+    } else if (lower.contains('cà phê') ||
+        lower.contains('chi') ||
+        lower.contains('ăn') ||
+        lower.contains('mua')) {
       // Fast Path - Cash Flow Transaction (~5-12ms, 0 Token)
       double amount = 35000;
       if (lower.contains('35k') || lower.contains('35.000')) amount = 35000;
@@ -80,20 +86,25 @@ class _AssistantScreenState extends State<AssistantScreen> {
           description: text,
           amount: amount,
           type: 'expense',
-          category: lower.contains('cà phê') || lower.contains('ăn') ? 'Ăn uống' : 'Mua sắm',
+          category: lower.contains('cà phê') || lower.contains('ăn')
+              ? 'Ăn uống'
+              : 'Mua sắm',
           date: DateTime.now(),
         ),
       );
 
       final reply = ChatMessage(
         id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-        text: 'Đã ghi nhận khoản chi: "$text" - ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(amount)} vào sổ quỹ. Số dư đã cập nhật tức thì với Python Decimal.',
+        text:
+            'Đã ghi nhận khoản chi: "$text" - ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(amount)} vào sổ quỹ. Số dư đã cập nhật tức thì với Python Decimal.',
         isUser: false,
         time: DateTime.now(),
         fastPathTag: 'Fast Path (~6ms) • 0 Token',
       );
       dataService.addChatMessage(reply);
-    } else if (lower.contains('task') || lower.contains('việc') || lower.contains('kiểm tra')) {
+    } else if (lower.contains('task') ||
+        lower.contains('việc') ||
+        lower.contains('kiểm tra')) {
       // Fast Path - Create Task
       dataService.addTask(
         TaskItem(
@@ -108,7 +119,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
       final reply = ChatMessage(
         id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-        text: 'Đã thêm công việc: "$text" vào danh sách việc cần làm (Hạn chót đặt mặc định trong 12h tới).',
+        text:
+            'Đã thêm công việc: "$text" vào danh sách việc cần làm (Hạn chót đặt mặc định trong 12h tới).',
         isUser: false,
         time: DateTime.now(),
         fastPathTag: 'Fast Path (~8ms) • 0 Token',
@@ -118,7 +130,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
       // Reasoning Path - Bedrock / Ollama
       final reply = ChatMessage(
         id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-        text: 'Phân tích tổng thể OnisAgent: Bạn hiện có ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(dataService.balance)} số dư khả dụng, tỉ lệ chi tiêu tháng đạt ${(dataService.totalExpense / (dataService.totalIncome > 0 ? dataService.totalIncome : 1) * 100).toInt()}% ngân sách thu. Kế hoạch tài chính đang ở mức an toàn.',
+        text:
+            'Phân tích tổng thể OnisAgent: Bạn hiện có ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(dataService.balance)} số dư khả dụng, tỉ lệ chi tiêu tháng đạt ${(dataService.totalExpense / (dataService.totalIncome > 0 ? dataService.totalIncome : 1) * 100).toInt()}% ngân sách thu. Kế hoạch tài chính đang ở mức an toàn.',
         isUser: false,
         time: DateTime.now(),
         fastPathTag: 'Reasoning Path • Bedrock Swarm',
@@ -142,6 +155,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
   }
 
   void _openVoiceRecordingModal(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     setState(() => _isListeningVoice = true);
 
     showModalBottomSheet(
@@ -158,21 +174,34 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withAlpha(40),
+                    color: AppColors.primary.withAlpha(isDark ? 40 : 25),
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.primaryLight, width: 2),
+                    border: Border.all(color: AppColors.primary, width: 2),
                   ),
-                  child: const Icon(Icons.mic_rounded, color: AppColors.primaryLight, size: 36),
+                  child: const Icon(
+                    Icons.mic_rounded,
+                    color: AppColors.primary,
+                    size: 36,
+                  ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Onis Voice-First Đang Lắng Nghe...',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Ví dụ: "Ghi chi cà phê sữa 35k" hoặc "Tạo task nộp slide"',
-                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                  style: TextStyle(
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -182,9 +211,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     (i) => Container(
                       margin: const EdgeInsets.symmetric(horizontal: 3),
                       width: 4,
-                      height: (i % 3 == 0 ? 32 : (i % 2 == 0 ? 20 : 12)).toDouble(),
+                      height: (i % 3 == 0 ? 32 : (i % 2 == 0 ? 20 : 12))
+                          .toDouble(),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -211,6 +241,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final dataService = MockDataService();
 
     return Column(
@@ -218,30 +250,46 @@ class _AssistantScreenState extends State<AssistantScreen> {
         // Top Architecture Status Bar
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceDark,
-            border: Border(bottom: BorderSide(color: AppColors.borderDark)),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(
+              bottom: BorderSide(color: theme.colorScheme.outline),
+            ),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
+              const Row(
                 children: [
-                  Icon(Icons.bolt_rounded, color: AppColors.primaryLight, size: 16),
+                  Icon(Icons.bolt_rounded, color: AppColors.primary, size: 16),
                   SizedBox(width: 6),
                   Text(
                     'Kev Fast Path (~5-12ms)',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryLight),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ],
               ),
               Row(
                 children: [
-                  Icon(Icons.psychology_rounded, color: AppColors.info, size: 16),
-                  SizedBox(width: 6),
+                  const Icon(
+                    Icons.psychology_rounded,
+                    color: AppColors.info,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
                   Text(
                     'Bedrock Grounded',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF94A3B8)),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                    ),
                   ),
                 ],
               ),
@@ -261,11 +309,21 @@ class _AssistantScreenState extends State<AssistantScreen> {
             itemBuilder: (context, index) {
               final prompt = _quickPrompts[index];
               return ActionChip(
-                label: Text(prompt, style: const TextStyle(fontSize: 12, color: Color(0xFFCBD5E1))),
-                backgroundColor: AppColors.surfaceDark,
+                label: Text(
+                  prompt,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? const Color(0xFFCBD5E1)
+                        : const Color(0xFF334155),
+                  ),
+                ),
+                backgroundColor: isDark
+                    ? AppColors.surfaceDark
+                    : const Color(0xFFF1F5F9),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.borderDark),
+                  side: BorderSide(color: theme.colorScheme.outline),
                 ),
                 onPressed: () => _sendMessage(prompt),
               );
@@ -280,11 +338,14 @@ class _AssistantScreenState extends State<AssistantScreen> {
             builder: (context, _) {
               return ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 itemCount: dataService.messages.length,
                 itemBuilder: (context, index) {
                   final msg = dataService.messages[index];
-                  return _buildMessageItem(msg, dataService);
+                  return _buildMessageItem(context, msg, dataService);
                 },
               );
             },
@@ -294,9 +355,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
         // Bottom Input Bar
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceDark,
-            border: Border(top: BorderSide(color: AppColors.borderDark)),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(top: BorderSide(color: theme.colorScheme.outline)),
           ),
           child: SafeArea(
             child: Row(
@@ -308,9 +369,16 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     onSubmitted: (_) => _sendMessage(),
                     decoration: InputDecoration(
                       hintText: 'Nhắn với Onis AI hoặc dùng lệnh thoại...',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       suffixIcon: IconButton(
-                        icon: const Icon(Icons.send_rounded, color: AppColors.primaryLight, size: 20),
+                        icon: const Icon(
+                          Icons.send_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
                         onPressed: () => _sendMessage(),
                       ),
                     ),
@@ -320,12 +388,16 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 // Voice Mic Button
                 Container(
                   decoration: BoxDecoration(
-                    color: _isListeningVoice ? AppColors.expense : AppColors.primary,
+                    color: _isListeningVoice
+                        ? AppColors.expense
+                        : AppColors.primary,
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
                     icon: Icon(
-                      _isListeningVoice ? Icons.mic_off_rounded : Icons.mic_rounded,
+                      _isListeningVoice
+                          ? Icons.mic_off_rounded
+                          : Icons.mic_rounded,
                       color: Colors.white,
                       size: 22,
                     ),
@@ -340,13 +412,21 @@ class _AssistantScreenState extends State<AssistantScreen> {
     );
   }
 
-  Widget _buildMessageItem(ChatMessage msg, MockDataService service) {
+  Widget _buildMessageItem(
+    BuildContext context,
+    ChatMessage msg,
+    MockDataService service,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isUser = msg.isUser;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
-        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           // Routing / System Tag Pill
           if (!isUser && msg.fastPathTag != null)
@@ -354,39 +434,59 @@ class _AssistantScreenState extends State<AssistantScreen> {
               margin: const EdgeInsets.only(bottom: 6, left: 4),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFF334155),
+                color: isDark
+                    ? const Color(0xFF334155)
+                    : const Color(0xFFEEF2FF),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 msg.fastPathTag!,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryLight),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
               ),
             ),
 
           // Text Bubble
           Container(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isUser ? AppColors.primary : AppColors.surfaceDark,
+              color: isUser
+                  ? AppColors.primary
+                  : (isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9)),
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(16),
                 topRight: const Radius.circular(16),
                 bottomLeft: Radius.circular(isUser ? 16 : 4),
                 bottomRight: Radius.circular(isUser ? 4 : 16),
               ),
-              border: isUser ? null : Border.all(color: AppColors.borderDark),
+              border: isUser
+                  ? null
+                  : Border.all(color: theme.colorScheme.outline),
             ),
             child: Text(
               msg.text,
-              style: TextStyle(fontSize: 14, color: isUser ? Colors.white : const Color(0xFFF1F5F9), height: 1.4),
+              style: TextStyle(
+                fontSize: 14,
+                color: isUser
+                    ? Colors.white
+                    : (isDark
+                          ? const Color(0xFFF1F5F9)
+                          : const Color(0xFF0F172A)),
+                height: 1.4,
+              ),
             ),
           ),
 
           // HITL Proposal Interactive Card
           if (msg.hitlProposal != null) ...[
             const SizedBox(height: 10),
-            _buildHitlProposalCard(msg.hitlProposal!, service),
+            _buildHitlProposalCard(context, msg.hitlProposal!, service),
           ],
 
           // Timestamp
@@ -394,7 +494,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
             padding: const EdgeInsets.only(top: 4, left: 6, right: 6),
             child: Text(
               DateFormat('HH:mm').format(msg.time),
-              style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+              style: TextStyle(
+                fontSize: 10,
+                color: isDark
+                    ? const Color(0xFF64748B)
+                    : const Color(0xFF94A3B8),
+              ),
             ),
           ),
         ],
@@ -402,20 +507,32 @@ class _AssistantScreenState extends State<AssistantScreen> {
     );
   }
 
-  Widget _buildHitlProposalCard(HitlActionProposal proposal, MockDataService service) {
+  Widget _buildHitlProposalCard(
+    BuildContext context,
+    HitlActionProposal proposal,
+    MockDataService service,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isPending = proposal.status == HitlStatus.pending;
     final isApproved = proposal.status == HitlStatus.approved;
 
     return Container(
-      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * 0.85,
+      ),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isPending
               ? AppColors.warning
-              : (isApproved ? AppColors.accent : const Color(0xFF64748B)),
+              : (isApproved
+                    ? AppColors.accent
+                    : (isDark
+                          ? const Color(0xFF64748B)
+                          : const Color(0xFFCBD5E1))),
           width: 1.5,
         ),
       ),
@@ -427,17 +544,27 @@ class _AssistantScreenState extends State<AssistantScreen> {
               Icon(
                 isPending
                     ? Icons.gavel_rounded
-                    : (isApproved ? Icons.check_circle_rounded : Icons.cancel_rounded),
+                    : (isApproved
+                          ? Icons.check_circle_rounded
+                          : Icons.cancel_rounded),
                 size: 18,
                 color: isPending
                     ? AppColors.warning
-                    : (isApproved ? AppColors.accent : const Color(0xFF94A3B8)),
+                    : (isApproved
+                          ? AppColors.accent
+                          : (isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B))),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   proposal.title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: isDark ? Colors.white : const Color(0xFF78350F),
+                  ),
                 ),
               ),
             ],
@@ -445,7 +572,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
           const SizedBox(height: 8),
           Text(
             proposal.details,
-            style: const TextStyle(fontSize: 12, color: Color(0xFFCBD5E1), height: 1.3),
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF451A03),
+              height: 1.3,
+            ),
           ),
           const SizedBox(height: 12),
           if (isPending)
@@ -455,21 +586,40 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     visualDensity: VisualDensity.compact,
-                    side: const BorderSide(color: Color(0xFF64748B)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    side: BorderSide(
+                      color: isDark
+                          ? const Color(0xFF64748B)
+                          : const Color(0xFFCBD5E1),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   onPressed: () => service.rejectHitlProposal(proposal.id),
-                  child: const Text('Hủy bỏ', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                  child: Text(
+                    'Hủy bỏ',
+                    style: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
                   style: FilledButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     backgroundColor: AppColors.accent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   onPressed: () => service.approveHitlProposal(proposal.id),
-                  child: const Text('Xác nhận thực hiện', style: TextStyle(fontSize: 12)),
+                  child: const Text(
+                    'Xác nhận thực hiện',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
               ],
             )
@@ -477,15 +627,22 @@ class _AssistantScreenState extends State<AssistantScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: (isApproved ? AppColors.accent : const Color(0xFF64748B)).withAlpha(25),
+                color: (isApproved ? AppColors.accent : const Color(0xFF64748B))
+                    .withAlpha(25),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                isApproved ? '✅ Đã được phê duyệt & Thực thi' : '❌ Đã từ chối thực hiện',
+                isApproved
+                    ? '✅ Đã được phê duyệt & Thực thi'
+                    : '❌ Đã từ chối thực hiện',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: isApproved ? AppColors.accent : const Color(0xFF94A3B8),
+                  color: isApproved
+                      ? AppColors.accent
+                      : (isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                 ),
               ),
             ),

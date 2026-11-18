@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../services/mock_data_service.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
@@ -19,23 +19,32 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final dataService = MockDataService();
-    final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+    final currencyFormatter = NumberFormat.currency(
+      locale: 'vi_VN',
+      symbol: '₫',
+      decimalDigits: 0,
+    );
 
     return ListenableBuilder(
       listenable: dataService,
       builder: (context, _) {
         final filteredTx = dataService.transactions.where((tx) {
-          if (_selectedFilter == 'Thu nhập' && !tx.isIncome) return false;
           if (_selectedFilter == 'Chi tiêu' && tx.isIncome) return false;
-          if (_selectedCategory != 'Tất cả' && tx.category != _selectedCategory) return false;
+          if (_selectedFilter == 'Thu nhập' && !tx.isIncome) return false;
+          if (_selectedCategory != 'Tất cả' && tx.category != _selectedCategory) {
+            return false;
+          }
           return true;
         }).toList();
 
-        // Calculate Category breakdown for Expenses
-        final expenseByCategory = <String, double>{};
+        // Calculate Expense by Category for the Chart
+        final Map<String, double> expenseByCategory = {};
         for (var tx in dataService.transactions.where((t) => !t.isIncome)) {
-          expenseByCategory[tx.category] = (expenseByCategory[tx.category] ?? 0) + tx.amount;
+          expenseByCategory[tx.category] =
+              (expenseByCategory[tx.category] ?? 0.0) + tx.amount;
         }
 
         return SingleChildScrollView(
@@ -47,22 +56,32 @@ class _FinanceScreenState extends State<FinanceScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Quản Lý Tài Chính',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         'Theo dõi dòng tiền & cân đối ngân sách',
-                        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                        style: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
                   FilledButton.icon(
-                    onPressed: () => _showAddTransactionBottomSheet(context, dataService),
+                    onPressed: () =>
+                        _showAddTransactionBottomSheet(context, dataService),
                     icon: const Icon(Icons.add_rounded, size: 18),
                     label: const Text('Thêm giao dịch'),
                   ),
@@ -71,17 +90,30 @@ class _FinanceScreenState extends State<FinanceScreen> {
               const SizedBox(height: 20),
 
               // Overview Cards (Income, Expense, Balance)
-              _buildFinancialSummaryCard(dataService, currencyFormatter),
+              _buildFinancialSummaryCard(
+                context,
+                dataService,
+                currencyFormatter,
+              ),
               const SizedBox(height: 20),
 
               // Expense Breakdown Chart Section
               if (expenseByCategory.isNotEmpty) ...[
-                const Text(
+                Text(
                   'Cơ cấu chi tiêu tháng',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 12),
-                _buildExpenseChartCard(expenseByCategory, currencyFormatter, dataService.totalExpense),
+                _buildExpenseChartCard(
+                  context,
+                  expenseByCategory,
+                  currencyFormatter,
+                  dataService.totalExpense,
+                ),
                 const SizedBox(height: 24),
               ],
 
@@ -92,8 +124,14 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     child: SegmentedButton<String>(
                       segments: const [
                         ButtonSegment(value: 'Tất cả', label: Text('Tất cả')),
-                        ButtonSegment(value: 'Chi tiêu', label: Text('Khoản chi')),
-                        ButtonSegment(value: 'Thu nhập', label: Text('Khoản thu')),
+                        ButtonSegment(
+                          value: 'Chi tiêu',
+                          label: Text('Khoản chi'),
+                        ),
+                        ButtonSegment(
+                          value: 'Thu nhập',
+                          label: Text('Khoản thu'),
+                        ),
                       ],
                       selected: {_selectedFilter},
                       onSelectionChanged: (newSelection) {
@@ -103,7 +141,11 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       },
                       style: ButtonStyle(
                         visualDensity: VisualDensity.compact,
-                        shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        shape: WidgetStateProperty.all(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -115,33 +157,51 @@ class _FinanceScreenState extends State<FinanceScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: [
-                    'Tất cả',
-                    'Ăn uống',
-                    'Nhà ở & Dịch vụ',
-                    'Học tập & Sách',
-                    'Đi lại',
-                    'Lương',
-                    'Thưởng',
-                    'Tiết kiệm',
-                  ].map((category) {
-                    final isSelected = _selectedCategory == category;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(category, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : const Color(0xFF94A3B8))),
-                        selected: isSelected,
-                        onSelected: (_) => setState(() => _selectedCategory = category),
-                        selectedColor: AppColors.primary,
-                        backgroundColor: AppColors.surfaceDark,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(color: isSelected ? AppColors.primary : AppColors.borderDark),
-                        ),
-                        showCheckmark: false,
-                      ),
-                    );
-                  }).toList(),
+                  children:
+                      [
+                        'Tất cả',
+                        'Ăn uống',
+                        'Nhà ở & Dịch vụ',
+                        'Học tập & Sách',
+                        'Đi lại',
+                        'Lương',
+                        'Thưởng',
+                        'Tiết kiệm',
+                      ].map((category) {
+                        final isSelected = _selectedCategory == category;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(
+                              category,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF475569)),
+                              ),
+                            ),
+                            selected: isSelected,
+                            onSelected: (_) =>
+                                setState(() => _selectedCategory = category),
+                            selectedColor: AppColors.primary,
+                            backgroundColor: isDark
+                                ? AppColors.surfaceDark
+                                : const Color(0xFFF1F5F9),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : theme.colorScheme.outline,
+                              ),
+                            ),
+                            showCheckmark: false,
+                          ),
+                        );
+                      }).toList(),
                 ),
               ),
               const SizedBox(height: 16),
@@ -152,9 +212,14 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 children: [
                   Text(
                     'Lịch sử giao dịch (${filteredTx.length})',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
-                  if (_selectedCategory != 'Tất cả' || _selectedFilter != 'Tất cả')
+                  if (_selectedCategory != 'Tất cả' ||
+                      _selectedFilter != 'Tất cả')
                     TextButton(
                       onPressed: () {
                         setState(() {
@@ -162,7 +227,13 @@ class _FinanceScreenState extends State<FinanceScreen> {
                           _selectedFilter = 'Tất cả';
                         });
                       },
-                      child: const Text('Đặt lại lọc', style: TextStyle(color: AppColors.primaryLight, fontSize: 12)),
+                      child: const Text(
+                        'Đặt lại lọc',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -174,15 +245,29 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceDark,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.borderDark),
+                    border: Border.all(color: theme.colorScheme.outline),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
-                      Icon(Icons.receipt_long_outlined, size: 40, color: Color(0xFF64748B)),
-                      SizedBox(height: 8),
-                      Text('Không tìm thấy giao dịch nào phù hợp', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14)),
+                      Icon(
+                        Icons.receipt_long_outlined,
+                        size: 40,
+                        color: isDark
+                            ? const Color(0xFF64748B)
+                            : const Color(0xFF94A3B8),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Không tìm thấy giao dịch nào phù hợp',
+                        style: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
+                          fontSize: 14,
+                        ),
+                      ),
                     ],
                   ),
                 )
@@ -192,17 +277,25 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: filteredTx.length,
-                    separatorBuilder: (context, index) => const Divider(color: AppColors.borderDark, height: 1),
+                    separatorBuilder: (context, index) =>
+                        Divider(color: theme.colorScheme.outline, height: 1),
                     itemBuilder: (context, index) {
                       final tx = filteredTx[index];
                       return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
                         leading: CircleAvatar(
                           radius: 20,
-                          backgroundColor: tx.isIncome ? AppColors.accent.withAlpha(25) : AppColors.expense.withAlpha(25),
+                          backgroundColor: tx.isIncome
+                              ? AppColors.accent.withAlpha(25)
+                              : AppColors.expense.withAlpha(25),
                           child: Icon(
                             tx.categoryIcon,
-                            color: tx.isIncome ? AppColors.accent : AppColors.expense,
+                            color: tx.isIncome
+                                ? AppColors.accent
+                                : AppColors.expense,
                             size: 20,
                           ),
                         ),
@@ -213,24 +306,46 @@ class _FinanceScreenState extends State<FinanceScreen> {
                                 tx.description,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.white),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: theme.colorScheme.onSurface,
+                                ),
                               ),
                             ),
                             if (tx.hasReceipt)
                               Container(
                                 margin: const EdgeInsets.only(left: 6),
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.info.withAlpha(20),
+                                  color: AppColors.info.withAlpha(
+                                    isDark ? 20 : 15,
+                                  ),
                                   borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: AppColors.info.withAlpha(60)),
+                                  border: Border.all(
+                                    color: AppColors.info.withAlpha(60),
+                                  ),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.receipt_rounded, size: 10, color: AppColors.info),
+                                    Icon(
+                                      Icons.receipt_rounded,
+                                      size: 10,
+                                      color: AppColors.info,
+                                    ),
                                     SizedBox(width: 2),
-                                    Text('OCR', style: TextStyle(color: AppColors.info, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      'OCR',
+                                      style: TextStyle(
+                                        color: AppColors.info,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -238,7 +353,12 @@ class _FinanceScreenState extends State<FinanceScreen> {
                         ),
                         subtitle: Text(
                           '${tx.category} • ${DateFormat('dd/MM/yyyy HH:mm', 'vi').format(tx.date)}',
-                          style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                          style: TextStyle(
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
+                            fontSize: 12,
+                          ),
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -248,12 +368,24 @@ class _FinanceScreenState extends State<FinanceScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
-                                color: tx.isIncome ? AppColors.accent : AppColors.expense,
+                                color: tx.isIncome
+                                    ? AppColors.accent
+                                    : AppColors.expense,
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFF64748B)),
-                              onPressed: () => _confirmDeleteTransaction(context, dataService, tx),
+                              icon: Icon(
+                                Icons.delete_outline_rounded,
+                                size: 18,
+                                color: isDark
+                                    ? const Color(0xFF64748B)
+                                    : const Color(0xFF94A3B8),
+                              ),
+                              onPressed: () => _confirmDeleteTransaction(
+                                context,
+                                dataService,
+                                tx,
+                              ),
                             ),
                           ],
                         ),
@@ -268,7 +400,14 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  Widget _buildFinancialSummaryCard(MockDataService dataService, NumberFormat currencyFormatter) {
+  Widget _buildFinancialSummaryCard(
+    BuildContext context,
+    MockDataService dataService,
+    NumberFormat currencyFormatter,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -280,36 +419,78 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Tổng thu tháng', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                    Text(
+                      'Tổng thu tháng',
+                      style: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B),
+                        fontSize: 12,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       '+${currencyFormatter.format(dataService.totalIncome)}',
-                      style: const TextStyle(color: AppColors.accent, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-                Container(height: 36, width: 1, color: AppColors.borderDark),
+                Container(
+                  height: 36,
+                  width: 1,
+                  color: theme.colorScheme.outline,
+                ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Tổng chi tháng', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                    Text(
+                      'Tổng chi tháng',
+                      style: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B),
+                        fontSize: 12,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       '-${currencyFormatter.format(dataService.totalExpense)}',
-                      style: const TextStyle(color: AppColors.expense, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: AppColors.expense,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-                Container(height: 36, width: 1, color: AppColors.borderDark),
+                Container(
+                  height: 36,
+                  width: 1,
+                  color: theme.colorScheme.outline,
+                ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Dòng tiền ròng', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                    Text(
+                      'Dòng tiền ròng',
+                      style: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B),
+                        fontSize: 12,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       currencyFormatter.format(dataService.balance),
                       style: TextStyle(
-                        color: dataService.balance >= 0 ? AppColors.primaryLight : AppColors.expense,
+                        color: dataService.balance >= 0
+                            ? AppColors.accent
+                            : AppColors.expense,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -324,7 +505,15 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  Widget _buildExpenseChartCard(Map<String, double> expenseMap, NumberFormat formatter, double totalExpense) {
+  Widget _buildExpenseChartCard(
+    BuildContext context,
+    Map<String, double> expenseMap,
+    NumberFormat formatter,
+    double totalExpense,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final colors = [
       const Color(0xFF6366F1), // Indigo
       const Color(0xFFEC4899), // Pink
@@ -358,7 +547,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
                                 _touchedPieIndex = -1;
                                 return;
                               }
-                              _touchedPieIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                              _touchedPieIndex = pieTouchResponse
+                                  .touchedSection!
+                                  .touchedSectionIndex;
                             });
                           },
                         ),
@@ -369,7 +560,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
                           final isTouched = i == _touchedPieIndex;
                           final radius = isTouched ? 48.0 : 42.0;
                           final entry = entries[i];
-                          final percent = totalExpense > 0 ? (entry.value / totalExpense * 100) : 0.0;
+                          final percent = totalExpense > 0
+                              ? (entry.value / totalExpense * 100)
+                              : 0.0;
                           return PieChartSectionData(
                             color: colors[i % colors.length],
                             value: entry.value,
@@ -413,12 +606,21 @@ class _FinanceScreenState extends State<FinanceScreen> {
                                   entry.key,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12, color: Color(0xFFCBD5E1)),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? const Color(0xFFCBD5E1)
+                                        : const Color(0xFF334155),
+                                  ),
                                 ),
                               ),
                               Text(
                                 formatter.format(entry.value),
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.onSurface,
+                                ),
                               ),
                             ],
                           ),
@@ -435,16 +637,22 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  void _confirmDeleteTransaction(BuildContext context, MockDataService service, TransactionItem tx) {
+  void _confirmDeleteTransaction(
+    BuildContext context,
+    MockDataService service,
+    TransactionItem tx,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Xóa giao dịch?'),
-        content: Text('Bạn có chắc chắn muốn xóa "${tx.description}" khỏi sổ quỹ không?'),
+        content: Text(
+          'Bạn có chắc chắn muốn xóa "${tx.description}" khỏi sổ quỹ không?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy', style: TextStyle(color: Color(0xFF94A3B8))),
+            child: const Text('Hủy'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.expense),
@@ -459,13 +667,24 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  void _showAddTransactionBottomSheet(BuildContext context, MockDataService service) {
+  void _showAddTransactionBottomSheet(
+    BuildContext context,
+    MockDataService service,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     String type = 'expense';
     String category = 'Ăn uống';
     final amountController = TextEditingController();
     final descController = TextEditingController();
 
-    final expenseCategories = ['Ăn uống', 'Nhà ở & Dịch vụ', 'Học tập & Sách', 'Đi lại', 'Mua sắm'];
+    final expenseCategories = [
+      'Ăn uống',
+      'Nhà ở & Dịch vụ',
+      'Học tập & Sách',
+      'Đi lại',
+      'Mua sắm',
+    ];
     final incomeCategories = ['Lương', 'Thưởng', 'Freelance', 'Khác'];
 
     showModalBottomSheet(
@@ -473,7 +692,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
-          final categories = type == 'expense' ? expenseCategories : incomeCategories;
+          final categories = type == 'expense'
+              ? expenseCategories
+              : incomeCategories;
 
           return Padding(
             padding: EdgeInsets.only(
@@ -486,9 +707,13 @@ class _FinanceScreenState extends State<FinanceScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Thêm giao dịch mới',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 16),
 
@@ -502,7 +727,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   onSelectionChanged: (val) {
                     setModalState(() {
                       type = val.first;
-                      category = type == 'expense' ? expenseCategories.first : incomeCategories.first;
+                      category = type == 'expense'
+                          ? expenseCategories.first
+                          : incomeCategories.first;
                     });
                   },
                 ),
@@ -514,7 +741,10 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'Số tiền (VNĐ)',
-                    prefixIcon: Icon(Icons.attach_money_rounded, color: AppColors.primaryLight),
+                    prefixIcon: Icon(
+                      Icons.attach_money_rounded,
+                      color: AppColors.primary,
+                    ),
                     hintText: 'Ví dụ: 45000',
                   ),
                 ),
@@ -525,14 +755,25 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   controller: descController,
                   decoration: const InputDecoration(
                     labelText: 'Mô tả giao dịch',
-                    prefixIcon: Icon(Icons.description_outlined, color: AppColors.primaryLight),
+                    prefixIcon: Icon(
+                      Icons.description_outlined,
+                      color: AppColors.primary,
+                    ),
                     hintText: 'Ví dụ: Cơm trưa, Xăng xe, Thưởng dự án...',
                   ),
                 ),
                 const SizedBox(height: 16),
 
                 // Category Selection
-                const Text('Chọn danh mục:', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8))),
+                Text(
+                  'Chọn danh mục:',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -540,10 +781,21 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   children: categories.map((cat) {
                     final isSel = category == cat;
                     return ChoiceChip(
-                      label: Text(cat, style: TextStyle(color: isSel ? Colors.white : const Color(0xFF94A3B8))),
+                      label: Text(
+                        cat,
+                        style: TextStyle(
+                          color: isSel
+                              ? Colors.white
+                              : (isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF475569)),
+                        ),
+                      ),
                       selected: isSel,
                       selectedColor: AppColors.primary,
-                      backgroundColor: const Color(0xFF0F172A),
+                      backgroundColor: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF1F5F9),
                       onSelected: (_) => setModalState(() => category = cat),
                     );
                   }).toList(),
@@ -555,7 +807,14 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: () {
-                      final amount = double.tryParse(amountController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0.0;
+                      final amount =
+                          double.tryParse(
+                            amountController.text.replaceAll(
+                              RegExp(r'[^0-9]'),
+                              '',
+                            ),
+                          ) ??
+                          0.0;
                       final desc = descController.text.trim();
                       if (amount > 0 && desc.isNotEmpty) {
                         service.addTransaction(
