@@ -21,6 +21,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import numpy as np
 from pydantic import BaseModel, Field
+from sqlalchemy import select, text
+from sqlalchemy.exc import SQLAlchemyError
 
 from src.agents.ollama_client import ollama_client
 from src.engine.response_templates import (
@@ -40,6 +42,12 @@ from src.database.json_storage import JsonStorage
 from src.auth_service import AuthError, AuthService
 from src.schemas.base import ExecutionStatus
 from src.tools.calculator import calculate_loan_amortization
+from src.database import postgres
+from src.models import auth_models  # noqa: F401 - register SQLAlchemy auth tables
+from src.api_auth import router as auth_router
+from src.models.auth_models import AuthUser
+from src.security import verify_access_token
+import jwt
 
 # ----------------- CONSTANTS & PATHS -----------------
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -177,6 +185,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 
 # ----------------- SCHEMAS -----------------
@@ -326,6 +336,7 @@ def parse_slots_from_text(text: str, intent: str) -> dict[str, Any]:
 class HealthResponse(BaseModel):
     status: str = "ok"
     version: str = "1.0.0"
+    database_connected: bool
     model_loaded: bool
     supported_intents_count: int
     intents: list[str]
@@ -348,6 +359,8 @@ class ChatRequest(BaseModel):
     user_id: str = Field(default="default_user", description="Unique user identifier")
     text: str = Field(..., min_length=1, description="Message text from user")
     slots: dict[str, Any] | None = Field(default=None, description="Explicit slot overrides if any")
+    user_confirmed: bool = Field(default=False, description="Explicit approval for sensitive actions")
+    idempotency_key: str | None = Field(default=None, description="Stable key used to prevent duplicate HITL execution")
 
 
 class AuthCredentials(BaseModel):
@@ -365,6 +378,48 @@ class AuthResponse(BaseModel):
     token_type: str = "Bearer"
 
 
+class TransactionRequest(BaseModel):
+    amount: Decimal = Field(..., gt=0)
+    type: str = Field(..., pattern="^(income|expense|transfer)$")
+    description: str = Field(..., min_length=1, max_length=500)
+    category: str = "Khác"
+    account: str = "default_account"
+
+
+class TransactionUpdateRequest(BaseModel):
+    amount: Decimal | None = Field(default=None, gt=0)
+    type: str | None = Field(default=None, pattern="^(income|expense|transfer)$")
+    description: str | None = Field(default=None, min_length=1, max_length=500)
+    category: str | None = None
+    account: str | None = None
+
+
+class TaskRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=500)
+    description: str | None = None
+    deadline: str | None = None
+    priority: str = "medium"
+    category: str = "Chung"
+    is_important: bool = False
+
+
+class RecordRequest(BaseModel):
+    values: dict[str, Any] = Field(default_factory=dict)
+
+
+class CorrectionRequest(BaseModel):
+    transaction_id: str
+    raw_description: str
+    ai_predicted_category: str
+    user_corrected_category: str
+
+
+class HitlApprovalRequest(BaseModel):
+    idempotency_key: str = Field(..., min_length=1, max_length=200)
+    action: str = Field(..., pattern="^(task_delete|savings_create|loan_apply|balance_override|bulk_delete)$")
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
 def _resolve_user(authorization: str | None) -> dict[str, Any] | None:
     if not authorization:
         if AUTH_REQUIRED:
@@ -374,41 +429,186 @@ def _resolve_user(authorization: str | None) -> dict[str, Any] | None:
     if scheme.casefold() != "bearer" or not token:
         raise HTTPException(status_code=401, detail="Authorization phải có dạng Bearer token.")
     try:
-        return auth_service.verify(token)
-    except AuthError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
+        user_id = verify_access_token(
+            token,
+            os.getenv("AUTH_SECRET", ""),
+            os.getenv("AUTH_JWT_ISSUER", "onisagent").strip(),
+        )
+        with SessionLocal() as db:
+            user = db.scalar(select(AuthUser).where(AuthUser.id == user_id))
+        if not user or not user.is_active:
+            raise AuthError("Tài khoản không tồn tại.")
+        return {
+            "id": str(user.id),
+            "email": user.email,
+            "name": user.display_name,
+        }
+    except (jwt.PyJWTError, ValueError, AuthError) as exc:
+        raise HTTPException(status_code=401, detail="Token không hợp lệ hoặc đã hết hạn.") from exc
 
 
-@app.post("/api/v1/auth/register", response_model=AuthResponse, tags=["Auth"])
-def register(request: RegisterRequest):
-    try:
-        user, token = auth_service.register(request.email, request.password, request.name)
-        return AuthResponse(user=user, access_token=token)
-    except AuthError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-
-@app.post("/api/v1/auth/login", response_model=AuthResponse, tags=["Auth"])
-def login(request: AuthCredentials):
-    try:
-        user, token = auth_service.login(request.email, request.password)
-        return AuthResponse(user=user, access_token=token)
-    except AuthError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
-
-
-@app.get("/api/v1/auth/me", tags=["Auth"])
-def me(authorization: str | None = Header(default=None)):
+@app.get("/api/v1/transactions", tags=["Transactions"])
+def list_transactions(authorization: str | None = Header(default=None)):
     user = _resolve_user(authorization)
-    if user is None:
+    if not user and AUTH_REQUIRED:
         raise HTTPException(status_code=401, detail="Cần đăng nhập.")
-    return {"user": user}
+    user_id = user["id"] if user else "default_user"
+    return {"transactions": storage.list_transactions(user_id)}
 
 
-@app.post("/api/v1/auth/logout", tags=["Auth"])
-def logout(authorization: str | None = Header(default=None)):
-    _resolve_user(authorization)
-    return {"ok": True}
+@app.post("/api/v1/transactions", status_code=status.HTTP_201_CREATED, tags=["Transactions"])
+def create_transaction(request: TransactionRequest, authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    if not user and AUTH_REQUIRED:
+        raise HTTPException(status_code=401, detail="Cần đăng nhập.")
+    user_id = user["id"] if user else "default_user"
+    item = storage.add_transaction(
+        user_id,
+        amount=request.amount,
+        transaction_type=request.type,
+        description=request.description,
+        category=request.category,
+        account=request.account,
+    )
+    return {"transaction": item}
+
+
+@app.get("/api/v1/transactions/{transaction_id}", tags=["Transactions"])
+def get_transaction(transaction_id: str, authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    item = storage.get_transaction(user_id, transaction_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Không tìm thấy giao dịch.")
+    return {"transaction": item}
+
+
+@app.patch("/api/v1/transactions/{transaction_id}", tags=["Transactions"])
+def update_transaction(transaction_id: str, request: TransactionUpdateRequest, authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    item = storage.update_transaction(user_id, transaction_id, request.model_dump(exclude_none=True))
+    if not item:
+        raise HTTPException(status_code=404, detail="Không tìm thấy giao dịch.")
+    return {"transaction": item}
+
+
+@app.delete("/api/v1/transactions/{transaction_id}", tags=["Transactions"])
+def delete_transaction(transaction_id: str, authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    item = storage.delete_transaction(user_id, transaction_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Không tìm thấy giao dịch.")
+    return {"ok": True, "transaction": item}
+
+
+@app.get("/api/v1/tasks", tags=["Tasks"])
+def list_tasks(status_filter: str | None = None, authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    return {"tasks": storage.list_tasks(user_id, status=status_filter or "all")}
+
+
+@app.post("/api/v1/tasks", status_code=status.HTTP_201_CREATED, tags=["Tasks"])
+def create_task(request: TaskRequest, authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    item = storage.add_task(user_id, request.model_dump(exclude_none=True))
+    return {"task": item}
+
+
+@app.patch("/api/v1/tasks/{task_id}", tags=["Tasks"])
+def update_task(task_id: str, request: dict[str, Any], authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    new_status = str(request.get("status", "pending"))
+    item = storage.update_task(user_id, {"task_id": task_id, **request}, new_status)
+    if not item:
+        raise HTTPException(status_code=404, detail="Không tìm thấy công việc.")
+    return {"task": item}
+
+
+@app.delete("/api/v1/tasks/{task_id}", tags=["Tasks"])
+def delete_task_api(task_id: str, authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    item = storage.update_task(user_id, {"task_id": task_id}, "pending")
+    if not item:
+        raise HTTPException(status_code=404, detail="Không tìm thấy công việc.")
+    return {
+        "ok": False,
+        "status": "BLOCKED",
+        "requires_hitl": True,
+        "task": item,
+        "message": "Cần xác nhận HITL trước khi xóa công việc.",
+    }
+
+
+@app.get("/api/v1/savings-goals", tags=["Savings"])
+def list_savings_goals(authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    return {"savings_goals": storage.list_records("savings_goals", user_id)}
+
+
+@app.post("/api/v1/savings-goals", status_code=status.HTTP_201_CREATED, tags=["Savings"])
+def create_savings_goal(request: RecordRequest, authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    item = storage.add_record("savings_goals", user_id, request.values)
+    return {"savings_goal": item}
+
+
+@app.get("/api/v1/debts", tags=["Debts"])
+def list_debts(authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    return {"debts": storage.list_records("debts", user_id)}
+
+
+@app.post("/api/v1/debts", status_code=status.HTTP_201_CREATED, tags=["Debts"])
+def create_debt(request: RecordRequest, authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    item = storage.add_record("debts", user_id, request.values)
+    return {"debt": item}
+
+
+@app.post("/api/v1/transactions/corrections", status_code=status.HTTP_201_CREATED, tags=["Corrections"])
+def add_transaction_correction(request: CorrectionRequest, authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    transaction = storage.get_transaction(user_id, request.transaction_id)
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Không tìm thấy giao dịch.")
+    item = storage.add_correction(user_id, request.model_dump())
+    storage.update_transaction(
+        user_id,
+        request.transaction_id,
+        {"category": request.user_corrected_category},
+    )
+    return {"correction": item}
+
+
+@app.post("/api/v1/hitl/approve", tags=["HITL"])
+def approve_hitl(request: HitlApprovalRequest, authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    user_id = user["id"] if user else "default_user"
+    action = {"action": request.action, "payload": request.payload}
+    approval = storage.approve_hitl(user_id, request.idempotency_key, action)
+
+    if request.action == "task_delete" and request.payload.get("task_id"):
+        storage.delete_task(user_id, {"task_id": request.payload["task_id"]})
+    elif request.action == "task_delete" and request.payload.get("title"):
+        storage.delete_task(user_id, {"title": request.payload["title"]})
+    elif request.action == "savings_create":
+        storage.add_record("savings_goals", user_id, request.payload)
+    elif request.action == "loan_apply":
+        storage.add_record("plans", user_id, {**request.payload, "status": "approved"})
+
+    return {"ok": True, "approval": approval}
 
 
 class ChatResponse(BaseModel):
@@ -442,7 +642,7 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any], user_id: str = 
     if intent in {"task.query_today", "task.query"}:
         tasks = storage.list_tasks(user_id, status="pending")
         return (
-            f"📅 Hôm nay bạn có {len(tasks)} công việc đang chờ xử lý.",
+            f"📅 **Danh sách công việc hôm nay của bạn:** {len(tasks)} công việc đang chờ xử lý.",
             {"count": len(tasks), "tasks": tasks},
             ["Thêm việc mới", "Xem deadline tuần"],
         )
@@ -450,9 +650,9 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any], user_id: str = 
     if intent == "task.query_deadline":
         tasks = storage.list_tasks(user_id, status="pending")
         return (
-            f"⏰ Có {len(tasks)} công việc đang chờ kiểm tra hạn chót.",
+            f"⏰ **Cảnh báo hạn chót (Deadline):** Có {len(tasks)} công việc đang chờ kiểm tra.",
             {"count": len(tasks), "deadlines": tasks},
-            ["Xem việc hôm nay", "Tạo việc mới"],
+            ["Đã làm xong", "Dời hạn chót", "Xem việc hôm nay"],
         )
 
     if intent == "task.create":
@@ -543,10 +743,31 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any], user_id: str = 
 
     if intent == "finance.query_debt":
         debts = storage.list_records("debts", user_id)
+        person = clean_slots.get("person")
+        if person:
+            person_lower = str(person).casefold()
+            matches = [
+                debt for debt in debts
+                if person_lower in str(debt.get("person", "")).casefold()
+            ]
+            if matches:
+                message = f"🧾 Hiện có {len(matches)} khoản nợ liên quan đến {person}."
+            else:
+                message = f"🤝 Hiện tại bạn và **{person}** không có khoản nợ nào trong sổ."
+            return message, {"debts": matches, "filter": clean_slots, "count": len(matches)}, ["Xem ai nợ tôi", "Xem tôi nợ ai", "Ghi nợ mới", "Đã trả nợ"]
+
+        total_lend = sum(
+            (Decimal(str(debt.get("amount", "0"))) for debt in debts if debt.get("debt_type") == "lend"),
+            Decimal("0"),
+        )
+        total_borrow = sum(
+            (Decimal(str(debt.get("amount", "0"))) for debt in debts if debt.get("debt_type") == "borrow"),
+            Decimal("0"),
+        )
         return (
-            f"🧾 Hiện có {len(debts)} khoản nợ trong sổ.",
-            {"debts": debts, "filter": clean_slots},
-            ["Ghi khoản nợ", "Xem số dư"],
+            f"🧾 Sổ nợ hiện có {len(debts)} khoản (cho vay: {format_currency(total_lend)}, vay: {format_currency(total_borrow)}).",
+            {"debts": debts, "total_lend": float(total_lend), "total_borrow": float(total_borrow), "filter": clean_slots},
+            ["Xem ai nợ tôi", "Xem tôi nợ ai", "Ghi nợ mới", "Đã trả nợ"],
         )
 
     if intent == "finance.split_bill":
@@ -704,11 +925,21 @@ def read_root():
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 @app.get("/api/v1/health", response_model=HealthResponse, tags=["Health"])
 def health_check():
-    """Check service health, loaded Kev model state, and supported intent catalog."""
+    """Check database connectivity, model state, and supported intent catalog."""
+    try:
+        with postgres.SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database unavailable.",
+        ) from exc
+
     model = get_kev_model()
     return HealthResponse(
         status="ok",
         version="1.0.0",
+        database_connected=True,
         model_loaded=model is not None,
         supported_intents_count=len(state.supported_intents),
         intents=state.supported_intents,
@@ -889,6 +1120,28 @@ def chat(request: ChatRequest, authorization: str | None = Header(default=None))
             quick_replies=["Xác nhận", "Hủy bỏ"],
             slots=serializable_slots,
             data=None,
+            requires_hitl=True,
+            latency_ms=latency_ms,
+        )
+
+    hitl_intents = {
+        "finance.loan_installment_plan",
+        "finance.loan.calculate",
+        "finance.savings_goal",
+        "finance.transfer",
+    }
+    if active_intent in hitl_intents and not request.user_confirmed:
+        return ChatResponse(
+            session_id=request.session_id,
+            intent=action_res.intent,
+            confidence=round(confidence, 4),
+            route=route,
+            status="BLOCKED",
+            message="Hành động tài chính nhạy cảm cần xác nhận trực tiếp trước khi ghi dữ liệu.",
+            reply="Hành động tài chính nhạy cảm cần xác nhận trực tiếp trước khi ghi dữ liệu.",
+            quick_replies=["Xác nhận", "Hủy bỏ"],
+            slots=serializable_slots,
+            data={"requires_approval": True, "idempotency_key": request.idempotency_key},
             requires_hitl=True,
             latency_ms=latency_ms,
         )

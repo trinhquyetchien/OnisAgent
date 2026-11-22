@@ -18,8 +18,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'demo@onis.ai');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _rememberMe = true;
 
   @override
@@ -59,9 +59,8 @@ class _LoginScreenState extends State<LoginScreen> {
     } else if (authNotifier.status == AuthStatus.unverified) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => EmailVerificationScreen(
-            email: _emailController.text.trim(),
-          ),
+          builder: (_) =>
+              EmailVerificationScreen(email: _emailController.text.trim()),
         ),
       );
     }
@@ -86,8 +85,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             tooltip: isDark ? 'Giao diện Sáng' : 'Giao diện Tối',
             onPressed: () {
-              appThemeModeNotifier.value =
-                  isDark ? ThemeMode.light : ThemeMode.dark;
+              appThemeModeNotifier.value = isDark
+                  ? ThemeMode.light
+                  : ThemeMode.dark;
             },
           ),
           const SizedBox(width: 8),
@@ -223,8 +223,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Vui lòng nhập email';
                     }
-                    if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value.trim())) {
+                    if (!RegExp(
+                      r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value.trim())) {
                       return 'Email không đúng định dạng';
                     }
                     return null;
@@ -473,8 +474,8 @@ class _LoginScreenState extends State<LoginScreen> {
             color: isSelected
                 ? AppColors.primary
                 : (isWarning
-                    ? AppColors.warning
-                    : (isDark ? Colors.white70 : const Color(0xFF334155))),
+                      ? AppColors.warning
+                      : (isDark ? Colors.white70 : const Color(0xFF334155))),
           ),
         ),
       ),

@@ -30,7 +30,14 @@ class AuthService:
 
     @staticmethod
     def _public(user: dict[str, Any]) -> dict[str, Any]:
-        return {"id": user["id"], "email": user["email"], "name": user["name"], "created_at": user["created_at"]}
+        return {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user["name"],
+            "full_name": user["name"],
+            "is_email_verified": True,
+            "created_at": user["created_at"],
+        }
 
     def register(self, email: str, password: str, name: str) -> tuple[dict[str, Any], str]:
         email = email.strip().casefold(); name = name.strip()

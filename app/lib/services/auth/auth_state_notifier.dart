@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import '../../models/auth_user.dart';
 import 'auth_service_interface.dart';
-import 'mock_auth_service.dart';
+import 'api_auth_service.dart';
 
-enum AuthStatus {
-  initial,
-  authenticated,
-  unverified,
-  unauthenticated,
-}
+enum AuthStatus { initial, authenticated, unverified, unauthenticated }
 
 class AuthStateNotifier extends ChangeNotifier {
   static final AuthStateNotifier _instance = AuthStateNotifier._internal(
-    authService: MockAuthService(),
+    authService: ApiAuthService(
+      baseUrl: const String.fromEnvironment(
+        'API_BASE_URL',
+        defaultValue: 'http://127.0.0.1:8000',
+      ),
+    ),
   );
   factory AuthStateNotifier() => _instance;
 
   IAuthService _authService;
   AuthStateNotifier._internal({required IAuthService authService})
-      : _authService = authService;
+    : _authService = authService;
 
   AuthStatus _status = AuthStatus.initial;
   AuthUser? _currentUser;
@@ -31,7 +31,8 @@ class AuthStateNotifier extends ChangeNotifier {
   String? get pendingVerificationEmail => _pendingVerificationEmail;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get isAuthenticated => _status == AuthStatus.authenticated && _currentUser != null;
+  bool get isAuthenticated =>
+      _status == AuthStatus.authenticated && _currentUser != null;
 
   /// Cho phép hoán đổi giữa MockAuthService và ApiAuthService
   void setAuthService(IAuthService service) {

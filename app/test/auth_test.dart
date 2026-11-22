@@ -38,33 +38,40 @@ void main() {
       );
     });
 
-    test('Login with unverified account returns isEmailVerified false', () async {
-      final session = await authService.login(
-        email: 'unverified@onis.ai',
-        password: 'password123',
-      );
-      expect(session.user.isEmailVerified, isFalse);
-    });
+    test(
+      'Login with unverified account returns isEmailVerified false',
+      () async {
+        final session = await authService.login(
+          email: 'unverified@onis.ai',
+          password: 'password123',
+        );
+        expect(session.user.isEmailVerified, isFalse);
+      },
+    );
 
-    test('Registering new account creates unverified user and generates OTP', () async {
-      final testEmail = 'newuser_${DateTime.now().millisecondsSinceEpoch}@onis.ai';
-      final session = await authService.register(
-        fullName: 'Nguyễn Văn Mới',
-        email: testEmail,
-        password: 'password123',
-      );
+    test(
+      'Registering new account creates unverified user and generates OTP',
+      () async {
+        final testEmail =
+            'newuser_${DateTime.now().millisecondsSinceEpoch}@onis.ai';
+        final session = await authService.register(
+          fullName: 'Nguyễn Văn Mới',
+          email: testEmail,
+          password: 'password123',
+        );
 
-      expect(session.user.email, testEmail);
-      expect(session.user.isEmailVerified, isFalse);
+        expect(session.user.email, testEmail);
+        expect(session.user.isEmailVerified, isFalse);
 
-      // Verify OTP with default mock code 123456
-      final verified = await authService.verifyOtp(
-        email: testEmail,
-        otp: '123456',
-        purpose: OtpPurpose.emailVerification,
-      );
-      expect(verified, isTrue);
-    });
+        // Verify OTP with default mock code 123456
+        final verified = await authService.verifyOtp(
+          email: testEmail,
+          otp: '123456',
+          purpose: OtpPurpose.emailVerification,
+        );
+        expect(verified, isTrue);
+      },
+    );
 
     test('Forgot password and reset password flow works', () async {
       const email = 'demo@onis.ai';
@@ -108,15 +115,25 @@ void main() {
     test('Calculates weak, medium, and strong correctly', () {
       expect(PasswordStrengthExtension.calculate(''), PasswordStrength.empty);
       expect(PasswordStrengthExtension.calculate('123'), PasswordStrength.weak);
-      expect(PasswordStrengthExtension.calculate('onlylower'), PasswordStrength.weak);
-      expect(PasswordStrengthExtension.calculate('shortA1'), PasswordStrength.medium);
-      expect(PasswordStrengthExtension.calculate('Password123'), PasswordStrength.strong);
+      expect(
+        PasswordStrengthExtension.calculate('onlylower'),
+        PasswordStrength.weak,
+      );
+      expect(
+        PasswordStrengthExtension.calculate('shortA1'),
+        PasswordStrength.medium,
+      );
+      expect(
+        PasswordStrengthExtension.calculate('Password123'),
+        PasswordStrength.strong,
+      );
     });
   });
 
   group('AuthStateNotifier Tests', () {
     test('Login and logout update status correctly', () async {
       final notifier = AuthStateNotifier();
+      notifier.setAuthService(MockAuthService());
 
       final success = await notifier.login(
         email: 'demo@onis.ai',
@@ -133,6 +150,7 @@ void main() {
 
     test('Login with unverified user sets status to unverified', () async {
       final notifier = AuthStateNotifier();
+      notifier.setAuthService(MockAuthService());
 
       final success = await notifier.login(
         email: 'unverified@onis.ai',
@@ -155,7 +173,9 @@ void main() {
       );
     }
 
-    testWidgets('LoginScreen renders fields and demo account chips', (tester) async {
+    testWidgets('LoginScreen renders fields and demo account chips', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildTestableWidget(const LoginScreen()));
       await tester.pump();
 
@@ -170,26 +190,36 @@ void main() {
       expect(find.text('Demo (Đã verify)'), findsOneWidget);
     });
 
-    testWidgets('RegisterScreen renders fields and password strength indicator', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(const RegisterScreen()));
-      await tester.pump();
+    testWidgets(
+      'RegisterScreen renders fields and password strength indicator',
+      (tester) async {
+        await tester.pumpWidget(buildTestableWidget(const RegisterScreen()));
+        await tester.pump();
 
-      expect(find.textContaining('Tạo tài khoản mới'), findsOneWidget);
-      expect(find.text('Họ và tên'), findsOneWidget);
-      expect(find.text('Email'), findsOneWidget);
-      expect(find.text('Mật khẩu'), findsOneWidget);
-      expect(find.text('Xác nhận mật khẩu'), findsOneWidget);
-      expect(find.text('Đăng ký tài khoản'), findsOneWidget);
+        expect(find.textContaining('Tạo tài khoản mới'), findsOneWidget);
+        expect(find.text('Họ và tên'), findsOneWidget);
+        expect(find.text('Email'), findsOneWidget);
+        expect(find.text('Mật khẩu'), findsOneWidget);
+        expect(find.text('Xác nhận mật khẩu'), findsOneWidget);
+        expect(find.text('Đăng ký tài khoản'), findsOneWidget);
 
-      // Enter password and verify strength meter reacts
-      await tester.enterText(find.widgetWithText(TextFormField, '').first, 'Nguyễn An');
-      await tester.pump();
-    });
+        // Enter password and verify strength meter reacts
+        await tester.enterText(
+          find.widgetWithText(TextFormField, '').first,
+          'Nguyễn An',
+        );
+        await tester.pump();
+      },
+    );
 
-    testWidgets('EmailVerificationScreen renders OTP fields and countdown', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        const EmailVerificationScreen(email: 'test@onis.ai'),
-      ));
+    testWidgets('EmailVerificationScreen renders OTP fields and countdown', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestableWidget(
+          const EmailVerificationScreen(email: 'test@onis.ai'),
+        ),
+      );
       await tester.pump();
 
       expect(find.textContaining('Xác thực Email'), findsOneWidget);
@@ -203,19 +233,23 @@ void main() {
     });
 
     testWidgets('ForgotPasswordScreen renders email field', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        const ForgotPasswordScreen(initialEmail: 'demo@onis.ai'),
-      ));
+      await tester.pumpWidget(
+        buildTestableWidget(
+          const ForgotPasswordScreen(initialEmail: 'demo@onis.ai'),
+        ),
+      );
       await tester.pump();
 
       expect(find.textContaining('Quên mật khẩu'), findsOneWidget);
       expect(find.text('Gửi mã xác thực OTP'), findsOneWidget);
     });
 
-    testWidgets('ResetPasswordScreen renders OTP and new password fields', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        const ResetPasswordScreen(email: 'demo@onis.ai'),
-      ));
+    testWidgets('ResetPasswordScreen renders OTP and new password fields', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestableWidget(const ResetPasswordScreen(email: 'demo@onis.ai')),
+      );
       await tester.pump();
 
       expect(find.textContaining('Đặt lại mật khẩu'), findsOneWidget);

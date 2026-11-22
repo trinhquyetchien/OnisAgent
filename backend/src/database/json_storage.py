@@ -22,7 +22,19 @@ class JsonStorage:
     """Durable local store for the finance/task domains."""
 
     _lock = RLock()
-    _empty = {"users": [], "sessions": [], "transactions": [], "tasks": [], "debts": [], "budgets": [], "savings_goals": [], "reminders": [], "plans": []}
+    _empty = {
+        "users": [],
+        "sessions": [],
+        "transactions": [],
+        "tasks": [],
+        "debts": [],
+        "budgets": [],
+        "savings_goals": [],
+        "reminders": [],
+        "plans": [],
+        "correction_history": [],
+        "hitl_approvals": [],
+    }
 
     def __init__(self, path: str | Path | None = None) -> None:
         default = Path(__file__).resolve().parents[2] / "data" / "local" / "onis_state.json"
@@ -76,6 +88,38 @@ class JsonStorage:
             rows = [x for x in rows if keyword.casefold() in json.dumps(x, ensure_ascii=False).casefold()]
         return rows
 
+    def get_transaction(self, user_id: str, transaction_id: str) -> dict[str, Any] | None:
+        return next(
+            (x for x in self._read()["transactions"] if x.get("user_id") == user_id and x.get("id") == transaction_id),
+            None,
+        )
+
+    def update_transaction(self, user_id: str, transaction_id: str, values: dict[str, Any]) -> dict[str, Any] | None:
+        data = self._read()
+        for item in data["transactions"]:
+            if item.get("user_id") == user_id and item.get("id") == transaction_id:
+                if "amount" in values:
+                    values["amount"] = self._money(values["amount"])
+                item.update({key: value for key, value in values.items() if value is not None})
+                item["updated_at"] = self._now()
+                self._write(data)
+                return item
+        return None
+
+    def delete_transaction(self, user_id: str, transaction_id: str) -> dict[str, Any] | None:
+        data = self._read()
+        found = None
+        kept = []
+        for item in data["transactions"]:
+            if item.get("user_id") == user_id and item.get("id") == transaction_id:
+                found = item
+            else:
+                kept.append(item)
+        if found:
+            data["transactions"] = kept
+            self._write(data)
+        return found
+
     def summary(self, user_id: str) -> dict[str, Decimal]:
         income = sum((Decimal(x["amount"]) for x in self.list_transactions(user_id) if x.get("type") == "income"), Decimal("0"))
         expense = sum((Decimal(x["amount"]) for x in self.list_transactions(user_id) if x.get("type") == "expense"), Decimal("0"))
@@ -116,6 +160,61 @@ class JsonStorage:
 
     def list_records(self, collection: str, user_id: str) -> list[dict[str, Any]]:
         return [x for x in self._read()[collection] if x.get("user_id") == user_id]
+
+    def get_record(self, collection: str, user_id: str, record_id: str) -> dict[str, Any] | None:
+        return next(
+            (x for x in self._read()[collection] if x.get("user_id") == user_id and x.get("id") == record_id),
+            None,
+        )
+
+    def update_record(self, collection: str, user_id: str, record_id: str, values: dict[str, Any]) -> dict[str, Any] | None:
+        data = self._read()
+        for item in data[collection]:
+            if item.get("user_id") == user_id and item.get("id") == record_id:
+                item.update({key: value for key, value in values.items() if value is not None})
+                item["updated_at"] = self._now()
+                self._write(data)
+                return item
+        return None
+
+    def delete_record(self, collection: str, user_id: str, record_id: str) -> dict[str, Any] | None:
+        data = self._read()
+        found = None
+        kept = []
+        for item in data[collection]:
+            if item.get("user_id") == user_id and item.get("id") == record_id:
+                found = item
+            else:
+                kept.append(item)
+        if found:
+            data[collection] = kept
+            self._write(data)
+        return found
+
+    def add_correction(self, user_id: str, values: dict[str, Any]) -> dict[str, Any]:
+        return self.add_record("correction_history", user_id, values)
+
+    def list_corrections(self, user_id: str) -> list[dict[str, Any]]:
+        return self.list_records("correction_history", user_id)
+
+    def approve_hitl(self, user_id: str, idempotency_key: str, action: dict[str, Any]) -> dict[str, Any]:
+        data = self._read()
+        existing = next(
+            (x for x in data["hitl_approvals"] if x.get("user_id") == user_id and x.get("idempotency_key") == idempotency_key),
+            None,
+        )
+        if existing:
+            return existing
+        approval = {
+            "id": f"hitl_{uuid4().hex[:12]}",
+            "user_id": user_id,
+            "idempotency_key": idempotency_key,
+            "action": action,
+            "approved_at": self._now(),
+        }
+        data["hitl_approvals"].append(approval)
+        self._write(data)
+        return approval
 
     def find_user_by_email(self, email: str) -> dict[str, Any] | None:
         email = email.casefold().strip()
