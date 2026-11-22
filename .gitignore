@@ -43,3 +43,6 @@ Thumbs.db
 
 # Local handoff notes
 /app/handoff.md
+
+# Local durable backend state
+/backend/data/local/

@@ -25,10 +25,8 @@ from src.agents.ollama_client import ollama_client
 from src.engine.response_templates import (
     format_currency,
     template_finance_balance,
-    template_finance_pay_bill,
     template_finance_query_debt,
     template_finance_split_bill,
-    template_system_greeting_summary,
     template_system_help,
     template_task_create,
     template_task_complete,
@@ -37,6 +35,7 @@ from src.engine.response_templates import (
 )
 from src.engine.session_manager import SessionManager
 from src.engine.slot_validator import SlotValidator
+from src.database.json_storage import JsonStorage
 from src.schemas.base import ExecutionStatus
 from src.tools.calculator import calculate_loan_amortization
 
@@ -106,6 +105,7 @@ class AppState:
 
 
 state = AppState()
+storage = JsonStorage()
 
 
 def load_kev_model() -> Any:
@@ -280,9 +280,13 @@ def parse_slots_from_text(text: str, intent: str) -> dict[str, Any]:
         if people_match:
             slots["participants"] = int(people_match.group(1))
 
-    if any(key in intent for key in ("query_transactions", "query_by_tag", "search")):
-        slots.setdefault("keyword", text)
+    if "query_transactions" in intent:
+        known_category = next((value for value in ("ăn uống", "đi lại", "di chuyển", "mua sắm", "hóa đơn", "giáo dục") if value in lower), None)
+        if known_category:
+            slots["category"] = known_category
         slots.setdefault("time_range", "today" if "hôm nay" in lower or "hom nay" in lower else "all")
+    elif any(key in intent for key in ("query_by_tag", "search")):
+        slots.setdefault("keyword", text)
 
     if "budget" in intent:
         slots.setdefault("category", "all")
@@ -358,7 +362,7 @@ class ChatResponse(BaseModel):
 
 
 # ----------------- DETERMINISTIC ACTION EXECUTOR -----------------
-def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, dict[str, Any] | None, list[str]]:
+def execute_fast_path_action(intent: str, slots: dict[str, Any], user_id: str = "default_user") -> tuple[str, dict[str, Any] | None, list[str]]:
     """Execute zero-LLM deterministic action using pure Decimal calculator or response templates.
 
     Returns:
@@ -371,155 +375,197 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, d
 
     # 1. Task Domain Templates
     if intent in {"task.query_today", "task.query"}:
-        return template_task_query_today()
+        tasks = storage.list_tasks(user_id, status="pending")
+        return (
+            f"📅 Hôm nay bạn có {len(tasks)} công việc đang chờ xử lý.",
+            {"count": len(tasks), "tasks": tasks},
+            ["Thêm việc mới", "Xem deadline tuần"],
+        )
 
     if intent == "task.query_deadline":
-        return template_task_query_deadline()
+        tasks = storage.list_tasks(user_id, status="pending")
+        return (
+            f"⏰ Có {len(tasks)} công việc đang chờ kiểm tra hạn chót.",
+            {"count": len(tasks), "deadlines": tasks},
+            ["Xem việc hôm nay", "Tạo việc mới"],
+        )
 
     if intent == "task.create":
-        return template_task_create(clean_slots)
+        task = storage.add_task(user_id, clean_slots)
+        return template_task_create({**clean_slots, "task_id": task["id"]})
 
     if intent == "task.complete":
-        return template_task_complete(clean_slots)
+        task = storage.update_task(user_id, clean_slots, "completed")
+        return template_task_complete({**clean_slots, "task_id": task.get("id") if task else clean_slots.get("task_id")})
 
     if intent == "task.create_recurring":
         title = clean_slots.get("title", "thói quen mới")
         recurrence = clean_slots.get("recurrence", "theo lịch đã nói")
+        task = storage.add_task(user_id, {**clean_slots, "title": title, "recurrence": recurrence})
         return (
             f"✅ Đã tạo công việc lặp lại '{title}' ({recurrence}).",
-            {"task": clean_slots, "recurring": True},
+            {"task": task, "recurring": True},
             ["Xem việc hôm nay", "Tạo việc khác"],
         )
 
     if intent == "task.query_by_tag":
         keyword = clean_slots.get("keyword", clean_slots.get("title", "nhãn đã chọn"))
+        tasks = storage.list_tasks(user_id, status="all", keyword=keyword)
         return (
-            f"📋 Đây là danh sách công việc theo nhãn/từ khóa '{keyword}'.",
-            {"filter": "tag", "keyword": keyword, "tasks": []},
+            f"📋 Tìm thấy {len(tasks)} công việc theo nhãn/từ khóa '{keyword}'.",
+            {"filter": "tag", "keyword": keyword, "tasks": tasks},
             ["Xem tất cả việc", "Tạo việc mới"],
         )
 
     if intent == "task.query_completed":
+        tasks = storage.list_tasks(user_id, status="completed")
         return (
-            "✅ Bạn chưa có công việc hoàn thành nào trong phạm vi truy vấn này.",
-            {"filter": "completed", "tasks": []},
+            f"✅ Có {len(tasks)} công việc đã hoàn thành.",
+            {"filter": "completed", "tasks": tasks},
             ["Xem việc hôm nay", "Xem việc đang chờ"],
         )
 
     if intent == "task.schedule_event":
+        task = storage.add_task(user_id, {**clean_slots, "is_event": True})
         return (
             f"📅 Đã lên lịch '{clean_slots.get('title', 'sự kiện mới')}' vào {clean_slots.get('start_time', 'thời gian đã nói')}.",
-            {"event": clean_slots},
+            {"event": task},
             ["Xem lịch hôm nay", "Tạo sự kiện khác"],
         )
 
     if intent == "task.reschedule":
+        task = storage.update_task(user_id, clean_slots, "pending")
         return (
             f"🔄 Đã dời lịch '{clean_slots.get('title', 'công việc')}' sang {clean_slots.get('new_deadline', 'thời gian mới')}.",
-            {"rescheduled_task": clean_slots},
+            {"rescheduled_task": task or clean_slots},
             ["Xem việc hôm nay", "Dời việc khác"],
         )
 
     if intent == "task.cancel":
+        task = storage.update_task(user_id, clean_slots, "cancelled")
         return (
             f"⏸️ Đã hủy/tạm hoãn công việc '{clean_slots.get('title', 'công việc')}' và giữ lại lịch sử.",
-            {"cancelled_task": clean_slots},
+            {"cancelled_task": task or clean_slots},
             ["Xem việc hôm nay", "Tạo việc mới"],
         )
 
     if intent == "task.search":
         keyword = clean_slots.get("keyword", clean_slots.get("title", ""))
+        tasks = storage.list_tasks(user_id, status="all", keyword=keyword)
         return (
-            f"🔎 Đã tìm công việc theo từ khóa '{keyword}'.",
-            {"filter": "search", "keyword": keyword, "tasks": []},
+            f"🔎 Tìm thấy {len(tasks)} công việc theo từ khóa '{keyword}'.",
+            {"filter": "search", "keyword": keyword, "tasks": tasks},
             ["Xem việc hôm nay", "Tìm từ khóa khác"],
         )
 
     if intent == "task.delete":
+        # This branch is reached only after HITL confirmation in the API.
+        deleted = storage.delete_task(user_id, clean_slots)
         return (
-            f"🛑 Công việc '{clean_slots.get('title', clean_slots.get('task_id', 'đã chọn'))}' đã sẵn sàng để xóa sau khi bạn xác nhận.",
-            {"delete_proposal": clean_slots},
-            ["Xác nhận xóa", "Hủy bỏ"],
+            f"🗑️ Đã xóa công việc '{clean_slots.get('title', clean_slots.get('task_id', 'đã chọn'))}'." if deleted else "Không tìm thấy công việc để xóa.",
+            {"deleted_task": deleted, "delete_proposal": clean_slots},
+            ["Xem việc hôm nay", "Tạo việc mới"],
         )
 
     # 2. Finance Domain Templates & Calculators
     if intent in {"finance.get_balance", "finance.balance.query"}:
-        return template_finance_balance()
+        summary = storage.summary(user_id)
+        return (
+            f"💰 Số dư khả dụng hiện tại: {format_currency(summary['balance'])}.",
+            {"summary": {key: float(value) for key, value in summary.items()}},
+            ["Ghi khoản chi", "Xem lịch sử giao dịch"],
+        )
 
     if intent == "finance.query_debt":
-        return template_finance_query_debt(clean_slots)
+        debts = storage.list_records("debts", user_id)
+        return (
+            f"🧾 Hiện có {len(debts)} khoản nợ trong sổ.",
+            {"debts": debts, "filter": clean_slots},
+            ["Ghi khoản nợ", "Xem số dư"],
+        )
 
     if intent == "finance.split_bill":
         return template_finance_split_bill(clean_slots)
 
     if intent == "finance.pay_bill":
-        return template_finance_pay_bill(clean_slots)
+        payment = storage.add_transaction(user_id, amount=slots.get("amount", 0), transaction_type="expense", description=str(clean_slots.get("bill_name", "hóa đơn")), category="Hóa đơn", account=str(clean_slots.get("account", "default_account")))
+        return (
+            f"✅ Đã ghi nhận thanh toán hóa đơn {format_currency(slots.get('amount', 0))}.",
+            {"bill_payment": payment},
+            ["Xem số dư", "Xem lịch sử giao dịch"],
+        )
 
     if intent in {"finance.add_expense", "finance.expense.create"}:
         amt = slots.get("amount", 0)
         note = slots.get("note") or slots.get("category", "chi tiêu")
         acc = slots.get("account", "Ví mặc định")
+        transaction = storage.add_transaction(user_id, amount=amt, transaction_type="expense", description=str(note), category=str(slots.get("category", "Khác")), account=str(acc))
         formatted_amt = format_currency(amt)
         msg = f"Đã ghi nhận khoản chi {formatted_amt} cho '{note}' (Nguồn: {acc})."
-        return msg, {"transaction_type": "expense", "recorded": clean_slots}, ["Xem số dư", "Ghi thêm khoản chi", "Lịch sử chi tiêu"]
+        return msg, {"transaction_type": "expense", "recorded": transaction}, ["Xem số dư", "Ghi thêm khoản chi", "Lịch sử chi tiêu"]
 
     if intent in {"finance.add_income", "finance.income.create"}:
         amt = slots.get("amount", 0)
         source = slots.get("source", "khoản thu")
+        transaction = storage.add_transaction(user_id, amount=amt, transaction_type="income", description=str(source), category="Thu nhập", account=str(slots.get("account", "default_account")))
         formatted_amt = format_currency(amt)
         msg = f"Đã ghi nhận khoản thu {formatted_amt} từ '{source}' vào tài khoản."
-        return msg, {"transaction_type": "income", "recorded": clean_slots}, ["Xem số dư", "Ghi thêm thu nhập", "Báo cáo tài chính"]
+        return msg, {"transaction_type": "income", "recorded": transaction}, ["Xem số dư", "Ghi thêm thu nhập", "Báo cáo tài chính"]
 
     if intent == "finance.transfer":
+        transfer = storage.add_transaction(user_id, amount=slots.get("amount", 0), transaction_type="transfer", description="Chuyển tiền", category="Chuyển khoản", account=str(clean_slots.get("to_account", "default_account")))
         return (
             f"💸 Đã chuẩn bị chuyển {format_currency(slots.get('amount', 0))} từ '{clean_slots.get('from_account', 'tài khoản nguồn')}' sang '{clean_slots.get('to_account', 'tài khoản đích')}'.",
-            {"transfer": clean_slots, "requires_confirmation": True},
+            {"transfer": transfer, "requires_confirmation": True},
             ["Xác nhận chuyển", "Hủy bỏ"],
         )
 
     if intent == "finance.record_debt":
+        debt = storage.add_record("debts", user_id, {**clean_slots, "amount": storage._money(slots.get("amount", 0)), "status": "open"})
         return (
             f"🧾 Đã ghi khoản nợ {format_currency(slots.get('amount', 0))} với '{clean_slots.get('person', 'người liên quan')}'.",
-            {"debt": clean_slots, "transaction_type": "debt"},
+            {"debt": debt, "transaction_type": "debt"},
             ["Xem sổ nợ", "Ghi khoản nợ khác"],
         )
 
     if intent == "finance.debt_repay":
+        repayment = storage.add_record("debts", user_id, {**clean_slots, "amount": storage._money(slots.get("amount", 0)), "status": "repaid"})
         return (
             f"✅ Đã ghi nhận khoản trả nợ {format_currency(slots.get('amount', 0))} cho '{clean_slots.get('person', 'người liên quan')}'.",
-            {"debt_repayment": clean_slots},
+            {"debt_repayment": repayment},
             ["Xem sổ nợ", "Ghi khoản trả khác"],
         )
 
     if intent == "finance.query_transactions":
+        transactions = storage.list_transactions(user_id, category=clean_slots.get("category"), keyword=clean_slots.get("keyword"))
         return (
-            f"📊 Đã lọc lịch sử giao dịch theo '{clean_slots.get('keyword', 'tất cả giao dịch')}'.",
-            {"filter": "transactions", "query": clean_slots, "transactions": []},
+            f"📊 Tìm thấy {len(transactions)} giao dịch.",
+            {"filter": "transactions", "query": clean_slots, "transactions": transactions},
             ["Xem số dư", "Lọc khoảng thời gian khác"],
         )
 
     if intent in {"finance.budget_plan", "finance.update_budget"}:
         action = "thiết lập" if intent == "finance.budget_plan" else "cập nhật"
+        budget = storage.add_record("budgets", user_id, {**clean_slots, "limit_amount": storage._money(slots.get("limit_amount", slots.get("amount", 0)))})
         return (
             f"📌 Đã {action} ngân sách {format_currency(slots.get('limit_amount', slots.get('amount', 0)))} cho '{clean_slots.get('category', 'tất cả danh mục')}'.",
-            {"budget": clean_slots, "requires_confirmation": True},
+            {"budget": budget, "requires_confirmation": True},
             ["Xem ngân sách", "Điều chỉnh ngân sách"],
         )
 
     if intent == "finance.savings_goal":
+        goal = storage.add_record("savings_goals", user_id, {**clean_slots, "target_amount": storage._money(slots.get("target_amount", slots.get("amount", 0))), "current_amount": "0"})
         return (
             f"🎯 Đã tạo mục tiêu tiết kiệm '{clean_slots.get('goal_name', 'mục tiêu mới')}' với đích {format_currency(slots.get('target_amount', slots.get('amount', 0)))}.",
-            {"savings_goal": clean_slots, "requires_confirmation": True},
+            {"savings_goal": goal, "requires_confirmation": True},
             ["Xem mục tiêu", "Tạo mục tiêu khác"],
         )
 
-    if intent == "finance.pay_bill":
-        return template_finance_pay_bill(clean_slots)
-
     if intent == "cross.bill_due_reminder":
+        reminder = storage.add_record("reminders", user_id, clean_slots)
         return (
             f"⏰ Đã tạo nhắc hạn '{clean_slots.get('bill_name', 'hóa đơn')}' vào {clean_slots.get('due_date', 'thời hạn đã nói')}.",
-            {"reminder": clean_slots},
+            {"reminder": reminder},
             ["Xem deadline", "Tạo nhắc khác"],
         )
 
@@ -551,7 +597,13 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, d
 
     # 3. System Domain Templates
     if intent == "system.greeting_summary":
-        return template_system_greeting_summary()
+        summary = storage.summary(user_id)
+        tasks = storage.list_tasks(user_id, status="pending")
+        return (
+            f"Xin chào! Số dư hiện tại là {format_currency(summary['balance'])}, bạn có {len(tasks)} việc đang chờ.",
+            {"summary": {key: float(value) for key, value in summary.items()}, "pending_tasks": tasks},
+            ["Xem việc hôm nay", "Xem số dư", "Báo cáo tài chính"],
+        )
 
     if intent == "system.help":
         return template_system_help()
@@ -562,9 +614,6 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, d
             {"undo": True, "requires_confirmation": True},
             ["Xác nhận hoàn tác", "Giữ nguyên"],
         )
-
-    if intent == "system.greeting_summary":
-        return template_system_greeting_summary()
 
     if intent == "cross.plan_expense_task":
         return (
@@ -777,21 +826,22 @@ def chat(request: ChatRequest):
 
     # 5. Reasoning Path (System 2: Ollama Local LLM)
     if route == "REASONING_PATH":
+        if active_intent == "finance.budget_plan":
+            storage.add_record("budgets", request.user_id, {**serializable_slots, "status": "pending_confirmation"})
+        elif active_intent == "cross.plan_expense_task":
+            storage.add_record("plans", request.user_id, {**serializable_slots, "status": "draft"})
+        summary = storage.summary(request.user_id)
+        pending_tasks = storage.list_tasks(request.user_id, status="pending")
+        debts = storage.list_records("debts", request.user_id)
         reasoning_context = {
             "intent": active_intent,
             "confidence": round(confidence, 4),
             "slots": serializable_slots,
-            "current_balance": 18450000,
-            "monthly_income": 20000000,
-            "monthly_expense": 11000000,
-            "pending_tasks": [
-                {"title": "Hoàn thiện tài liệu OnisAgent", "due": "11:30 hôm nay", "priority": "urgent"},
-                {"title": "Họp nhóm AI4Life", "due": "14:00 hôm nay", "priority": "high"},
-            ],
-            "debts": {
-                "others_owe_me": 700000,
-                "i_owe_others": 150000,
-            },
+            "current_balance": float(summary["balance"]),
+            "monthly_income": float(summary["income"]),
+            "monthly_expense": float(summary["expense"]),
+            "pending_tasks": pending_tasks,
+            "debts": debts,
         }
 
         custom_system_prompt = None
@@ -831,7 +881,7 @@ def chat(request: ChatRequest):
         )
 
     # Status is READY -> Execute deterministic action
-    reply_msg, reply_data, action_chips = execute_fast_path_action(action_res.intent, action_res.slots)
+    reply_msg, reply_data, action_chips = execute_fast_path_action(action_res.intent, action_res.slots, request.user_id)
 
     return ChatResponse(
         session_id=request.session_id,

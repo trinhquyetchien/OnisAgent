@@ -59,6 +59,7 @@ def template_task_create(slots: dict[str, Any]) -> tuple[str, dict[str, Any], li
     title = slots.get("title", "công việc mới")
     due_date = slots.get("due_date") or slots.get("deadline", "hôm nay")
     priority = slots.get("priority", "medium")
+    priority = getattr(priority, "value", priority)
     prio_labels = {"high": "Cao 🔴", "urgent": "Khẩn cấp 🔴", "medium": "Trung bình 🟡", "low": "Thấp 🟢"}
     prio_display = prio_labels.get(str(priority).lower(), str(priority))
 
