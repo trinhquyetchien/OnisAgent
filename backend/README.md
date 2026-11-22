@@ -14,11 +14,27 @@
 
 ## 📑 Mục Lục
 1. [Thiết Kế Hệ Thống Tổng Thể (System Architecture)](#1-thiết-kế-hệ-thống-tổng-thể-system-architecture)
-2. [Nguyên Tắc Kiến Trúc Cốt Lõi (ADR Matrix)](#2-nguyên-tắc-kiến-trúc-cốt-lõi-adr-matrix)
-3. [Bản Đặc Tả Toàn Bộ Intent & Slot Schema (Full Intent-Slot Matrix)](#3-bản-đặc-tả-toàn-bộ-intent--slot-schema-full-intent-slot-matrix)
-4. [Cơ Chế Hội Thoại Làm Rõ Đa Lượt (Multi-turn Clarification Dialog Flow)](#4-cơ-chế-hội-thoại-làm-rõ-đa-lượt-multi-turn-clarification-dialog-flow)
-5. [Cấu Trúc Thư Mục & Vai Trò Các Module (Folder Structure & Module Reference)](#5-cấu-trúc-thư-mục--vai-trò-các-module)
-6. [Hướng Dẫn Cài Đặt, Cấu Hình Môi Trường & Kiểm Thử](#6-hướng-dẫn-cài-đặt-cấu-hình-môi-trường--kiểm-thử)
+2. [Đặc Tả Luồng Hoạt Động End-to-End (6 Kịch Bản Chi Tiết)](#-đặc-tả-luồng-hoạt-động-end-to-end-toàn-diện)
+3. [Nguyên Tắc Kiến Trúc Cốt Lõi (ADR Matrix)](#2-nguyên-tắc-kiến-trúc-cốt-lõi-adr-matrix)
+4. [Bản Đặc Tả Toàn Bộ Intent & Slot Schema (Full Intent-Slot Matrix)](#3-bản-đặc-tả-toàn-bộ-intent--slot-schema-full-intent-slot-matrix)
+5. [Cơ Chế Hội Thoại Làm Rõ Đa Lượt (Multi-turn Clarification Dialog Flow)](#4-cơ-chế-hội-thoại-làm-rõ-đa-lượt-multi-turn-clarification-dialog-flow)
+6. [Cấu Trúc Thư Mục & Vai Trò Các Module (Folder Structure & Module Reference)](#5-cấu-trúc-thư-mục--vai-trò-các-module)
+7. [Hướng Dẫn Cài Đặt, Cấu Hình Môi Trường & Kiểm Thử](#6-hướng-dẫn-cài-đặt-cấu-hình-môi-trường--kiểm-thử)
+
+---
+
+### 🚀 Đặc Tả Luồng Hoạt Động End-to-End Toàn Diện
+> Chi tiết tài liệu kiến trúc 5 tầng và 6 kịch bản hoạt động end-to-end (kèm sơ đồ Mermaid Sequence chi tiết):  
+> 👉 Xem tại: **[backend/docs/end_to_end_flow.md](file:///home/trinhquyetchien/Projects/Main/Team/OnisAgent/backend/docs/end_to_end_flow.md)**  
+> Bao quát:
+> - **Kịch bản 1:** Fast Path hoàn chỉnh (~6-10ms, 0 Token).
+> - **Kịch bản 2:** Hội thoại làm rõ đa lượt (Multi-turn Clarification Flow).
+> - **Kịch bản 3:** Chốt an toàn Human-in-the-Loop (HITL Safety Gate).
+> - **Kịch bản 4:** Reasoning Path (Phân tích chuyên sâu qua Ollama Local LLM `qwen2.5:3b`).
+> - **Kịch bản 5:** Giao thoa tiền & việc (Cross-Domain: Dự định đi đâu gắn ngân sách).
+> - **Kịch bản 6:** Xử lý ngoại lệ & dự phòng (Graceful Fallback & Recovery).
+
+---
 
 ---
 
@@ -108,16 +124,18 @@ Hệ thống tuân thủ nghiêm ngặt 6 quyết định kiến trúc chuẩn h
 ## 3. Bản Đặc Tả Toàn Bộ Intent & Slot Schema (Full Intent-Slot Matrix)
 
 Toàn bộ các Schema được định nghĩa bằng **Pydantic V2** với cơ chế xác thực trường kiểu dữ liệu nghiêm ngặt.
+👉 *Xem tài liệu đặc tả đầy đủ kèm 100+ mẫu câu tiếng Việt tại: [docs/intent_catalog.md](docs/intent_catalog.md)*.
 
 ### 💰 3.1. Miền Tài Chính (Finance Domain – Tiền tố `finance.*`)
 
 | Tên Intent | Mô tả nghiệp vụ | Trường BẮT BUỘC (Required) | Trường TÙY CHỌN (Optional) & Fallback | Trạng thái / Chốt kiểm duyệt |
 | :--- | :--- | :--- | :--- | :--- |
-| **`finance.expense.create`** | Ghi nhận một khoản chi tiêu mới | • `amount`: `Decimal` (> 0)<br>• Phải có ít nhất `category` hoặc `note` | • `account`: fallback `"default_account"`<br>• `date`: fallback `datetime.now()`<br>• `payment_method`: `None` | `READY` khi đủ slot.<br>Nếu thiếu `amount` $\rightarrow$ `NEED_CLARIFICATION`. |
-| **`finance.income.create`** | Ghi nhận khoản thu nhập mới | • `amount`: `Decimal` (> 0) | • `source`: fallback `"Thu nhập khác"`<br>• `account`: fallback `"default_account"`<br>• `date`: fallback `datetime.now()` | `READY` khi đủ slot.<br>Nếu thiếu `amount` $\rightarrow$ `NEED_CLARIFICATION`. |
-| **`finance.balance.query`** | Tra cứu số dư ví hoặc tổng tài sản | *Không có* | • `account`: fallback `"all"` (tra cứu toàn bộ ví nếu không chỉ định) | `READY` (thực thi ngay lập tức qua Fast Path). |
-| **`finance.loan.calculate`**| Tính toán bảng khấu hao trả góp khoản vay | • `principal`: `Decimal` (> 0)<br>• `term_months`: `int` (> 0)<br>• `annual_rate`: `Decimal` (> 0, tự chuẩn hóa `%`) | • `method`: fallback `"reducing_balance"` (dư nợ giảm dần)<br>• `purpose`: `None` | `READY` sau khi tính bằng `Decimal`.<br>Kích hoạt **HITL Gate 1** nếu người dùng muốn lưu vào lịch trình nợ. |
-| **`finance.savings.create`**| Khởi tạo mục tiêu / quỹ tiết kiệm | • `goal_name`: `str`<br>• `target_amount`: `Decimal` (> 0) | • `deadline`: `None` (không giới hạn)<br>• `monthly_contribution`: `None` | `READY` $\rightarrow$ Kích hoạt **HITL Gate 1** xác nhận trước khi cam kết quỹ vào DynamoDB. |
+| **`finance.get_balance`** / `finance.balance.query` | Tra cứu số dư ví hoặc tổng tài sản | *Không có* | • `account`: fallback `"all"`<br>• `period`: fallback `"current"` | `READY` (Fast Path ~5-12ms). |
+| **`finance.add_expense`** / `finance.expense.create` | Ghi nhận một khoản chi tiêu mới | • `amount`: `Decimal` (> 0)<br>• Phải có ít nhất `category` hoặc `note` | • `account`: fallback `"default_account"`<br>• `date`: fallback `datetime.now()`<br>• `payment_method`: `None` | `READY` khi đủ slot. Thiếu `amount` $\rightarrow$ `NEED_CLARIFICATION` (HITL Gate 2). |
+| **`finance.add_income`** / `finance.income.create` | Ghi nhận khoản thu nhập mới | • `amount`: `Decimal` (> 0) | • `source`: fallback `"Thu nhập khác"`<br>• `account`: fallback `"default_account"`<br>• `date`: fallback `datetime.now()` | `READY` khi đủ slot. Thiếu `amount` $\rightarrow$ `NEED_CLARIFICATION`. |
+| **`finance.budget_plan`** | Kế hoạch chi tiêu / Ngân sách tháng/tuần | • `limit_amount`: `Decimal` (> 0) | • `category`: fallback `"all"`<br>• `period`: fallback `"this_month"` | Reasoning Path (Bedrock) · **HITL Gate 1**. |
+| **`finance.loan_installment_plan`** / `finance.loan.calculate` | Bảng trả góp khoản vay (dư nợ giảm dần) | • `principal`: `Decimal` (> 0)<br>• `term_months`: `int` (> 0)<br>• `annual_rate`: `Decimal` (> 0) | • `method`: fallback `"reducing_balance"`<br>• `purpose`: `None` | `READY` sau tính toán `Decimal` · **HITL Gate 1**. |
+| **`finance.savings_goal`** / `finance.savings.create` | Khởi tạo mục tiêu / quỹ tiết kiệm | • `goal_name`: `str`<br>• `target_amount`: `Decimal` (> 0) | • `deadline`: `None`<br>• `monthly_contribution`: `None` | `READY` · **HITL Gate 1**. |
 | **`finance.analysis.escalate`** | Phân tích sâu xu hướng dòng tiền & tư vấn | • `query`: `str` | • `period`: fallback `"tháng hiện tại"` | Chuyển tiếp sang `Reasoning Path` (`FinancialAdvisoryAgent`). |
 
 ---
@@ -126,11 +144,13 @@ Toàn bộ các Schema được định nghĩa bằng **Pydantic V2** với cơ 
 
 | Tên Intent | Mô tả nghiệp vụ | Trường BẮT BUỘC (Required) | Trường TÙY CHỌN (Optional) & Fallback | Trạng thái / Chốt kiểm duyệt |
 | :--- | :--- | :--- | :--- | :--- |
-| **`task.create`** | Khởi tạo công việc / lời nhắc | • `title`: `str` (không được rỗng) | • `deadline`: `None`<br>• `priority`: fallback `TaskPriority.MEDIUM`<br>• `category`: fallback `"Chung"`<br>• `reminder`: fallback `False` | `READY` khi có `title`.<br>Nếu thiếu `title` $\rightarrow$ `NEED_CLARIFICATION`. |
-| **`task.complete`** | Đánh dấu hoàn thành công việc | • Phải có ít nhất `title` hoặc `task_id` | • `completion_date`: fallback `datetime.now()` | `READY` khi xác định được danh tính công việc. |
-| **`task.query`** | Tra cứu danh sách công việc | *Không có* | • `time_range`: fallback `"today"`<br>• `status`: fallback `"pending"`<br>• `priority`: `None` | `READY` (lọc tự động task hôm nay chưa hoàn tất). |
-| **`task.delete`** | Xóa hoặc hủy bỏ công việc | • Phải có ít nhất `title` hoặc `task_id` | *Không có* | **`BLOCKED`** – Luôn kích hoạt **HITL Gate 3** yêu cầu xác nhận trực tiếp từ người dùng. |
-| **`task.plan.escalate`** | Lập kế hoạch ngày/tuần, ma trận ưu tiên | • `time_frame`: `str` | • `focus_goal`: `None` | Chuyển tiếp sang `Reasoning Path` (`TaskManagerAgent`). |
+| **`task.create`** | Khởi tạo công việc / lời nhắc | • `title`: `str` (không được rỗng) | • `deadline`: `None`<br>• `priority`: fallback `TaskPriority.MEDIUM`<br>• `category`: fallback `"Chung"`<br>• `reminder`: fallback `False` | `READY` khi có `title`. Thiếu `title` $\rightarrow$ `NEED_CLARIFICATION`. |
+| **`task.query_today`** / `task.query` | Danh sách việc hôm nay / Kế hoạch ngày | *Không có* | • `date_filter`: fallback `"today"`<br>• `status`: fallback `"pending"` | `READY` (Fast Path). |
+| **`task.query_deadline`** | Cảnh báo / Tra cứu hạn chót deadline gấp | *Không có* | • `time_range`: fallback `"upcoming_48h"`<br>• `urgency_only`: fallback `False` | `READY` (Đếm ngược thời gian). |
+| **`task.schedule_event`** | Lên lịch hẹn / Sự kiện | • `title`: `str`<br>• `start_time`: `datetime` | • `location`: `None`<br>• `participants`: `[]` | `READY` khi đủ giờ và tên sự kiện. |
+| **`task.plan_schedule`** / `task.plan.escalate` | Lập kế hoạch ngày/tuần, ma trận ưu tiên | • `time_frame`: `str` | • `focus_goal`: `None` | Chuyển tiếp sang `Reasoning Path` (`TaskManagerAgent`). |
+| **`task.complete`** | Đánh dấu hoàn thành công việc | • Phải có ít nhất `title` hoặc `task_id` | • `completion_date`: fallback `datetime.now()` | `READY` khi xác định được việc. |
+| **`task.delete`** | Xóa hoặc hủy bỏ công việc | • Phải có ít nhất `title` hoặc `task_id` | *Không có* | **`BLOCKED`** – **HITL Gate 3** (Bắt buộc xác nhận trực tiếp). |
 
 ---
 

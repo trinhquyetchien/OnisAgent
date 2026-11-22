@@ -58,9 +58,15 @@ class SavingsCreateSlot(BaseModel):
     monthly_contribution: Decimal | None = Field(default=None, gt=0, description="Đóng góp hàng tháng dự kiến")
 
 
+class DebtQuerySlot(BaseModel):
+    debt_type: str = Field(default="all", description="Loại nợ cần tra cứu: 'borrow' (tôi nợ người khác), 'lend' (người khác nợ tôi), 'all' (tất cả)")
+    person: str | None = Field(default=None, description="Tên người cần tra cứu khoản nợ cụ thể")
+
+
 # Backwards compatibility aliases
 ExpenseCreateSchema = ExpenseCreateSlot
 IncomeCreateSchema = IncomeCreateSlot
 BalanceQuerySchema = BalanceQuerySlot
 LoanCalculateSchema = LoanCalculateSlot
 SavingsCreateSchema = SavingsCreateSlot
+DebtQuerySchema = DebtQuerySlot

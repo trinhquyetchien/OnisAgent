@@ -154,13 +154,67 @@ class ChatMessage {
   final DateTime time;
   final String? fastPathTag;
   final HitlActionProposal? hitlProposal;
+  final String? pathBadge;
+  final String? intentTag;
+  final double? confidence;
+  final double? latencyMs;
+  final List<String> quickReplies;
+  final String? status;
 
   ChatMessage({
-    required this.id,
+    String? id,
     required this.text,
     required this.isUser,
     required this.time,
     this.fastPathTag,
     this.hitlProposal,
+    this.pathBadge,
+    this.intentTag,
+    this.confidence,
+    this.latencyMs,
+    List<String>? quickReplies,
+    List<String>? quickChips,
+    this.status,
+  })  : id = id ?? 'msg_${DateTime.now().millisecondsSinceEpoch}',
+        quickReplies = quickReplies ?? quickChips ?? const [];
+
+  List<String> get quickChips => quickReplies;
+
+  String? get effectivePathBadge => pathBadge ?? fastPathTag;
+}
+
+class LoanScheduleItem {
+  final int month;
+  final double payment;
+  final double principal;
+  final double interest;
+  final double remainingBalance;
+
+  LoanScheduleItem({
+    required this.month,
+    required this.payment,
+    required this.principal,
+    required this.interest,
+    required this.remainingBalance,
+  });
+}
+
+class LoanCalculationResult {
+  final double principal;
+  final double annualRatePercent;
+  final int months;
+  final double monthlyPayment;
+  final double totalPayment;
+  final double totalInterest;
+  final List<LoanScheduleItem> schedule;
+
+  LoanCalculationResult({
+    required this.principal,
+    required this.annualRatePercent,
+    required this.months,
+    required this.monthlyPayment,
+    required this.totalPayment,
+    required this.totalInterest,
+    required this.schedule,
   });
 }

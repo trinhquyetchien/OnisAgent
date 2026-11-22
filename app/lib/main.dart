@@ -296,7 +296,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     ],
                   ),
                 ),
-                Expanded(child: pages[_selectedIndex]),
+                Expanded(
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: pages,
+                  ),
+                ),
               ],
             ),
           );
@@ -356,7 +361,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 const SizedBox(width: 4),
               ],
             ),
-            body: pages[_selectedIndex],
+            body: IndexedStack(
+              index: _selectedIndex,
+              children: pages,
+            ),
             bottomNavigationBar: Container(
               decoration: BoxDecoration(
                 border: Border(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import '../services/mock_data_service.dart';
+import '../services/api_service.dart';
 import '../models/models.dart';
 
 class AssistantScreen extends StatefulWidget {
@@ -11,10 +12,16 @@ class AssistantScreen extends StatefulWidget {
   State<AssistantScreen> createState() => _AssistantScreenState();
 }
 
-class _AssistantScreenState extends State<AssistantScreen> {
+class _AssistantScreenState extends State<AssistantScreen>
+    with AutomaticKeepAliveClientMixin {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  late final ApiService _apiService;
+  bool _isLoading = false;
   bool _isListeningVoice = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   final List<String> _quickPrompts = [
     'Ghi chi cà phê 35k',
@@ -23,41 +30,50 @@ class _AssistantScreenState extends State<AssistantScreen> {
     'Xem tổng chi tiêu tháng này',
   ];
 
-  void _sendMessage([String? customText]) {
-    final text = customText ?? _controller.text.trim();
+  @override
+  void initState() {
+    super.initState();
+    _apiService = ApiService();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _sendMessage([String? overrideText]) async {
+    final text = (overrideText ?? _controller.text).trim();
     if (text.isEmpty) return;
 
     final dataService = MockDataService();
     final userMsg = ChatMessage(
-      id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
       text: text,
       isUser: true,
       time: DateTime.now(),
     );
 
     dataService.addChatMessage(userMsg);
-    if (customText == null) _controller.clear();
+    if (overrideText == null) {
+      _controller.clear();
+    }
+    setState(() {
+      _isLoading = true;
+    });
     _scrollToBottom();
 
-    // Simulate Dual-Path Router (Fast Path vs Reasoning Path vs HITL)
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (!mounted) return;
-      _processBotResponse(text, dataService);
-    });
-  }
-
-  void _processBotResponse(String text, MockDataService dataService) {
     final lower = text.toLowerCase();
-
     if (lower.contains('quỹ laptop') ||
         (lower.contains('trích') && lower.contains('tiết kiệm'))) {
-      // Human-in-the-Loop Workflow (ADR-0004)
+      await Future.delayed(const Duration(milliseconds: 350));
+      if (!mounted) return;
       final hitlMsg = ChatMessage(
-        id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
         text:
             'OnisAgent đã nhận lệnh trích tiền. Theo chốt kiểm soát an toàn Human-in-the-Loop (ADR-0004), xin vui lòng xác nhận trước khi thực hiện:',
         isUser: false,
         time: DateTime.now(),
+        pathBadge: 'Reasoning Path • HITL Gate',
         fastPathTag: 'Reasoning Path • HITL Gate',
         hitlProposal: HitlActionProposal(
           id: 'hitl_${DateTime.now().millisecondsSinceEpoch}',
@@ -71,41 +87,132 @@ class _AssistantScreenState extends State<AssistantScreen> {
         ),
       );
       dataService.addChatMessage(hitlMsg);
-    } else if (lower.contains('cà phê') ||
-        lower.contains('chi') ||
-        lower.contains('ăn') ||
-        lower.contains('mua')) {
-      // Fast Path - Cash Flow Transaction (~5-12ms, 0 Token)
-      double amount = 35000;
-      if (lower.contains('35k') || lower.contains('35.000')) amount = 35000;
-      if (lower.contains('45k') || lower.contains('45.000')) amount = 45000;
+      setState(() => _isLoading = false);
+      _scrollToBottom();
+      return;
+    }
 
+    try {
+      final response = await _apiService.sendMessage(text: text);
+      if (!mounted) return;
+
+      if (response.status == 'READY') {
+        _syncLocalDashboard(response, text, dataService);
+      }
+
+      final botMsg = ChatMessage(
+        text: response.reply,
+        isUser: false,
+        time: DateTime.now(),
+        pathBadge: response.path,
+        fastPathTag: response.path,
+        intentTag: response.intent,
+        confidence: response.confidence,
+        latencyMs: response.latencyMs,
+        quickReplies: response.quickReplies,
+        status: response.status,
+      );
+      dataService.addChatMessage(botMsg);
+    } catch (e) {
+      if (!mounted) return;
+      _handleOfflineFallback(text, dataService);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _scrollToBottom();
+      }
+    }
+  }
+
+  void _syncLocalDashboard(
+    ChatApiResponse response,
+    String originalText,
+    MockDataService dataService,
+  ) {
+    if (response.intent.startsWith('finance.add_expense') ||
+        response.intent.startsWith('finance.expense.create')) {
+      final amount =
+          double.tryParse(response.slots['amount']?.toString() ?? '45000') ??
+          45000;
+      dataService.addTransaction(
+        TransactionItem(
+          id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
+          description:
+              response.slots['note']?.toString() ??
+              response.slots['category']?.toString() ??
+              originalText,
+          amount: amount,
+          type: 'expense',
+          category: response.slots['category']?.toString() ?? 'Ăn uống',
+          date: DateTime.now(),
+        ),
+      );
+    } else if (response.intent.startsWith('finance.add_income') ||
+        response.intent.startsWith('finance.income.create')) {
+      final amount =
+          double.tryParse(response.slots['amount']?.toString() ?? '1000000') ??
+          1000000;
+      dataService.addTransaction(
+        TransactionItem(
+          id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
+          description: response.slots['source']?.toString() ?? originalText,
+          amount: amount,
+          type: 'income',
+          category: 'Thu nhập khác',
+          date: DateTime.now(),
+        ),
+      );
+    } else if (response.intent.startsWith('task.create')) {
+      dataService.addTask(
+        TaskItem(
+          id: 't_${DateTime.now().millisecondsSinceEpoch}',
+          title: response.slots['title']?.toString() ?? originalText,
+          deadline: DateTime.now().add(const Duration(hours: 12)),
+          priority: Priority.high,
+          category: 'Kỹ thuật',
+          isImportant: true,
+        ),
+      );
+    }
+  }
+
+  void _handleOfflineFallback(String text, MockDataService dataService) {
+    final lower = text.toLowerCase();
+    String reply;
+    String badge = 'Fast Path (~6ms) • Offline Fallback';
+    String intent = 'finance.add_expense';
+    double confidence = 0.88;
+    List<String> replies = [];
+
+    if (lower.contains('cà phê') ||
+        lower.contains('ăn') ||
+        lower.contains('phở') ||
+        lower.contains('chi')) {
+      double amount = 35000;
+      if (lower.contains('45k') || lower.contains('45.000')) amount = 45000;
+      if (lower.contains('35k') || lower.contains('35.000')) amount = 35000;
       dataService.addTransaction(
         TransactionItem(
           id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
           description: text,
           amount: amount,
           type: 'expense',
-          category: lower.contains('cà phê') || lower.contains('ăn')
+          category:
+              lower.contains('cà phê') ||
+                  lower.contains('ăn') ||
+                  lower.contains('phở')
               ? 'Ăn uống'
               : 'Mua sắm',
           date: DateTime.now(),
         ),
       );
-
-      final reply = ChatMessage(
-        id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-        text:
-            'Đã ghi nhận khoản chi: "$text" - ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(amount)} vào sổ quỹ. Số dư đã cập nhật tức thì với Python Decimal.',
-        isUser: false,
-        time: DateTime.now(),
-        fastPathTag: 'Fast Path (~6ms) • 0 Token',
-      );
-      dataService.addChatMessage(reply);
+      reply =
+          'Đã ghi nhận khoản chi: "$text" - ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(amount)} vào sổ quỹ. Số dư đã cập nhật tức thì với Python Decimal.';
     } else if (lower.contains('task') ||
         lower.contains('việc') ||
+        lower.contains('nhắc') ||
         lower.contains('kiểm tra')) {
-      // Fast Path - Create Task
+      intent = 'task.create';
       dataService.addTask(
         TaskItem(
           id: 't_${DateTime.now().millisecondsSinceEpoch}',
@@ -116,30 +223,33 @@ class _AssistantScreenState extends State<AssistantScreen> {
           isImportant: true,
         ),
       );
-
-      final reply = ChatMessage(
-        id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-        text:
-            'Đã thêm công việc: "$text" vào danh sách việc cần làm (Hạn chót đặt mặc định trong 12h tới).',
-        isUser: false,
-        time: DateTime.now(),
-        fastPathTag: 'Fast Path (~8ms) • 0 Token',
-      );
-      dataService.addChatMessage(reply);
+      reply =
+          'Đã tạo công việc mới: "$text" vào danh sách việc cần làm (Hạn chót đặt mặc định trong 12h tới).';
+    } else if (lower.contains('mua đồ')) {
+      intent = 'finance.add_expense';
+      reply = 'Bạn đã chi bao nhiêu tiền cho khoản mua sắm này vậy?';
+      replies = ['30.000₫', '50.000₫', '100.000₫', '200.000₫'];
     } else {
-      // Reasoning Path - Bedrock / Ollama
-      final reply = ChatMessage(
-        id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-        text:
-            'Phân tích tổng thể OnisAgent: Bạn hiện có ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(dataService.balance)} số dư khả dụng, tỉ lệ chi tiêu tháng đạt ${(dataService.totalExpense / (dataService.totalIncome > 0 ? dataService.totalIncome : 1) * 100).toInt()}% ngân sách thu. Kế hoạch tài chính đang ở mức an toàn.',
-        isUser: false,
-        time: DateTime.now(),
-        fastPathTag: 'Reasoning Path • Bedrock Swarm',
-      );
-      dataService.addChatMessage(reply);
+      badge = 'Reasoning Path • Bedrock Swarm';
+      intent = 'finance.financial_report';
+      confidence = 0.75;
+      reply =
+          'Phân tích tổng thể OnisAgent: Bạn hiện có ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(dataService.balance)} số dư khả dụng, tỉ lệ chi tiêu tháng đạt ${(dataService.totalExpense / (dataService.totalIncome > 0 ? dataService.totalIncome : 1) * 100).toInt()}% ngân sách thu. Kế hoạch tài chính đang ở mức an toàn.';
     }
 
-    _scrollToBottom();
+    dataService.addChatMessage(
+      ChatMessage(
+        text: reply,
+        isUser: false,
+        time: DateTime.now(),
+        pathBadge: badge,
+        fastPathTag: badge,
+        intentTag: intent,
+        confidence: confidence,
+        latencyMs: 7.2,
+        quickReplies: replies,
+      ),
+    );
   }
 
   void _scrollToBottom() {
@@ -241,6 +351,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final dataService = MockDataService();
@@ -352,6 +463,33 @@ class _AssistantScreenState extends State<AssistantScreen> {
           ),
         ),
 
+        // Loading indicator
+        if (_isLoading)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Kev Fast Path đang phản xạ (~6ms)...',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
         // Bottom Input Bar
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -420,34 +558,133 @@ class _AssistantScreenState extends State<AssistantScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isUser = msg.isUser;
+    final badgeText = msg.effectivePathBadge;
+    final isFastPath = badgeText?.contains('Fast Path') ?? true;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
-        crossAxisAlignment: isUser
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
+        crossAxisAlignment:
+            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           // Routing / System Tag Pill
-          if (!isUser && msg.fastPathTag != null)
-            Container(
-              margin: const EdgeInsets.only(bottom: 6, left: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF334155)
-                    : const Color(0xFFEEF2FF),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                msg.fastPathTag!,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
+          if (!isUser && (badgeText != null || msg.intentTag != null)) ...[
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (badgeText != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 4, left: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isFastPath
+                          ? (isDark
+                                ? const Color(0xFF10B981).withAlpha(35)
+                                : const Color(0xFFD1FAE5))
+                          : (isDark
+                                ? const Color(0xFF8B5CF6).withAlpha(35)
+                                : const Color(0xFFEDE9FE)),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isFastPath
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF8B5CF6),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isFastPath
+                              ? Icons.bolt_rounded
+                              : Icons.psychology_rounded,
+                          size: 13,
+                          color: isFastPath
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF8B5CF6),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          msg.latencyMs != null
+                              ? '$badgeText (${msg.latencyMs!.toStringAsFixed(1)}ms)'
+                              : badgeText,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isFastPath
+                                ? (isDark
+                                      ? const Color(0xFF34D399)
+                                      : const Color(0xFF065F46))
+                                : (isDark
+                                      ? const Color(0xFFA78BFA)
+                                      : const Color(0xFF5B21B6)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                if (msg.intentTag != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF1E293B)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.colorScheme.outline,
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      msg.confidence != null
+                          ? '${msg.intentTag} • ${(msg.confidence! * 100).toStringAsFixed(0)}%'
+                          : msg.intentTag!,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF475569),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+
+                if (msg.status == 'NEED_CLARIFICATION')
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withAlpha(isDark ? 40 : 25),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.warning, width: 0.8),
+                    ),
+                    child: const Text(
+                      'Cần làm rõ',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
             ),
+          ],
 
           // Text Bubble
           Container(
@@ -482,6 +719,46 @@ class _AssistantScreenState extends State<AssistantScreen> {
               ),
             ),
           ),
+
+          // Quick Replies
+          if (!isUser && msg.quickReplies.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: msg.quickReplies.map((replyText) {
+                return ActionChip(
+                  avatar: const Icon(
+                    Icons.touch_app_rounded,
+                    size: 13,
+                    color: AppColors.primary,
+                  ),
+                  label: Text(
+                    replyText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? const Color(0xFFCBD5E1)
+                          : const Color(0xFF334155),
+                    ),
+                  ),
+                  backgroundColor: isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFEEF2FF),
+                  side: BorderSide(
+                    color: isDark
+                        ? const Color(0xFF3B82F6)
+                        : const Color(0xFF818CF8),
+                    width: 0.8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  onPressed: () => _sendMessage(replyText),
+                );
+              }).toList(),
+            ),
+          ],
 
           // HITL Proposal Interactive Card
           if (msg.hitlProposal != null) ...[
@@ -550,20 +827,38 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 size: 18,
                 color: isPending
                     ? AppColors.warning
-                    : (isApproved
-                          ? AppColors.accent
-                          : (isDark
-                                ? const Color(0xFF94A3B8)
-                                : const Color(0xFF64748B))),
+                    : (isApproved ? AppColors.accent : AppColors.expense),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   proposal.title,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: isDark ? Colors.white : const Color(0xFF78350F),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isPending
+                      ? AppColors.warning.withAlpha(isDark ? 40 : 25)
+                      : (isApproved
+                            ? AppColors.accent.withAlpha(isDark ? 40 : 25)
+                            : AppColors.expense.withAlpha(isDark ? 40 : 25)),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  isPending
+                      ? 'Chờ duyệt'
+                      : (isApproved ? 'Đã duyệt' : 'Từ chối'),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isPending
+                        ? AppColors.warning
+                        : (isApproved ? AppColors.accent : AppColors.expense),
                   ),
                 ),
               ),
@@ -574,78 +869,58 @@ class _AssistantScreenState extends State<AssistantScreen> {
             proposal.details,
             style: TextStyle(
               fontSize: 12,
-              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF451A03),
-              height: 1.3,
+              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
             ),
           ),
-          const SizedBox(height: 12),
-          if (isPending)
+          if (proposal.amount != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              NumberFormat.currency(
+                locale: 'vi_VN',
+                symbol: '₫',
+                decimalDigits: 0,
+              ).format(proposal.amount),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.warning,
+              ),
+            ),
+          ],
+          if (isPending) ...[
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    side: BorderSide(
-                      color: isDark
-                          ? const Color(0xFF64748B)
-                          : const Color(0xFFCBD5E1),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
                   onPressed: () => service.rejectHitlProposal(proposal.id),
-                  child: Text(
-                    'Hủy bỏ',
-                    style: TextStyle(
-                      color: isDark
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFF64748B),
-                      fontSize: 12,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.expense,
+                    side: const BorderSide(color: AppColors.expense),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
                     ),
+                    visualDensity: VisualDensity.compact,
                   ),
+                  child: const Text('Từ chối'),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: AppColors.accent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
                   onPressed: () => service.approveHitlProposal(proposal.id),
-                  child: const Text(
-                    'Xác nhận thực hiện',
-                    style: TextStyle(fontSize: 12),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
+                    visualDensity: VisualDensity.compact,
                   ),
+                  child: const Text('Phê duyệt'),
                 ),
               ],
-            )
-          else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: (isApproved ? AppColors.accent : const Color(0xFF64748B))
-                    .withAlpha(25),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                isApproved
-                    ? '✅ Đã được phê duyệt & Thực thi'
-                    : '❌ Đã từ chối thực hiện',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: isApproved
-                      ? AppColors.accent
-                      : (isDark
-                            ? const Color(0xFF94A3B8)
-                            : const Color(0xFF64748B)),
-                ),
-              ),
             ),
+          ],
         ],
       ),
     );

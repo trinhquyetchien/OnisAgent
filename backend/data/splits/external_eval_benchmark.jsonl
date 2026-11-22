@@ -1,0 +1,185 @@
+{"input": "Vừa đặt ShopeeFood ly trà sữa ô long nướng 42k", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "đồ uống", "amount": 42000, "merchant": "ShopeeFood"}}}
+{"input": "GrabBike từ nhà sang cơ quan hết 38 ngàn", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "di chuyển", "amount": 38000, "merchant": "Grab"}}}
+{"input": "Ăn trưa cơm sườn bì chả 45k trả bằng tiền mặt", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "ăn uống", "amount": 45000}}}
+{"input": "Tối qua đi nhậu bia hơi với anh em hết 380 cành", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "ăn uống", "amount": 380000}}}
+{"input": "Mua áo thun trên Shopee săn sale 129k", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "mua sắm", "amount": 129000, "merchant": "Shopee"}}}
+{"input": "Gửi xe ở bãi xe công viên hết 5k", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "di chuyển", "amount": 5000}}}
+{"input": "Đi siêu thị Co.opmart mua đồ tươi sống hết 420 nghìn", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "ăn uống", "amount": 420000, "merchant": "Coopmart"}}}
+{"input": "Thanh toán tiền mua sách Tiki 215k qua thẻ", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "giáo dục", "amount": 215000, "merchant": "Tiki"}}}
+{"input": "Uống ly sinh tố bơ 35k ở quán quen", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "đồ uống", "amount": 35000}}}
+{"input": "Sửa dây sạc laptop hết 80 ngàn", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "mua sắm", "amount": 80000}}}
+{"input": "Mua thuốc ho với kháng sinh ở tiệm thuốc 75k", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "sức khỏe", "amount": 75000}}}
+{"input": "Đổ xăng xe máy đầy bình hết 70 ngàn cây xăng Petrolimex", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "di chuyển", "amount": 70000}}}
+{"input": "Cắt tóc nam hết 80k tiền mặt", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "cá nhân", "amount": 80000}}}
+{"input": "Vừa nạp gói 4G Viettel 90k dùng 1 tháng", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "hóa đơn", "amount": 90000}}}
+{"input": "Mua bao thuốc với kẹo cao su ở tiệm tạp hóa 35k", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "mua sắm", "amount": 35000}}}
+{"input": "Ăn tối bún đậu mắm tôm thập cẩm 65k", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "ăn uống", "amount": 65000}}}
+{"input": "Vé gửi xe qua đêm ở bến xe 20 nghìn", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "di chuyển", "amount": 20000}}}
+{"input": "Mua trà đào cam sả 50k qua Baemin", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "đồ uống", "amount": 50000}}}
+{"input": "Chi 150k mua cây cảnh để bàn làm việc", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "mua sắm", "amount": 150000}}}
+{"input": "Ăn bánh tráng trộn với trà tắc 30k", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "ăn uống", "amount": 30000}}}
+{"input": "Vừa mua bàn phím cơ cũ 450k", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "mua sắm", "amount": 450000}}}
+{"input": "Trả tiền rửa xe máy 25 ngàn", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "di chuyển", "amount": 25000}}}
+{"input": "Mua hộp khẩu trang y tế 40k", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "sức khỏe", "amount": 40000}}}
+{"input": "Gọi beCar đi sân bay hết 185k", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "di chuyển", "amount": 185000}}}
+{"input": "Ăn lẩu tokbokki buffet 139k", "target": {"intent": "finance.add_expense", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "ăn uống", "amount": 139000}}}
+{"input": "Tài khoản VCB vừa cộng 21 triệu 500 tiền lương công ty", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "lương", "amount": 21500000, "account": "Vietcombank"}}}
+{"input": "Khách chuyển cọc thiết kế banner 1 củ 2", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "freelance", "amount": 1200000}}}
+{"input": "Bán được cái điện thoại cũ qua Chợ Tốt 3 triệu", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "bán đồ cũ", "amount": 3000000}}}
+{"input": "Vừa nhận tiền dạy gia sư tiếng Anh 1tr8", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "lương", "amount": 1800000}}}
+{"input": "Mẹ bắn cho 2 củ rưỡi trả tiền nhà trọ", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "gia đình", "amount": 2500000}}}
+{"input": "Tiền hoàn thuế thu nhập cá nhân về 850k", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "thưởng", "amount": 850000}}}
+{"input": "Công ty thưởng đạt KPI tháng 5 củ", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "thưởng", "amount": 5000000}}}
+{"input": "Được bạn gửi trả lại tiền vay 500k", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "thu nợ", "amount": 500000}}}
+{"input": "Thu tiền hoa hồng bán hàng shopee affiliate 1tr2", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "affiliate", "amount": 1200000}}}
+{"input": "Trúng thưởng minigame được voucher tiền mặt 300k", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "thưởng", "amount": 300000}}}
+{"input": "Khách hàng thanh toán hợp đồng giai đoạn 1 là 15 triệu", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "hợp đồng", "amount": 15000000}}}
+{"input": "Bố gửi cho 1 củ ăn uống bồi bổ", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "gia đình", "amount": 1000000}}}
+{"input": "Tiền lãi gửi tiết kiệm online ngân hàng về 450k", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "lãi", "amount": 450000}}}
+{"input": "Vừa bán cặp vé xem ca nhạc lãi 600k", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "bán vé", "amount": 600000}}}
+{"input": "Nhận nhuận bút báo chí 700 ngàn", "target": {"intent": "finance.add_income", "confidence": 0.98, "route": "FAST_PATH", "slots": {"source": "nhuận bút", "amount": 700000}}}
+{"input": "Số dư tài khoản ngân hàng Vietcombank của mình còn bao nhiêu?", "target": {"intent": "finance.get_balance", "confidence": 0.98, "route": "FAST_PATH", "slots": {"account": "Vietcombank"}}}
+{"input": "Ví Momo hiện tại có còn đủ tiền mua đồ không?", "target": {"intent": "finance.get_balance", "confidence": 0.98, "route": "FAST_PATH", "slots": {"account": "Momo"}}}
+{"input": "Check tổng tài sản hiện có của tôi trên tất cả các ví", "target": {"intent": "finance.get_balance", "confidence": 0.98, "route": "FAST_PATH", "slots": {"account": "all"}}}
+{"input": "Kiểm tra xem trong ví MB Bank còn bao nhiêu tiền?", "target": {"intent": "finance.get_balance", "confidence": 0.98, "route": "FAST_PATH", "slots": {"account": "MB Bank"}}}
+{"input": "Hiện tại ví tiền mặt của tôi còn bao nhiêu?", "target": {"intent": "finance.get_balance", "confidence": 0.98, "route": "FAST_PATH", "slots": {"account": "tiền mặt"}}}
+{"input": "Cho xem số dư khả dụng ở tài khoản Techcombank", "target": {"intent": "finance.get_balance", "confidence": 0.98, "route": "FAST_PATH", "slots": {"account": "Techcombank"}}}
+{"input": "Tài chính cá nhân của tôi hôm nay thế nào?", "target": {"intent": "finance.get_balance", "confidence": 0.98, "route": "FAST_PATH", "slots": {"account": "all"}}}
+{"input": "Kiểm tra ví ZaloPay coi còn tiền không bot?", "target": {"intent": "finance.get_balance", "confidence": 0.98, "route": "FAST_PATH", "slots": {"account": "ZaloPay"}}}
+{"input": "Ví ShopeePay của tôi còn bao nhiêu tiền vậy?", "target": {"intent": "finance.get_balance", "confidence": 0.98, "route": "FAST_PATH", "slots": {"account": "ShopeePay"}}}
+{"input": "Xem tổng số dư tiền gửi ngân hàng và tiền mặt", "target": {"intent": "finance.get_balance", "confidence": 0.98, "route": "FAST_PATH", "slots": {"account": "all"}}}
+{"input": "Chuyển 500k từ tài khoản Vietcombank qua ví Momo giúp mình", "target": {"intent": "finance.transfer", "confidence": 0.98, "route": "FAST_PATH", "slots": {"from_account": "Vietcombank", "to_account": "Momo", "amount": 500000}}}
+{"input": "Rút 1 triệu tiền mặt từ cây ATM về bỏ bóp", "target": {"intent": "finance.transfer", "confidence": 0.98, "route": "FAST_PATH", "slots": {"from_account": "ATM", "to_account": "tiền mặt", "amount": 1000000}}}
+{"input": "Bắn 200k từ ví ZaloPay sang ngân hàng MB Bank", "target": {"intent": "finance.transfer", "confidence": 0.98, "route": "FAST_PATH", "slots": {"from_account": "ZaloPay", "to_account": "MB Bank", "amount": 200000}}}
+{"input": "Nạp 300k từ Techcombank vào ví ShopeePay săn hàng", "target": {"intent": "finance.transfer", "confidence": 0.98, "route": "FAST_PATH", "slots": {"from_account": "Techcombank", "to_account": "ShopeePay", "amount": 300000}}}
+{"input": "Chuyển 3 củ từ tài khoản lương sang tài khoản tiết kiệm", "target": {"intent": "finance.transfer", "confidence": 0.98, "route": "FAST_PATH", "slots": {"from_account": "lương", "to_account": "tiết kiệm", "amount": 3000000}}}
+{"input": "Rút 5 xị từ thẻ ngân hàng ra tiền mặt", "target": {"intent": "finance.transfer", "confidence": 0.98, "route": "FAST_PATH", "slots": {"from_account": "thẻ", "to_account": "tiền mặt", "amount": 500000}}}
+{"input": "Chuyển nội bộ 1tr5 từ VCB sang Agribank", "target": {"intent": "finance.transfer", "confidence": 0.98, "route": "FAST_PATH", "slots": {"from_account": "Vietcombank", "to_account": "Agribank", "amount": 1500000}}}
+{"input": "Nạp 100 ngàn từ tài khoản ngân hàng vào Momo", "target": {"intent": "finance.transfer", "confidence": 0.98, "route": "FAST_PATH", "slots": {"from_account": "ngân hàng", "to_account": "Momo", "amount": 100000}}}
+{"input": "Cho thằng Nam mượn 300k ăn trưa hẹn cuối tuần gửi", "target": {"intent": "finance.record_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "Nam", "amount": 300000, "debt_type": "lend"}}}
+{"input": "Ghi nợ con bé Phương 120k tiền mua hộ trà sữa", "target": {"intent": "finance.record_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "Phương", "amount": 120000, "debt_type": "lend"}}}
+{"input": "Vừa vay anh Tuấn đồng nghiệp 1 triệu đóng phạt", "target": {"intent": "finance.record_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "anh Tuấn", "amount": 1000000, "debt_type": "borrow"}}}
+{"input": "Mượn thằng Huy 50k trả tiền xăng xe", "target": {"intent": "finance.record_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "Huy", "amount": 50000, "debt_type": "borrow"}}}
+{"input": "Cho bạn cùng phòng mượn 2 củ đóng tiền trọ", "target": {"intent": "finance.record_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "bạn cùng phòng", "amount": 2000000, "debt_type": "lend"}}}
+{"input": "Vay chị gái 5 triệu mua máy giặt", "target": {"intent": "finance.record_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "chị gái", "amount": 5000000, "debt_type": "borrow"}}}
+{"input": "Ghi sổ nợ anh Hoàng 450k tiền vé máy bay", "target": {"intent": "finance.record_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "anh Hoàng", "amount": 450000, "debt_type": "borrow"}}}
+{"input": "Cho Hằng vay 5 xị mua đồ mỹ phẩm", "target": {"intent": "finance.record_debt", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "Hằng", "amount": 500000, "debt_type": "lend"}}}
+{"input": "Thằng Nam vừa chuyển trả 300k tiền nợ ăn trưa", "target": {"intent": "finance.debt_repay", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "Nam", "amount": 300000}}}
+{"input": "Đã bắn khoản 120k trả tiền trà sữa cho Phương", "target": {"intent": "finance.debt_repay", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "Phương", "amount": 120000}}}
+{"input": "Vừa trả nợ 1 triệu cho anh Tuấn đồng nghiệp", "target": {"intent": "finance.debt_repay", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "anh Tuấn", "amount": 1000000}}}
+{"input": "Huy gửi trả 50k tiền xăng xe qua Momo rồi", "target": {"intent": "finance.debt_repay", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "Huy", "amount": 50000}}}
+{"input": "Bạn cùng phòng đã trả lại 2 triệu tiền phòng trọ", "target": {"intent": "finance.debt_repay", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "bạn cùng phòng", "amount": 2000000}}}
+{"input": "Vừa gửi trả nợ chị gái 5 củ qua chuyển khoản", "target": {"intent": "finance.debt_repay", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "chị gái", "amount": 5000000}}}
+{"input": "Thanh toán dứt điểm 450k tiền vé máy bay cho anh Hoàng", "target": {"intent": "finance.debt_repay", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "anh Hoàng", "amount": 450000}}}
+{"input": "Con Hằng trả nợ 5 xị rồi nhé", "target": {"intent": "finance.debt_repay", "confidence": 0.98, "route": "FAST_PATH", "slots": {"person": "Hằng", "amount": 500000}}}
+{"input": "Bữa lẩu nướng 900 nghìn chia đều cho 4 người ăn", "target": {"intent": "finance.split_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"total_amount": 900000, "members_count": 4}}}
+{"input": "Hóa đơn cà phê họp nhóm hết 160k share 4 người", "target": {"intent": "finance.split_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"total_amount": 160000, "members_count": 4}}}
+{"input": "Tiền phòng homestay Đà Lạt 2 triệu 4 chia cho 6 đứa", "target": {"intent": "finance.split_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"total_amount": 2400000, "members_count": 6}}}
+{"input": "Ăn ốc vỉa hè hết 350k chia đôi với bạn", "target": {"intent": "finance.split_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"total_amount": 350000, "members_count": 2}}}
+{"input": "Tiền GrabCar đi chung 120k chia 3", "target": {"intent": "finance.split_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"total_amount": 120000, "members_count": 3}}}
+{"input": "Hóa đơn tiệc liên hoan 3 triệu chia đều 8 người", "target": {"intent": "finance.split_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"total_amount": 3000000, "members_count": 8}}}
+{"input": "Chia tiền vé xem phim và bắp nước 400k cho 2 đứa", "target": {"intent": "finance.split_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"total_amount": 400000, "members_count": 2}}}
+{"input": "Đóng tiền điện tháng này hết 750 ngàn qua VNPay", "target": {"intent": "finance.pay_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"bill_type": "tiền điện", "amount": 750000}}}
+{"input": "Vừa thanh toán tiền phòng trọ 3 triệu 5 cho chủ nhà", "target": {"intent": "finance.pay_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"bill_type": "tiền phòng", "amount": 3500000}}}
+{"input": "Nộp tiền mạng internet FPT 240k tháng 11", "target": {"intent": "finance.pay_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"bill_type": "tiền mạng", "amount": 240000}}}
+{"input": "Đóng tiền nước sinh hoạt 95 nghìn", "target": {"intent": "finance.pay_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"bill_type": "tiền nước", "amount": 95000}}}
+{"input": "Đã đóng tiền học phí đại học 12 triệu", "target": {"intent": "finance.pay_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"bill_type": "học phí", "amount": 12000000}}}
+{"input": "Thanh toán tiền rác và dịch vụ chung cư 250k", "target": {"intent": "finance.pay_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"bill_type": "tiền rác", "amount": 250000}}}
+{"input": "Nộp tiền gửi xe máy tháng này 120 ngàn", "target": {"intent": "finance.pay_bill", "confidence": 0.98, "route": "FAST_PATH", "slots": {"bill_type": "gửi xe", "amount": 120000}}}
+{"input": "Tuần này tôi đã tiêu bao nhiêu tiền cho ăn uống?", "target": {"intent": "finance.query_transactions", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "ăn uống", "time_range": "tuần này"}}}
+{"input": "Xem lịch sử các khoản chi tiêu mua sắm tháng này", "target": {"intent": "finance.query_transactions", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "mua sắm", "time_range": "tháng này"}}}
+{"input": "Hôm qua tôi đã tiêu những khoản nào?", "target": {"intent": "finance.query_transactions", "confidence": 0.98, "route": "FAST_PATH", "slots": {"time_range": "hôm qua"}}}
+{"input": "Thống kê số tiền đổ xăng xe máy trong tháng vừa rồi", "target": {"intent": "finance.query_transactions", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "di chuyển", "time_range": "tháng trước"}}}
+{"input": "Kiểm tra xem tuần trước có giao dịch nào trên 1 triệu không", "target": {"intent": "finance.query_transactions", "confidence": 0.98, "route": "FAST_PATH", "slots": {"time_range": "tuần trước"}}}
+{"input": "Liệt kê toàn bộ các khoản thu nhập của tháng này", "target": {"intent": "finance.query_transactions", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "income", "time_range": "tháng này"}}}
+{"input": "Đặt hạn mức chi tiêu ăn uống tháng này là 3 triệu", "target": {"intent": "finance.budget_plan", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"limit_amount": 3000000, "category": "ăn uống"}}}
+{"input": "Cài đặt ngân sách mua sắm không được quá 1tr5 một tháng", "target": {"intent": "finance.budget_plan", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"limit_amount": 1500000, "category": "mua sắm"}}}
+{"input": "Kiểm tra xem ngân sách tuần này còn được tiêu bao nhiêu", "target": {"intent": "finance.budget_plan", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"period": "tuần này"}}}
+{"input": "Giới hạn chi tiêu tổng thể trong tháng 11 là 8 triệu", "target": {"intent": "finance.budget_plan", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"limit_amount": 8000000, "category": "tổng thể"}}}
+{"input": "Cảnh báo khi tiền ăn ngoài vượt quá 70% ngân sách", "target": {"intent": "finance.budget_plan", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"category": "ăn uống"}}}
+{"input": "Tăng ngân sách ăn uống tháng này lên 3tr5", "target": {"intent": "finance.update_budget", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "ăn uống", "new_limit": 3500000}}}
+{"input": "Giảm hạn mức mua sắm xuống còn 1 củ", "target": {"intent": "finance.update_budget", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "mua sắm", "new_limit": 1000000}}}
+{"input": "Đổi hạn mức chi tiêu tuần này thành 1 triệu 2", "target": {"intent": "finance.update_budget", "confidence": 0.98, "route": "FAST_PATH", "slots": {"category": "tổng thể", "new_limit": 1200000}}}
+{"input": "Tính kế hoạch trả góp mua laptop 24 triệu trong 12 tháng lãi 11%", "target": {"intent": "finance.loan_installment_plan", "confidence": 0.98, "route": "FAST_PATH", "slots": {"principal": 24000000, "term_months": 12, "annual_rate": 0.11}}}
+{"input": "Vay ngân hàng 100 củ trong 2 năm lãi 9% dư nợ giảm dần tính sao?", "target": {"intent": "finance.loan_installment_plan", "confidence": 0.98, "route": "FAST_PATH", "slots": {"principal": 100000000, "term_months": 24, "annual_rate": 0.09}}}
+{"input": "Bảng khấu hao khoản vay mua xe 40 triệu trong 18 tháng", "target": {"intent": "finance.loan_installment_plan", "confidence": 0.98, "route": "FAST_PATH", "slots": {"principal": 40000000, "term_months": 18}}}
+{"input": "Nếu vay 50 triệu trả góp 6 tháng lãi 12%/năm thì mỗi tháng trả bao nhiêu?", "target": {"intent": "finance.loan_installment_plan", "confidence": 0.98, "route": "FAST_PATH", "slots": {"principal": 50000000, "term_months": 6, "annual_rate": 0.12}}}
+{"input": "Tạo quỹ tiết kiệm mua xe máy mới 45 triệu trước Tết", "target": {"intent": "finance.savings_goal", "confidence": 0.98, "route": "FAST_PATH", "slots": {"goal_name": "mua xe máy", "target_amount": 45000000}}}
+{"input": "Tôi muốn để dành 15 củ đi du lịch Hàn Quốc năm sau", "target": {"intent": "finance.savings_goal", "confidence": 0.98, "route": "FAST_PATH", "slots": {"goal_name": "du lịch Hàn Quốc", "target_amount": 15000000}}}
+{"input": "Lập mục tiêu tích lũy quỹ khẩn cấp 30 triệu", "target": {"intent": "finance.savings_goal", "confidence": 0.98, "route": "FAST_PATH", "slots": {"goal_name": "quỹ khẩn cấp", "target_amount": 30000000}}}
+{"input": "Tạo hũ tiết kiệm mua iPad 18 triệu trong 6 tháng", "target": {"intent": "finance.savings_goal", "confidence": 0.98, "route": "FAST_PATH", "slots": {"goal_name": "mua iPad", "target_amount": 18000000}}}
+{"input": "Báo cáo tài chính tháng 11 của tôi có cân đối không?", "target": {"intent": "finance.financial_report", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"period": "tháng này"}}}
+{"input": "Phân tích tỷ trọng các khoản chi tiêu tháng này xem mục nào nhiều nhất", "target": {"intent": "finance.financial_report", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"period": "tháng này"}}}
+{"input": "Tôi có đang bị bội chi so với tháng trước không?", "target": {"intent": "finance.financial_report", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"period": "tháng này"}}}
+{"input": "Tư vấn cách tối ưu chi tiêu để dư ra 3 triệu mỗi tháng", "target": {"intent": "finance.financial_report", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"period": "tháng này"}}}
+{"input": "Nhắc tôi nộp bản cứng báo cáo thực tập lúc 15h chiều mai", "target": {"intent": "task.create", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "nộp bản cứng báo cáo", "deadline": "15h chiều mai"}}}
+{"input": "Thêm việc chuẩn bị slide thuyết trình bảo vệ đồ án", "target": {"intent": "task.create", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "chuẩn bị slide bảo vệ đồ án"}}}
+{"input": "Tạo task mua bánh sinh nhật cho mẹ chiều nay", "target": {"intent": "task.create", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "mua bánh sinh nhật cho mẹ", "deadline": "chiều nay"}}}
+{"input": "Ghi chú việc đi nộp hồ sơ xin việc ở công ty", "target": {"intent": "task.create", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "nộp hồ sơ xin việc"}}}
+{"input": "Nhắc anh gửi tài liệu hợp đồng cho khách hàng lúc 9h sáng thứ Hai", "target": {"intent": "task.create", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "gửi tài liệu hợp đồng", "deadline": "9h sáng thứ Hai"}}}
+{"input": "Thêm nhiệm vụ kiểm tra lại bug trên server production", "target": {"intent": "task.create", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "kiểm tra bug trên server"}}}
+{"input": "Tạo task đi khám mắt ở bệnh viện mắt lúc 8h sáng mai", "target": {"intent": "task.create", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "đi khám mắt", "deadline": "8h sáng mai"}}}
+{"input": "Nhắc tôi uống thuốc dạ dày mỗi ngày sau bữa ăn", "target": {"intent": "task.create_recurring", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "uống thuốc dạ dày", "recurrence": "daily"}}}
+{"input": "Đặt lịch tập thể dục buổi sáng 30 phút các ngày 2 4 6", "target": {"intent": "task.create_recurring", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "tập thể dục buổi sáng", "recurrence": "t2_t4_t6"}}}
+{"input": "Lập lịch đọc sách chuyên môn mỗi tối lúc 22h", "target": {"intent": "task.create_recurring", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "đọc sách", "recurrence": "daily"}}}
+{"input": "Nhắc dọn dẹp nhà cửa vào mỗi sáng Chủ nhật", "target": {"intent": "task.create_recurring", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "dọn dẹp nhà cửa", "recurrence": "weekly"}}}
+{"input": "Mỗi thứ 6 nhắc tổng kết công việc tuần", "target": {"intent": "task.create_recurring", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "tổng kết tuần", "recurrence": "weekly"}}}
+{"input": "Hôm nay tôi có những công việc nào cần phải làm?", "target": {"intent": "task.query_today", "confidence": 0.98, "route": "FAST_PATH", "slots": {"date_filter": "today"}}}
+{"input": "Xem danh sách việc cần xử lý trong ngày hôm nay", "target": {"intent": "task.query_today", "confidence": 0.98, "route": "FAST_PATH", "slots": {"date_filter": "today"}}}
+{"input": "Lịch trình làm việc hôm nay của tôi thế nào?", "target": {"intent": "task.query_today", "confidence": 0.98, "route": "FAST_PATH", "slots": {"date_filter": "today"}}}
+{"input": "Hôm nay có việc gì gấp cần hoàn thành không bot?", "target": {"intent": "task.query_today", "confidence": 0.98, "route": "FAST_PATH", "slots": {"date_filter": "today"}}}
+{"input": "Cho xem to-do list ngày hôm nay", "target": {"intent": "task.query_today", "confidence": 0.98, "route": "FAST_PATH", "slots": {"date_filter": "today"}}}
+{"input": "Có deadline nào cần nộp gấp trong vòng 24 giờ tới không?", "target": {"intent": "task.query_deadline", "confidence": 0.98, "route": "FAST_PATH", "slots": {"time_range": "upcoming_24h"}}}
+{"input": "Hạn nộp bài tập lớn môn Lập trình Web là ngày mấy?", "target": {"intent": "task.query_deadline", "confidence": 0.98, "route": "FAST_PATH", "slots": {"time_range": "upcoming"}}}
+{"input": "Kiểm tra xem có công việc nào sắp trễ hạn trong tuần này không", "target": {"intent": "task.query_deadline", "confidence": 0.98, "route": "FAST_PATH", "slots": {"time_range": "this_week"}}}
+{"input": "Deadline nộp báo cáo AI4Life còn bao nhiêu tiếng nữa?", "target": {"intent": "task.query_deadline", "confidence": 0.98, "route": "FAST_PATH", "slots": {"time_range": "upcoming_48h"}}}
+{"input": "Liệt kê các hạn chót khẩn cấp sắp tới", "target": {"intent": "task.query_deadline", "confidence": 0.98, "route": "FAST_PATH", "slots": {"time_range": "urgent"}}}
+{"input": "Lọc các công việc thuộc dự án AI4Life", "target": {"intent": "task.query_by_tag", "confidence": 0.98, "route": "FAST_PATH", "slots": {"tag": "AI4Life"}}}
+{"input": "Xem danh sách task có gắn nhãn Đồ án tốt nghiệp", "target": {"intent": "task.query_by_tag", "confidence": 0.98, "route": "FAST_PATH", "slots": {"tag": "Đồ án tốt nghiệp"}}}
+{"input": "Có những việc nào thuộc danh mục Cá nhân?", "target": {"intent": "task.query_by_tag", "confidence": 0.98, "route": "FAST_PATH", "slots": {"tag": "Cá nhân"}}}
+{"input": "Hiển thị các công việc thuộc nhóm Học tập", "target": {"intent": "task.query_by_tag", "confidence": 0.98, "route": "FAST_PATH", "slots": {"tag": "Học tập"}}}
+{"input": "Lọc task theo dự án VKU", "target": {"intent": "task.query_by_tag", "confidence": 0.98, "route": "FAST_PATH", "slots": {"tag": "VKU"}}}
+{"input": "Xem lại những việc tôi đã hoàn thành trong ngày hôm nay", "target": {"intent": "task.query_completed", "confidence": 0.98, "route": "FAST_PATH", "slots": {"time_range": "today"}}}
+{"input": "Tuần này tôi đã làm xong được bao nhiêu công việc rồi?", "target": {"intent": "task.query_completed", "confidence": 0.98, "route": "FAST_PATH", "slots": {"time_range": "this_week"}}}
+{"input": "Cho xem danh sách các task đã hoàn tất tuần vừa qua", "target": {"intent": "task.query_completed", "confidence": 0.98, "route": "FAST_PATH", "slots": {"time_range": "last_week"}}}
+{"input": "Hôm qua tôi đã giải quyết xong những đầu việc nào?", "target": {"intent": "task.query_completed", "confidence": 0.98, "route": "FAST_PATH", "slots": {"time_range": "yesterday"}}}
+{"input": "Đặt lịch hẹn phỏng vấn thực tập sinh lúc 14h chiều mai qua Zoom", "target": {"intent": "task.schedule_event", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "phỏng vấn thực tập", "start_time": "14h chiều mai"}}}
+{"input": "Lên lịch họp nhóm Lab AI lúc 9h sáng thứ Sáu tại phòng 302", "target": {"intent": "task.schedule_event", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "họp nhóm Lab AI", "start_time": "9h sáng thứ Sáu"}}}
+{"input": "Hẹn cà phê với anh Tuấn lúc 10h sáng Chủ nhật ở Highlands", "target": {"intent": "task.schedule_event", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "cà phê với anh Tuấn", "start_time": "10h sáng Chủ nhật"}}}
+{"input": "Thêm lịch đi đá bóng giao hữu lúc 17h chiều thứ Tư", "target": {"intent": "task.schedule_event", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "đá bóng giao hữu", "start_time": "17h chiều thứ Tư"}}}
+{"input": "Dời deadline nộp báo cáo sang 17h chiều thứ Năm", "target": {"intent": "task.reschedule", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "nộp báo cáo", "new_deadline": "17h chiều thứ Năm"}}}
+{"input": "Hoãn cuộc họp nhóm sáng mai sang 15h chiều cùng ngày", "target": {"intent": "task.reschedule", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "họp nhóm", "new_deadline": "15h chiều"}}}
+{"input": "Lùi lịch hẹn cà phê lại 1 tiếng giúp mình", "target": {"intent": "task.reschedule", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "hẹn cà phê"}}}
+{"input": "Đổi hạn nộp đồ án sang ngày 25/11", "target": {"intent": "task.reschedule", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "đồ án", "new_deadline": "25/11"}}}
+{"input": "Sắp xếp thứ tự ưu tiên các việc hôm nay giúp mình không bị rối", "target": {"intent": "task.plan_schedule", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"time_frame": "hôm nay"}}}
+{"input": "Lập kế hoạch làm việc cho tuần tới thật khoa học", "target": {"intent": "task.plan_schedule", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"time_frame": "tuần tới"}}}
+{"input": "Tối ưu hóa thời gian biểu ngày mai để kịp hoàn thành công việc", "target": {"intent": "task.plan_schedule", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"time_frame": "ngày mai"}}}
+{"input": "Gợi ý lịch trình giải quyết các task tồn đọng trong ngày", "target": {"intent": "task.plan_schedule", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"time_frame": "hôm nay"}}}
+{"input": "Đã làm xong việc nộp báo cáo thực tập rồi nhé", "target": {"intent": "task.complete", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "nộp báo cáo thực tập"}}}
+{"input": "Tick hoàn thành task gửi hợp đồng cho khách", "target": {"intent": "task.complete", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "gửi hợp đồng"}}}
+{"input": "Xong việc đi mua đồ sinh nhật rồi", "target": {"intent": "task.complete", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "mua đồ sinh nhật"}}}
+{"input": "Đánh dấu hoàn tất task kiểm tra bug hệ thống", "target": {"intent": "task.complete", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "kiểm tra bug"}}}
+{"input": "Hủy cuộc hẹn cà phê sáng mai vì có lịch đột xuất", "target": {"intent": "task.cancel", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "hẹn cà phê"}}}
+{"input": "Tạm hoãn việc mua sách sang tháng sau", "target": {"intent": "task.cancel", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "mua sách"}}}
+{"input": "Hủy bỏ task dọn phòng hôm nay", "target": {"intent": "task.cancel", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "dọn phòng"}}}
+{"input": "Xóa vĩnh viễn task đi chợ chiều nay khỏi danh sách", "target": {"intent": "task.delete", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "đi chợ chiều nay", "requires_hitl": true}}}
+{"input": "Xóa công việc nháp này đi", "target": {"intent": "task.delete", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "việc nháp", "requires_hitl": true}}}
+{"input": "Delete task kiểm tra email cũ", "target": {"intent": "task.delete", "confidence": 0.98, "route": "FAST_PATH", "slots": {"title": "kiểm tra email", "requires_hitl": true}}}
+{"input": "Tìm xem có công việc nào có chữ đồ án không", "target": {"intent": "task.search", "confidence": 0.98, "route": "FAST_PATH", "slots": {"keyword": "đồ án"}}}
+{"input": "Tìm kiếm task liên quan đến tiền phòng", "target": {"intent": "task.search", "confidence": 0.98, "route": "FAST_PATH", "slots": {"keyword": "tiền phòng"}}}
+{"input": "Tra cứu lịch hẹn có tên anh Tuấn", "target": {"intent": "task.search", "confidence": 0.98, "route": "FAST_PATH", "slots": {"keyword": "anh Tuấn"}}}
+{"input": "Lập kế hoạch đi du lịch Đà Nẵng 3 ngày 2 đêm với ngân sách 4 triệu", "target": {"intent": "cross.plan_expense_task", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"event_name": "du lịch Đà Nẵng", "budget": 4000000}}}
+{"input": "Lên danh sách việc cần làm và dự trù chi phí tiệc sinh nhật 2 củ", "target": {"intent": "cross.plan_expense_task", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"event_name": "tiệc sinh nhật", "budget": 2000000}}}
+{"input": "Kế hoạch tổ chức buổi offline CLB với kinh phí 3 triệu", "target": {"intent": "cross.plan_expense_task", "confidence": 0.98, "route": "REASONING_PATH", "slots": {"event_name": "offline CLB", "budget": 3000000}}}
+{"input": "Nhắc tôi đóng tiền trọ 3 triệu 5 trước ngày 25", "target": {"intent": "cross.bill_due_reminder", "confidence": 0.98, "route": "FAST_PATH", "slots": {"bill_name": "tiền trọ", "amount": 3500000, "due_date": "ngày 25"}}}
+{"input": "Đặt lịch nhắc nộp học phí 11 củ trước ngày 30/11", "target": {"intent": "cross.bill_due_reminder", "confidence": 0.98, "route": "FAST_PATH", "slots": {"bill_name": "học phí", "amount": 11000000, "due_date": "30/11"}}}
+{"input": "Nhắc thanh toán hóa đơn tiền điện 800k vào ngày mai", "target": {"intent": "cross.bill_due_reminder", "confidence": 0.98, "route": "FAST_PATH", "slots": {"bill_name": "tiền điện", "amount": 800000, "due_date": "ngày mai"}}}
+{"input": "Chào buổi sáng Onis, chúc một ngày làm việc hiệu quả", "target": {"intent": "system.greeting_summary", "confidence": 0.98, "route": "FAST_PATH", "slots": {}}}
+{"input": "Hello bot, tóm tắt nhanh tình hình tài chính và công việc hôm nay", "target": {"intent": "system.greeting_summary", "confidence": 0.98, "route": "FAST_PATH", "slots": {}}}
+{"input": "Chào bạn, khởi động ngày mới điểm tin nhanh giúp mình", "target": {"intent": "system.greeting_summary", "confidence": 0.98, "route": "FAST_PATH", "slots": {}}}
+{"input": "Hướng dẫn sử dụng các chức năng của trợ lý ảo Onis", "target": {"intent": "system.help", "confidence": 0.98, "route": "FAST_PATH", "slots": {}}}
+{"input": "Trợ lý này có thể làm được những việc gì giúp tôi?", "target": {"intent": "system.help", "confidence": 0.98, "route": "FAST_PATH", "slots": {}}}
+{"input": "Cho tôi xem danh sách các câu lệnh điều khiển mẫu", "target": {"intent": "system.help", "confidence": 0.98, "route": "FAST_PATH", "slots": {}}}
+{"input": "Tôi vừa nói nhầm, hoàn tác lại thao tác vừa rồi", "target": {"intent": "system.undo", "confidence": 0.98, "route": "FAST_PATH", "slots": {}}}
+{"input": "Hủy bỏ giao dịch chi tiêu vừa mới lưu đi", "target": {"intent": "system.undo", "confidence": 0.98, "route": "FAST_PATH", "slots": {}}}
+{"input": "Undo lại thao tác gần nhất giúp tôi", "target": {"intent": "system.undo", "confidence": 0.98, "route": "FAST_PATH", "slots": {}}}
