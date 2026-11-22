@@ -8,7 +8,7 @@ Provides production-ready RESTful endpoints connecting:
 """
 
 from contextlib import asynccontextmanager
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 import re
 import time
@@ -416,7 +416,7 @@ class CorrectionRequest(BaseModel):
 
 class HitlApprovalRequest(BaseModel):
     idempotency_key: str = Field(..., min_length=1, max_length=200)
-    action: str = Field(..., pattern="^(task_delete|savings_create|loan_apply|balance_override|bulk_delete)$")
+    action: str = Field(..., pattern="^(task_delete|savings_create|loan_apply|transfer|balance_override|bulk_delete)$")
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -434,7 +434,7 @@ def _resolve_user(authorization: str | None) -> dict[str, Any] | None:
             os.getenv("AUTH_SECRET", ""),
             os.getenv("AUTH_JWT_ISSUER", "onisagent").strip(),
         )
-        with SessionLocal() as db:
+        with postgres.SessionLocal() as db:
             user = db.scalar(select(AuthUser).where(AuthUser.id == user_id))
         if not user or not user.is_active:
             raise AuthError("Tài khoản không tồn tại.")
@@ -449,12 +449,22 @@ def _resolve_user(authorization: str | None) -> dict[str, Any] | None:
 
 
 @app.get("/api/v1/transactions", tags=["Transactions"])
-def list_transactions(authorization: str | None = Header(default=None)):
+def list_transactions(
+    category: str | None = None,
+    keyword: str | None = None,
+    authorization: str | None = Header(default=None),
+):
     user = _resolve_user(authorization)
     if not user and AUTH_REQUIRED:
         raise HTTPException(status_code=401, detail="Cần đăng nhập.")
     user_id = user["id"] if user else "default_user"
-    return {"transactions": storage.list_transactions(user_id)}
+    return {
+        "transactions": storage.list_transactions(
+            user_id,
+            category=category,
+            keyword=keyword,
+        )
+    }
 
 
 @app.post("/api/v1/transactions", status_code=status.HTTP_201_CREATED, tags=["Transactions"])
@@ -534,7 +544,13 @@ def update_task(task_id: str, request: dict[str, Any], authorization: str | None
 def delete_task_api(task_id: str, authorization: str | None = Header(default=None)):
     user = _resolve_user(authorization)
     user_id = user["id"] if user else "default_user"
-    item = storage.update_task(user_id, {"task_id": task_id}, "pending")
+    item = next(
+        (
+            task for task in storage.list_tasks(user_id, status="all")
+            if task.get("id") == task_id
+        ),
+        None,
+    )
     if not item:
         raise HTTPException(status_code=404, detail="Không tìm thấy công việc.")
     return {
@@ -597,6 +613,35 @@ def approve_hitl(request: HitlApprovalRequest, authorization: str | None = Heade
     user = _resolve_user(authorization)
     user_id = user["id"] if user else "default_user"
     action = {"action": request.action, "payload": request.payload}
+    existing = next(
+        (
+            item for item in storage.list_records("hitl_approvals", user_id)
+            if item.get("idempotency_key") == request.idempotency_key
+        ),
+        None,
+    )
+    if existing:
+        return {"ok": True, "approval": existing}
+
+    transfer_values = None
+    if request.action == "transfer":
+        try:
+            amount = Decimal(str(request.payload.get("amount")))
+        except (InvalidOperation, TypeError, ValueError):
+            raise HTTPException(status_code=422, detail="Số tiền chuyển không hợp lệ.")
+        from_account = request.payload.get("from_account")
+        to_account = request.payload.get("to_account")
+        if (
+            not amount.is_finite()
+            or amount <= 0
+            or not isinstance(from_account, str)
+            or not from_account.strip()
+            or not isinstance(to_account, str)
+            or not to_account.strip()
+        ):
+            raise HTTPException(status_code=422, detail="Thông tin chuyển khoản không hợp lệ.")
+        transfer_values = (amount, from_account.strip(), to_account.strip())
+
     approval = storage.approve_hitl(user_id, request.idempotency_key, action)
 
     if request.action == "task_delete" and request.payload.get("task_id"):
@@ -607,6 +652,16 @@ def approve_hitl(request: HitlApprovalRequest, authorization: str | None = Heade
         storage.add_record("savings_goals", user_id, request.payload)
     elif request.action == "loan_apply":
         storage.add_record("plans", user_id, {**request.payload, "status": "approved"})
+    elif transfer_values:
+        amount, from_account, to_account = transfer_values
+        storage.add_transaction(
+            user_id,
+            amount=amount,
+            transaction_type="transfer",
+            description=f"Chuyển từ {from_account} sang {to_account}",
+            category="Chuyển khoản",
+            account=to_account,
+        )
 
     return {"ok": True, "approval": approval}
 
