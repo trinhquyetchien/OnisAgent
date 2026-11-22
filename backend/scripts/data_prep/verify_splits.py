@@ -18,6 +18,7 @@ SPLITS_DIR = PROJECT_ROOT / "data" / "splits"
 TRAIN_FILE = SPLITS_DIR / "kev_train.jsonl"
 VAL_FILE = SPLITS_DIR / "kev_val.jsonl"
 TEST_FILE = SPLITS_DIR / "kev_test.jsonl"
+EXTERNAL_FILE = SPLITS_DIR / "external_eval_benchmark.jsonl"
 
 
 def load_split(path: Path) -> list[dict]:
@@ -37,6 +38,7 @@ def main():
     train_data = load_split(TRAIN_FILE)
     val_data = load_split(VAL_FILE)
     test_data = load_split(TEST_FILE)
+    external_data = load_split(EXTERNAL_FILE)
 
     total = len(train_data) + len(val_data) + len(test_data)
     print("=================================================================")
@@ -51,17 +53,36 @@ def main():
     train_inputs = {x["input"].strip().lower() for x in train_data}
     val_inputs = {x["input"].strip().lower() for x in val_data}
     test_inputs = {x["input"].strip().lower() for x in test_data}
+    external_inputs = {x["input"].strip().lower() for x in external_data}
 
     leakage_train_test = train_inputs.intersection(test_inputs)
     leakage_train_val = train_inputs.intersection(val_inputs)
     leakage_val_test = val_inputs.intersection(test_inputs)
+    leakage_train_external = train_inputs.intersection(external_inputs)
+    leakage_val_external = val_inputs.intersection(external_inputs)
+    leakage_test_external = test_inputs.intersection(external_inputs)
 
-    has_leakage = bool(leakage_train_test or leakage_train_val or leakage_val_test)
+    has_leakage = bool(
+        leakage_train_test
+        or leakage_train_val
+        or leakage_val_test
+        or leakage_train_external
+        or leakage_val_external
+        or leakage_test_external
+    )
     print("\n🔍 1. KIỂM TRA RÒ RỈ DỮ LIỆU (DATA LEAKAGE CHECK):")
     if not has_leakage:
-        print("  ✅ TUYỆT VỜI: 0% Data Leakage! Không có bất kỳ sample nào trùng giữa Train, Val và Test.")
+        print("  ✅ TUYỆT VỜI: 0% Data Leakage! Không có sample nào trùng giữa train/val/test và external holdout.")
     else:
-        print(f"  ❌ CẢNH BÁO LEAKAGE: Trùng Train-Test: {len(leakage_train_test)}, Train-Val: {len(leakage_train_val)}, Val-Test: {len(leakage_val_test)}")
+        print(
+            "  ❌ CẢNH BÁO LEAKAGE: "
+            f"Train-Test: {len(leakage_train_test)}, "
+            f"Train-Val: {len(leakage_train_val)}, "
+            f"Val-Test: {len(leakage_val_test)}, "
+            f"Train-External: {len(leakage_train_external)}, "
+            f"Val-External: {len(leakage_val_external)}, "
+            f"Test-External: {len(leakage_test_external)}"
+        )
 
     # 2. Kiểm tra độ phủ Intent Classes (Coverage)
     train_classes = {x["target"]["intent"] for x in train_data}

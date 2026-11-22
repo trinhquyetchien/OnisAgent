@@ -42,7 +42,7 @@ from src.tools.calculator import calculate_loan_amortization
 # ----------------- CONSTANTS & PATHS -----------------
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = PROJECT_ROOT / "models" / "checkpoints" / "kev" / "kev_intent_model.joblib"
-CONFIDENCE_THRESHOLD = 0.50
+CONFIDENCE_THRESHOLD = 0.50  # Validate/recalibrate this threshold on a held-out set.
 
 
 # ----------------- IN-MEMORY APPLICATION STATE -----------------
@@ -348,7 +348,7 @@ def read_root():
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 @app.get("/api/v1/health", response_model=HealthResponse, tags=["Health"])
 def health_check():
-    """Check service health, loaded Kev model state, and supported intent catalog (32 intents)."""
+    """Check service health, loaded Kev model state, and supported intent catalog."""
     model = get_kev_model()
     return HealthResponse(
         status="ok",

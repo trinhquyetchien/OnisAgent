@@ -1,8 +1,8 @@
 """Training script for local Kev Intent Classifier.
 
 Reads:
-  - backend/data/splits/kev_train.jsonl (1,380 samples)
-  - backend/data/splits/kev_val.jsonl   (175 samples)
+  - backend/data/splits/kev_train.jsonl
+  - backend/data/splits/kev_val.jsonl
 Trains the dual-layer calibrated pipeline.
 Evaluates on validation split.
 Saves model to:

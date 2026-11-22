@@ -58,7 +58,7 @@ flowchart TD
     %% --- TẦNG ĐỊNH TUYẾN & PHÂN LOẠI NHẬN THỨC ---
     subgraph RoutingTier ["🧭 COGNITIVE ROUTER & INTENT/SLOT PARSER"]
         NormalizedInput --> KevModel["⚡ Kev Intent Classifier & Slot Extractor<br><i>(Fast Path: ~5–12ms · 0 Token LLM)</i>"]
-        KevModel --> DualPathRouter{"Độ phức tạp & Điểm tin cậy Softmax<br>(T=2.35, threshold >= 0.65)"}
+        KevModel --> DualPathRouter{"Độ phức tạp & Điểm tin cậy Calibrated Probability<br>(threshold hiện tại = 0.50; cần hiệu chỉnh trên holdout)"}
     end
 
     %% --- PHÂN TÁCH HAI MIỀN NGHIỆP VỤ ---

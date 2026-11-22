@@ -1,8 +1,8 @@
 """Comprehensive evaluation script generating professional HTML report.
 
 Evaluates on:
-1. Internal Stratified Test Split: backend/data/splits/kev_test.jsonl (175 samples)
-2. External Real-world Benchmark Split: backend/data/splits/external_eval_benchmark.jsonl (149 samples)
+1. Internal Stratified Test Split: backend/data/splits/kev_test.jsonl
+2. Independent External Holdout: backend/data/splits/external_eval_benchmark.jsonl
 
 Generates interactive, presentation-ready HTML report at:
   backend/models/reports/kev_model_evaluation.html
@@ -15,6 +15,7 @@ import glob
 import re
 import joblib
 import numpy as np
+from time import perf_counter
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -247,22 +248,22 @@ def generate_html_report(internal_res, external_res, labels):
             <div class="card" style="border-top: 4px solid var(--accent);">
                 <div class="card-title">Độ Chính Xác Nội Bộ (Internal Accuracy)</div>
                 <div class="card-value" style="color: var(--accent);">{internal_res['accuracy']*100:.2f}%</div>
-                <div class="card-sub">Kiểm thử trên 175 mẫu phân tầng (kev_test.jsonl)</div>
+                <div class="card-sub">Kiểm thử trên {internal_res['sample_count']} mẫu phân tầng (kev_test.jsonl)</div>
             </div>
             <div class="card" style="border-top: 4px solid var(--primary-light);">
                 <div class="card-title">Độ Chính Xác Ngoại Nguồn (External Accuracy)</div>
                 <div class="card-value" style="color: var(--primary-light);">{external_res['accuracy']*100:.2f}%</div>
-                <div class="card-sub">Kiểm thử trên 149 mẫu cào thực tế (external_benchmark)</div>
+                <div class="card-sub">Kiểm thử trên {external_res['sample_count']} mẫu holdout (external_benchmark)</div>
             </div>
             <div class="card" style="border-top: 4px solid #38bdf8;">
                 <div class="card-title">Macro F1-Score (Internal)</div>
                 <div class="card-value" style="color: #38bdf8;">{internal_res['f1_macro']*100:.2f}%</div>
-                <div class="card-sub">Độ cân bằng hoàn hảo trên toàn bộ 32 nhãn</div>
+                <div class="card-sub">Tính trên toàn bộ {len(labels)} nhãn</div>
             </div>
             <div class="card" style="border-top: 4px solid var(--warning);">
                 <div class="card-title">Độ Trễ Phản Xạ Trung Bình</div>
-                <div class="card-value" style="color: var(--warning);">~6.2 ms</div>
-                <div class="card-sub">0 Token LLM · Phản xạ tức thì System 1</div>
+                <div class="card-value" style="color: var(--warning);">{internal_res['latency_ms']:.2f} ms</div>
+                <div class="card-sub">Đo trên batch test nội bộ · 0 Token LLM</div>
             </div>
         </div>
 
@@ -273,8 +274,8 @@ def generate_html_report(internal_res, external_res, labels):
 
         <!-- TABS SECTIONS -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('internal')">📊 1. Kiểm Thử Nội Bộ (Internal Split - 175 Mẫu)</button>
-            <button class="tab-btn" onclick="switchTab('external')">🌐 2. Benchmark Nguồn Ngoài (External Benchmark - 149 Mẫu)</button>
+            <button class="tab-btn active" onclick="switchTab('internal')">📊 1. Kiểm Thử Nội Bộ ({internal_res['sample_count']} Mẫu)</button>
+            <button class="tab-btn" onclick="switchTab('external')">🌐 2. Holdout Curated ({external_res['sample_count']} Mẫu)</button>
         </div>
 
         <!-- TAB 1: INTERNAL SPLIT -->
@@ -381,8 +382,11 @@ def main():
     # 1. Evaluate Internal Test Split
     print(f"\n1. Đánh giá trên tập test nội bộ: {INTERNAL_TEST_FILE}")
     X_int, y_int = load_dataset(INTERNAL_TEST_FILE)
+    start = perf_counter()
     preds_int = pipeline.predict(X_int)
     int_metrics = compute_metrics(y_int, preds_int, labels)
+    int_metrics["sample_count"] = len(y_int)
+    int_metrics["latency_ms"] = (perf_counter() - start) * 1000 / max(len(y_int), 1)
     print(f"  • Internal Accuracy: {int_metrics['accuracy']*100:.2f}%")
     print(f"  • Macro F1-Score:    {int_metrics['f1_macro']*100:.2f}%")
 
@@ -391,6 +395,8 @@ def main():
     X_ext, y_ext = load_dataset(EXTERNAL_TEST_FILE)
     preds_ext = pipeline.predict(X_ext)
     ext_metrics = compute_metrics(y_ext, preds_ext, labels)
+    ext_metrics["sample_count"] = len(y_ext)
+    ext_metrics["latency_ms"] = int_metrics["latency_ms"]
     print(f"  • External Accuracy: {ext_metrics['accuracy']*100:.2f}%")
     print(f"  • Macro F1-Score:    {ext_metrics['f1_macro']*100:.2f}%")
 

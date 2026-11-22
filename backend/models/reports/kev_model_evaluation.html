@@ -165,13 +165,13 @@
 
         <div class="notice">
             <span style="font-size: 20px;">🎉</span>
-            <div><strong>Kết quả vượt chuẩn:</strong> Mô hình Kev đạt độ chính xác ấn tượng <strong>93.86%</strong> trên tập test nội bộ và duy trì <strong>96.22%</strong> trên dữ liệu đời thường ngoài phân phối, vượt xa yêu cầu cam kết (>90%)!</div>
+            <div><strong>Báo cáo cũ:</strong> Các số liệu dưới đây được tạo trước khi sửa leakage của external holdout. Hãy chạy lại <code>scripts/training/eval_and_generate_report.py</code> sau khi retrain model; không dùng các metric này để đánh giá release hiện tại.</div>
         </div>
 
         <!-- TABS SECTIONS -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('internal')">📊 1. Kiểm Thử Nội Bộ (Internal Split - 175 Mẫu)</button>
-            <button class="tab-btn" onclick="switchTab('external')">🌐 2. Benchmark Nguồn Ngoài (External Benchmark - 149 Mẫu)</button>
+            <button class="tab-btn active" onclick="switchTab('internal')">📊 1. Kiểm Thử Nội Bộ (report cũ)</button>
+            <button class="tab-btn" onclick="switchTab('external')">🌐 Holdout External (report cũ)</button>
         </div>
 
         <!-- TAB 1: INTERNAL SPLIT -->
