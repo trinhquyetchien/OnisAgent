@@ -10,6 +10,71 @@
 [![Arithmetic: 100% Decimal](https://img.shields.io/badge/Arithmetic-100%25%20Exact%20Decimal-purple.svg)](#nguyên-tắc-kiến-trúc-adr-matrix)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## Tài liệu kỹ thuật mới
+
+- [Kiến trúc Backend](docs/architecture.md)
+- [Đặc tả API](docs/api-specification.md)
+- [Schema dữ liệu](docs/database-schema.md)
+- [Tích hợp AI](docs/ai-integration.md)
+- [Kiến trúc Authentication](docs/architecture/authentication.md)
+- [API Authentication](docs/api/authentication.md)
+- [Schema Authentication](docs/database/schema.md)
+- [ERD PostgreSQL](docs/database/erd.md)
+- [Lịch sử migration](docs/database/migration-history.md)
+- [Hướng dẫn migration](docs/development/database-migration-guide.md)
+
+## Authentication setup
+
+Configure PostgreSQL and authentication secrets in `.env`, then run:
+
+```powershell
+alembic upgrade head
+python -m uvicorn src.main:app --host 127.0.0.1 --port 8000
+```
+
+## Docker development environment
+
+Run these commands from the `backend/` directory. If `.env` does not exist, create
+it from `.env.example` and replace the development password/secret placeholders.
+Keep `POSTGRES_PASSWORD` and the password in `DATABASE_URL` identical. The existing
+authentication settings are named `AUTH_SECRET`, `AUTH_ACCESS_TOKEN_MINUTES`, and
+`AUTH_REFRESH_TOKEN_DAYS`; they are used by the current auth implementation.
+
+```powershell
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up -d --build
+docker compose ps
+docker compose logs -f
+docker compose run --rm backend alembic upgrade head
+```
+
+The API is available at `http://localhost:8000`. Inside the backend container,
+Compose sets `DATABASE_URL` to use the `db` service hostname. For a backend started
+directly on the host, use `localhost` in `DATABASE_URL`. The `/health` endpoint
+returns HTTP 503 when it cannot connect to the database.
+
+Stop containers without deleting PostgreSQL data:
+
+```powershell
+docker compose down
+```
+
+> **Warning:** `docker compose down -v` removes the named PostgreSQL volume and all
+> database data. Use it only when you explicitly intend to delete that data.
+
+## API Mapping chính
+
+| Frontend Screen | Thao tác | API |
+|---|---|---|
+| Đăng nhập/Đăng ký | Auth | `POST /api/v1/auth/register`, `POST /api/v1/auth/login` |
+| Trợ lý AI | Chat và intent | `POST /api/v1/chat`, `POST /api/v1/intent/classify` |
+| Tài chính | Danh sách/thêm/sửa/xóa giao dịch | `/api/v1/transactions` |
+| Công việc | Danh sách/thêm/sửa công việc | `/api/v1/tasks` |
+| Deadline | Xem công việc | `/api/v1/tasks?status=pending` |
+| Quỹ tiết kiệm | Xem/tạo quỹ | `/api/v1/savings-goals` |
+| Sổ nợ | Xem/tạo nợ | `/api/v1/debts` |
+| Hành động nhạy cảm | Xác nhận | `POST /api/v1/hitl/approve` |
+
 ---
 
 ## 📑 Mục Lục
