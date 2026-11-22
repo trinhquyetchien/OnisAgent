@@ -12,6 +12,7 @@ from decimal import Decimal
 from pathlib import Path
 import re
 import time
+import unicodedata
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, status
@@ -43,6 +44,24 @@ from src.tools.calculator import calculate_loan_amortization
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = PROJECT_ROOT / "models" / "checkpoints" / "kev" / "kev_intent_model.joblib"
 CONFIDENCE_THRESHOLD = 0.50  # Validate/recalibrate this threshold on a held-out set.
+
+
+def _looks_like_task_today_query(text: str) -> bool:
+    """Guard common ASR/typo variants before intent classification."""
+    folded = unicodedata.normalize("NFD", text.lower())
+    folded = "".join(char for char in folded if unicodedata.category(char) != "Mn")
+    folded = re.sub(r"đ", "d", folded)
+    folded = re.sub(r"\s+", " ", folded).strip()
+    has_task_noun = any(term in folded for term in ("viec", "cong viec", "task", "lich"))
+    has_query_marker = any(
+        marker in folded
+        for marker in ("hom nay", "nay", "co viec", "co task", "liet ke", "xem viec")
+    )
+    has_create_marker = any(
+        marker in folded
+        for marker in ("tao", "them", "nhac toi", "ghi chu", "dat lich", "len lich")
+    )
+    return has_task_noun and has_query_marker and not has_create_marker
 
 
 # ----------------- IN-MEMORY APPLICATION STATE -----------------
@@ -376,6 +395,9 @@ def classify_intent(request: ClassifyRequest):
     confidence = float(probs[best_idx])
     latency_ms = (time.perf_counter() - start) * 1000
 
+    if _looks_like_task_today_query(request.text):
+        intent = "task.query_today"
+
     # If intent belongs to Reasoning Path OR confidence is lower than threshold
     REASONING_INTENTS = {
         "finance.financial_report",
@@ -423,6 +445,9 @@ def chat(request: ChatRequest):
     best_idx = int(np.argmax(probs))
     detected_intent = model.classes_[best_idx]
     confidence = float(probs[best_idx])
+
+    if _looks_like_task_today_query(request.text):
+        detected_intent = "task.query_today"
 
     # If the session is actively waiting for clarification and confidence is borderline,
     # respect the pending intent

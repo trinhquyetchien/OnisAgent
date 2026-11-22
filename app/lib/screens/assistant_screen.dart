@@ -155,6 +155,37 @@ class _AssistantScreenState extends State<AssistantScreen>
     double confidence = 0.88;
     List<String> replies = [];
 
+    final isTaskTodayQuery =
+        (lower.contains('hôm nay') || lower.contains('nay')) &&
+        (lower.contains('việc') || lower.contains('công việc') || lower.contains('task')) &&
+        (lower.contains('gì') || lower.contains('nào') || lower.contains('xem') || lower.contains('liệt kê')) &&
+        !lower.contains('tạo') &&
+        !lower.contains('thêm') &&
+        !lower.contains('nhắc');
+
+    if (isTaskTodayQuery) {
+      intent = 'task.query_today';
+      reply = '📅 Hôm nay bạn có 3 việc cần giải quyết:\n'
+          '1. Hoàn thiện tài liệu kiến trúc OnisAgent\n'
+          '2. Họp nhóm dự án AI4Life\n'
+          '3. Đọc tài liệu Flutter & Bedrock';
+      replies = ['Thêm việc mới', 'Xem deadline tuần'];
+      dataService.addChatMessage(
+        ChatMessage(
+          text: reply,
+          isUser: false,
+          time: DateTime.now(),
+          pathBadge: 'Offline Fallback • Task Query',
+          fastPathTag: 'Offline Fallback • Task Query',
+          intentTag: intent,
+          confidence: confidence,
+          latencyMs: 0,
+          quickReplies: replies,
+        ),
+      );
+      return;
+    }
+
     if (lower.contains('cà phê') ||
         lower.contains('ăn') ||
         lower.contains('phở') ||

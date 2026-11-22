@@ -109,7 +109,7 @@ class ApiService {
         'text': text,
         'session_id': sessionId,
         'user_id': 'default_user',
-        if (slots != null) 'slots': slots,
+        ...?(slots == null ? null : {'slots': slots}),
       }),
     );
 
