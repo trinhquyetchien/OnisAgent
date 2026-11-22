@@ -93,6 +93,7 @@ class ApiService {
   final String baseUrl;
   final String sessionId;
   String? token;
+  static String? authToken;
 
   ApiService({
     this.baseUrl = configuredBaseUrl,
@@ -166,7 +167,8 @@ class ApiService {
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
-        if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
+        if ((token ?? authToken)?.isNotEmpty ?? false)
+          'Authorization': 'Bearer ${token ?? authToken}',
       };
 
   Future<AuthSession> _authRequest(String path, Map<String, dynamic> body) async {
