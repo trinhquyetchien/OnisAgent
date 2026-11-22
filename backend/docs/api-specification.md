@@ -4,12 +4,24 @@ Base URL: `/api/v1`
 
 ## Authentication
 
-- `POST /auth/register`
+- `POST /auth/register` (HTTP 201; sends email verification OTP)
 - `POST /auth/login`
+- `POST /auth/google`
+- `POST /auth/refresh`
 - `GET /auth/me`
 - `POST /auth/logout`
+- `POST /auth/logout-all`
+- `POST /auth/verify-email`
+- `POST /auth/resend-verification`
+- `POST /auth/forgot-password`
+- `POST /auth/verify-reset-token`
+- `POST /auth/reset-password`
+- `POST /auth/change-password`
 
-Đặt `Authorization: Bearer <token>` khi `AUTH_REQUIRED=true`.
+`verify-email` và các route OTP đặt lại mật khẩu cần body `{ "email": "...", "token": "123456" }`.
+OTP được gửi qua SMTP; cấu hình trong `backend/.env.example`. `logout` chấp nhận body
+`{ "refresh_token": "..." }` (có thể bỏ body để thu hồi session mới nhất).
+Đặt `Authorization: Bearer <token>` cho các route yêu cầu phiên đăng nhập.
 
 ## AI
 
@@ -49,4 +61,5 @@ DELETE task không xóa trực tiếp; trả trạng thái `BLOCKED` và yêu c�
 
 - `POST /hitl/approve`
 
-Request cần `idempotency_key`, `action` và `payload`. Approval lặp lại cùng key không thực thi lặp.
+Request cần `idempotency_key`, `action` và `payload`. Các action gồm `task_delete`,
+`savings_create`, `loan_apply` và `transfer`. Approval lặp lại cùng key không thực thi lặp.

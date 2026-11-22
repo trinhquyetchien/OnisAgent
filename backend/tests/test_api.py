@@ -235,6 +235,9 @@ def test_transaction_crud_and_correction(client):
     )
     assert created.status_code == 201
     transaction = created.json()["transaction"]
+    fetched = client.get(f"/api/v1/transactions/{transaction['id']}")
+    assert fetched.status_code == 200
+    assert fetched.json()["transaction"]["id"] == transaction["id"]
 
     corrected = client.post(
         "/api/v1/transactions/corrections",
@@ -250,9 +253,34 @@ def test_transaction_crud_and_correction(client):
 
     listed = client.get("/api/v1/transactions")
     assert listed.json()["transactions"][0]["category"] == "Ăn uống"
+    filtered = client.get(
+        "/api/v1/transactions",
+        params={"category": "Ăn uống", "keyword": "trà"},
+    )
+    assert [item["id"] for item in filtered.json()["transactions"]] == [
+        transaction["id"]
+    ]
 
     deleted = client.delete(f"/api/v1/transactions/{transaction['id']}")
     assert deleted.status_code == 200
+
+
+def test_savings_goal_and_debt_api_routes(client):
+    goal = client.post(
+        "/api/v1/savings-goals",
+        json={"values": {"title": "Emergency fund", "target_amount": 1000000}},
+    )
+    assert goal.status_code == 201
+    assert goal.json()["savings_goal"]["title"] == "Emergency fund"
+    assert len(client.get("/api/v1/savings-goals").json()["savings_goals"]) == 1
+
+    debt = client.post(
+        "/api/v1/debts",
+        json={"values": {"person": "An", "amount": 50000, "debt_type": "owed_to"}},
+    )
+    assert debt.status_code == 201
+    assert debt.json()["debt"]["person"] == "An"
+    assert len(client.get("/api/v1/debts").json()["debts"]) == 1
 
 
 def test_hitl_delete_is_blocked_until_explicit_approval(client):
@@ -262,11 +290,17 @@ def test_hitl_delete_is_blocked_until_explicit_approval(client):
     )
     assert created.status_code == 201
     task = created.json()["task"]
+    completed = client.patch(
+        f"/api/v1/tasks/{task['id']}",
+        json={"status": "completed"},
+    )
+    assert completed.json()["task"]["status"] == "completed"
 
     blocked = client.delete(f"/api/v1/tasks/{task['id']}")
     assert blocked.status_code == 200
     assert blocked.json()["requires_hitl"] is True
-    assert storage.list_tasks("default_user", status="all")
+    pending_tasks = storage.list_tasks("default_user", status="all")
+    assert pending_tasks[0]["status"] == "completed"
 
     approved = client.post(
         "/api/v1/hitl/approve",
@@ -279,3 +313,35 @@ def test_hitl_delete_is_blocked_until_explicit_approval(client):
     assert approved.status_code == 200
     assert approved.json()["ok"] is True
     assert not storage.list_tasks("default_user", status="all")
+
+
+def test_hitl_transfer_approval_is_persisted_once(client):
+    payload = {
+        "idempotency_key": "transfer-hitl-1",
+        "action": "transfer",
+        "payload": {
+            "amount": 12500,
+            "from_account": "checking",
+            "to_account": "savings",
+        },
+    }
+
+    first = client.post("/api/v1/hitl/approve", json=payload)
+    second = client.post("/api/v1/hitl/approve", json=payload)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    transactions = storage.list_transactions("default_user")
+    assert len(transactions) == 1
+    assert transactions[0]["type"] == "transfer"
+    assert transactions[0]["amount"] == "12500"
+
+    invalid = client.post(
+        "/api/v1/hitl/approve",
+        json={
+            **payload,
+            "idempotency_key": "transfer-hitl-invalid",
+            "payload": {"amount": 0, "from_account": "checking", "to_account": "savings"},
+        },
+    )
+    assert invalid.status_code == 422
