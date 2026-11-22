@@ -33,6 +33,10 @@ def generate_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def generate_otp() -> str:
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
 def issue_access_token(user_id: UUID, secret: str, issuer: str, minutes: int = 15) -> str:
     now = datetime.now(timezone.utc)
     payload = {
