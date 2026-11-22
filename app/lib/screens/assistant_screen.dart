@@ -63,35 +63,6 @@ class _AssistantScreenState extends State<AssistantScreen>
     });
     _scrollToBottom();
 
-    final lower = text.toLowerCase();
-    if (lower.contains('quỹ laptop') ||
-        (lower.contains('trích') && lower.contains('tiết kiệm'))) {
-      await Future.delayed(const Duration(milliseconds: 350));
-      if (!mounted) return;
-      final hitlMsg = ChatMessage(
-        text:
-            'OnisAgent đã nhận lệnh trích tiền. Theo chốt kiểm soát an toàn Human-in-the-Loop (ADR-0004), xin vui lòng xác nhận trước khi thực hiện:',
-        isUser: false,
-        time: DateTime.now(),
-        pathBadge: 'Reasoning Path • HITL Gate',
-        fastPathTag: 'Reasoning Path • HITL Gate',
-        hitlProposal: HitlActionProposal(
-          id: 'hitl_${DateTime.now().millisecondsSinceEpoch}',
-          actionType: 'transfer_savings',
-          title: 'Trích ngân sách vào Quỹ Laptop AI',
-          details:
-              'Chuyển 500.000 ₫ từ Số dư khả dụng sang quỹ "Đổi Laptop chạy Local AI Model".',
-          amount: 500000,
-          targetName: 'Đổi Laptop chạy Local AI Model (RTX GPU)',
-          timestamp: DateTime.now(),
-        ),
-      );
-      dataService.addChatMessage(hitlMsg);
-      setState(() => _isLoading = false);
-      _scrollToBottom();
-      return;
-    }
-
     try {
       final response = await _apiService.sendMessage(text: text);
       if (!mounted) return;
@@ -183,6 +154,37 @@ class _AssistantScreenState extends State<AssistantScreen>
     String intent = 'finance.add_expense';
     double confidence = 0.88;
     List<String> replies = [];
+
+    final isTaskTodayQuery =
+        (lower.contains('hôm nay') || lower.contains('nay')) &&
+        (lower.contains('việc') || lower.contains('công việc') || lower.contains('task')) &&
+        (lower.contains('gì') || lower.contains('nào') || lower.contains('xem') || lower.contains('liệt kê')) &&
+        !lower.contains('tạo') &&
+        !lower.contains('thêm') &&
+        !lower.contains('nhắc');
+
+    if (isTaskTodayQuery) {
+      intent = 'task.query_today';
+      reply = '📅 Hôm nay bạn có 3 việc cần giải quyết:\n'
+          '1. Hoàn thiện tài liệu kiến trúc OnisAgent\n'
+          '2. Họp nhóm dự án AI4Life\n'
+          '3. Đọc tài liệu Flutter & Bedrock';
+      replies = ['Thêm việc mới', 'Xem deadline tuần'];
+      dataService.addChatMessage(
+        ChatMessage(
+          text: reply,
+          isUser: false,
+          time: DateTime.now(),
+          pathBadge: 'Offline Fallback • Task Query',
+          fastPathTag: 'Offline Fallback • Task Query',
+          intentTag: intent,
+          confidence: confidence,
+          latencyMs: 0,
+          quickReplies: replies,
+        ),
+      );
+      return;
+    }
 
     if (lower.contains('cà phê') ||
         lower.contains('ăn') ||

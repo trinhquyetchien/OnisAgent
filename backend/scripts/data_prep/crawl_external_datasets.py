@@ -11,7 +11,7 @@ Performs robust data cleaning:
 
 Merges into:
 - backend/data/raw/external_crawled_data.jsonl
-- Expands backend/data/clean/kev_dataset_unified.jsonl (> 2,500 - 3,000+ samples)
+- Updates backend/data/clean/kev_dataset_unified.jsonl without including benchmark rows
 - backend/data/splits/external_eval_benchmark.jsonl
 """
 
@@ -21,6 +21,7 @@ import random
 import re
 import unicodedata
 from collections import defaultdict
+from hashlib import sha256
 from pathlib import Path
 
 random.seed(42)
@@ -56,6 +57,11 @@ def clean_vietnamese_text(text: str) -> str:
     # Normalize whitespaces
     t = re.sub(r"\s+", " ", t).strip()
     return t
+
+
+def text_key(text: str) -> str:
+    """Return a stable, process-independent key for deduplication."""
+    return sha256(clean_vietnamese_text(text).casefold().encode("utf-8")).hexdigest()
 
 
 # Rich repository of real-world Vietnamese colloquial phrases
@@ -327,7 +333,7 @@ def main():
             cleaned_text = clean_vietnamese_text(text)
             if not cleaned_text:
                 continue
-            h = hash(cleaned_text.lower())
+            h = text_key(cleaned_text)
             if h not in seen_hashes:
                 seen_hashes.add(h)
                 sample = {
@@ -370,7 +376,11 @@ def main():
                 if line:
                     item = json.loads(line)
                     inp = clean_vietnamese_text(item["input"])
-                    h = hash(inp.lower())
+                    h = text_key(inp)
+                    # Existing unified files may contain rows from an older
+                    # run. Remove exact benchmark rows before rebuilding them.
+                    if h in seen_hashes:
+                        continue
                     if h not in existing_hashes:
                         existing_hashes.add(h)
                         item["input"] = inp
@@ -380,13 +390,6 @@ def main():
 
     # Multiply variations and merge to enrich training dataset
     expanded_unified = list(existing_unified)
-
-    # Add external samples
-    for s in external_cleaned:
-        h = hash(s["input"].lower())
-        if h not in existing_hashes:
-            existing_hashes.add(h)
-            expanded_unified.append(s)
 
     # Synthetic conversational permutations for rich coverage
     prefix_patterns = [
@@ -407,7 +410,7 @@ def main():
         pre = random.choice(prefix_patterns)
         suf = random.choice(suffix_patterns)
         new_text = clean_vietnamese_text(f"{pre}{base_text}{suf}")
-        h = hash(new_text.lower())
+        h = text_key(new_text)
         if h not in existing_hashes and len(new_text) > 8:
             existing_hashes.add(h)
             new_sample = {

@@ -77,11 +77,56 @@ class SlotValidator:
         if normalized_intent == "task.delete":
             return cls._validate_task_delete(normalized_intent, slots)
 
+        # Explicit contracts for the remaining catalog intents. These used to
+        # fall through as READY without checking required action fields.
+        required_slots = {
+            "finance.transfer": ("amount", "from_account", "to_account"),
+            "finance.record_debt": ("amount", "person"),
+            "finance.debt_repay": ("amount", "person"),
+            "finance.update_budget": ("limit_amount",),
+            "task.create_recurring": ("title",),
+            "task.schedule_event": ("title", "start_time"),
+            "task.reschedule": ("title", "new_deadline"),
+            "task.cancel": ("title",),
+            "task.search": ("keyword",),
+            "cross.bill_due_reminder": ("bill_name", "due_date"),
+        }
+        if normalized_intent in required_slots:
+            return cls._validate_required_slots(normalized_intent, slots, required_slots[normalized_intent])
+
         # ----------------- FALLBACK / SYSTEM -----------------
         return ActionResponse(
             status=ExecutionStatus.READY,
             domain=domain,
             intent=normalized_intent,
+            slots=slots,
+        )
+
+    @classmethod
+    def _validate_required_slots(
+        cls,
+        intent: str,
+        slots: dict[str, Any],
+        required: tuple[str, ...],
+    ) -> ActionResponse:
+        missing = next((name for name in required if slots.get(name) in (None, "")), None)
+        if missing:
+            return ActionResponse(
+                status=ExecutionStatus.NEED_CLARIFICATION,
+                domain=_get_domain(intent),
+                intent=intent,
+                slots=slots,
+                clarification=ClarificationPayload(
+                    intent=intent,
+                    missing_slot=missing,
+                    message=f"Bạn vui lòng cung cấp thêm thông tin '{missing}'.",
+                    expected_type="currency" if missing in {"amount", "limit_amount"} else "string",
+                ),
+            )
+        return ActionResponse(
+            status=ExecutionStatus.READY,
+            domain=_get_domain(intent),
+            intent=intent,
             slots=slots,
         )
 
