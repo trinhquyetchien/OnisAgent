@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'screens/auth/auth_gate.dart';
@@ -8,7 +9,7 @@ import 'screens/tasks_screen.dart';
 import 'screens/deadlines_screen.dart';
 import 'screens/assistant_screen.dart';
 import 'services/auth/auth_state_notifier.dart';
-import 'services/mock_data_service.dart';
+import 'services/app_data_service.dart';
 import 'theme/app_theme.dart';
 
 // Global Theme Controller: Mặc định Light Mode, hỗ trợ chuyển đổi tức thì
@@ -52,13 +53,36 @@ class MainNavigationShell extends StatefulWidget {
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int _selectedIndex = 0;
+  late final AppDataService _dataService;
+
+  @override
+  void initState() {
+    super.initState();
+    _dataService = AppDataService();
+    unawaited(_dataService.refresh());
+  }
+
+  Widget _buildApiErrorBanner(BuildContext context) {
+    final message = _dataService.errorMessage;
+    if (message == null) return const SizedBox.shrink();
+    return MaterialBanner(
+      content: Text(message),
+      leading: const Icon(Icons.cloud_off_outlined),
+      actions: [
+        TextButton(
+          onPressed: () => unawaited(_dataService.refresh()),
+          child: const Text('Thử lại'),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isDesktopOrWeb = MediaQuery.of(context).size.width >= 850;
-    final dataService = MockDataService();
+    final dataService = _dataService;
 
     final List<Widget> pages = [
       HomeScreen(
@@ -240,12 +264,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                                 listenable: AuthStateNotifier(),
                                 builder: (context, _) {
                                   final user = AuthStateNotifier().currentUser;
-                                  final initialChar = (user != null &&
-                                          user.fullName.isNotEmpty)
+                                  final initialChar =
+                                      (user != null && user.fullName.isNotEmpty)
                                       ? user.fullName[0].toUpperCase()
                                       : 'U';
                                   return Tooltip(
-                                    message: 'Tài khoản: ${user?.fullName ?? ""}',
+                                    message:
+                                        'Tài khoản: ${user?.fullName ?? ""}',
                                     child: InkWell(
                                       onTap: () =>
                                           UserProfileDialog.show(context),
@@ -336,9 +361,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
                 ),
                 Expanded(
-                  child: IndexedStack(
-                    index: _selectedIndex,
-                    children: pages,
+                  child: Column(
+                    children: [
+                      _buildApiErrorBanner(context),
+                      Expanded(
+                        child: IndexedStack(
+                          index: _selectedIndex,
+                          children: pages,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -401,8 +433,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   listenable: AuthStateNotifier(),
                   builder: (context, _) {
                     final user = AuthStateNotifier().currentUser;
-                    final initialChar = (user != null &&
-                            user.fullName.isNotEmpty)
+                    final initialChar =
+                        (user != null && user.fullName.isNotEmpty)
                         ? user.fullName[0].toUpperCase()
                         : 'U';
                     return IconButton(
@@ -426,9 +458,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 const SizedBox(width: 4),
               ],
             ),
-            body: IndexedStack(
-              index: _selectedIndex,
-              children: pages,
+            body: Column(
+              children: [
+                _buildApiErrorBanner(context),
+                Expanded(
+                  child: IndexedStack(index: _selectedIndex, children: pages),
+                ),
+              ],
             ),
             bottomNavigationBar: Container(
               decoration: BoxDecoration(

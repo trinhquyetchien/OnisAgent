@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../services/mock_data_service.dart';
+import '../services/app_data_service.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 
@@ -11,7 +11,7 @@ class DeadlinesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dataService = MockDataService();
+    final dataService = AppDataService();
 
     return ListenableBuilder(
       listenable: dataService,
@@ -293,7 +293,7 @@ class DeadlinesScreen extends StatelessWidget {
   Widget _buildDeadlineItem(
     BuildContext context,
     TaskItem task,
-    MockDataService service,
+    AppDataService service,
     DateTime now, {
     bool isUrgent = false,
     bool isOverdue = false,

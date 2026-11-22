@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import '../services/mock_data_service.dart';
+import '../services/app_data_service.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 
@@ -21,7 +21,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dataService = MockDataService();
+    final dataService = AppDataService();
     final currencyFormatter = NumberFormat.currency(
       locale: 'vi_VN',
       symbol: '₫',
@@ -34,7 +34,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
         final filteredTx = dataService.transactions.where((tx) {
           if (_selectedFilter == 'Chi tiêu' && tx.isIncome) return false;
           if (_selectedFilter == 'Thu nhập' && !tx.isIncome) return false;
-          if (_selectedCategory != 'Tất cả' && tx.category != _selectedCategory) {
+          if (_selectedCategory != 'Tất cả' &&
+              tx.category != _selectedCategory) {
             return false;
           }
           return true;
@@ -402,7 +403,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   Widget _buildFinancialSummaryCard(
     BuildContext context,
-    MockDataService dataService,
+    AppDataService dataService,
     NumberFormat currencyFormatter,
   ) {
     final theme = Theme.of(context);
@@ -639,7 +640,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   void _confirmDeleteTransaction(
     BuildContext context,
-    MockDataService service,
+    AppDataService service,
     TransactionItem tx,
   ) {
     showDialog(
@@ -656,9 +657,11 @@ class _FinanceScreenState extends State<FinanceScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.expense),
-            onPressed: () {
-              service.deleteTransaction(tx.id);
-              Navigator.pop(ctx);
+            onPressed: () async {
+              await service.deleteTransaction(tx.id);
+              if (service.errorMessage == null && ctx.mounted) {
+                Navigator.pop(ctx);
+              }
             },
             child: const Text('Xóa'),
           ),
@@ -669,7 +672,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   void _showAddTransactionBottomSheet(
     BuildContext context,
-    MockDataService service,
+    AppDataService service,
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -806,7 +809,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () {
+                    onPressed: () async {
                       final amount =
                           double.tryParse(
                             amountController.text.replaceAll(
@@ -817,7 +820,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                           0.0;
                       final desc = descController.text.trim();
                       if (amount > 0 && desc.isNotEmpty) {
-                        service.addTransaction(
+                        await service.addTransaction(
                           TransactionItem(
                             id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
                             description: desc,
@@ -827,7 +830,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
                             date: DateTime.now(),
                           ),
                         );
-                        Navigator.pop(ctx);
+                        if (service.errorMessage == null && ctx.mounted) {
+                          Navigator.pop(ctx);
+                        }
                       }
                     },
                     child: const Text('Lưu giao dịch'),

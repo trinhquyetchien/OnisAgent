@@ -49,6 +49,32 @@ class TransactionItem {
     this.hasReceipt = false,
   });
 
+  factory TransactionItem.fromJson(Map<String, dynamic> json) {
+    return TransactionItem(
+      id: json['id']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      amount: double.tryParse(json['amount']?.toString() ?? '0') ?? 0.0,
+      type: json['type']?.toString() ?? 'expense',
+      category: json['category']?.toString() ?? 'Khác',
+      date: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
+          : (json['date'] != null
+                ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
+                : DateTime.now()),
+      hasReceipt: json['has_receipt'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'description': description,
+    'amount': amount,
+    'type': type,
+    'category': category,
+    'created_at': date.toIso8601String(),
+    'has_receipt': hasReceipt,
+  };
+
   bool get isIncome => type.toLowerCase() == 'income';
 
   IconData get categoryIcon {
@@ -98,8 +124,48 @@ class TaskItem {
     this.isImportant = false,
   });
 
+  factory TaskItem.fromJson(Map<String, dynamic> json) {
+    final priorityStr = json['priority']?.toString().toLowerCase() ?? 'medium';
+    Priority priority = Priority.medium;
+    if (priorityStr == 'urgent') {
+      priority = Priority.urgent;
+    } else if (priorityStr == 'high') {
+      priority = Priority.high;
+    } else if (priorityStr == 'low') {
+      priority = Priority.low;
+    }
+
+    final statusStr = json['status']?.toString().toLowerCase();
+    final isDone = json['is_completed'] == true || statusStr == 'completed';
+
+    return TaskItem(
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString(),
+      deadline: json['deadline'] != null
+          ? DateTime.tryParse(json['deadline'].toString())
+          : null,
+      priority: priority,
+      isCompleted: isDone,
+      category: json['category']?.toString() ?? 'Chung',
+      isImportant: json['is_important'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'description': description,
+    'deadline': deadline?.toIso8601String(),
+    'priority': priority.name,
+    'status': isCompleted ? 'completed' : 'pending',
+    'category': category,
+    'is_important': isImportant,
+  };
+
   // Eisenhower Matrix quadrants
-  bool get isUrgentQuadrant => priority == Priority.urgent || priority == Priority.high;
+  bool get isUrgentQuadrant =>
+      priority == Priority.urgent || priority == Priority.high;
 }
 
 class SavingsGoal {
@@ -119,6 +185,32 @@ class SavingsGoal {
     this.icon = Icons.savings_rounded,
   });
 
+  factory SavingsGoal.fromJson(Map<String, dynamic> json) {
+    return SavingsGoal(
+      id: json['id']?.toString() ?? '',
+      title:
+          json['title']?.toString() ??
+          json['goal_name']?.toString() ??
+          'Mục tiêu tiết kiệm',
+      targetAmount:
+          double.tryParse(json['target_amount']?.toString() ?? '0') ?? 0.0,
+      currentAmount:
+          double.tryParse(json['current_amount']?.toString() ?? '0') ?? 0.0,
+      deadlineDate: json['deadline_date'] != null
+          ? DateTime.tryParse(json['deadline_date'].toString()) ??
+                DateTime.now().add(const Duration(days: 90))
+          : DateTime.now().add(const Duration(days: 90)),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'target_amount': targetAmount,
+    'current_amount': currentAmount,
+    'deadline_date': deadlineDate.toIso8601String(),
+  };
+
   double get progress => (currentAmount / targetAmount).clamp(0.0, 1.0);
   bool get isCompleted => currentAmount >= targetAmount;
 }
@@ -127,7 +219,9 @@ enum HitlStatus { pending, approved, rejected }
 
 class HitlActionProposal {
   final String id;
-  final String actionType; // 'transfer_savings', 'pay_bill', 'create_urgent_task'
+  final String idempotencyKey;
+  final String actionType;
+  final Map<String, dynamic> payload;
   final String title;
   final String details;
   final double? amount;
@@ -138,13 +232,16 @@ class HitlActionProposal {
   HitlActionProposal({
     required this.id,
     required this.actionType,
+    String? idempotencyKey,
+    Map<String, dynamic>? payload,
     required this.title,
     required this.details,
     this.amount,
     this.targetName,
     this.status = HitlStatus.pending,
     required this.timestamp,
-  });
+  }) : idempotencyKey = idempotencyKey ?? id,
+       payload = payload ?? const {};
 }
 
 class ChatMessage {
@@ -175,8 +272,8 @@ class ChatMessage {
     List<String>? quickReplies,
     List<String>? quickChips,
     this.status,
-  })  : id = id ?? 'msg_${DateTime.now().millisecondsSinceEpoch}',
-        quickReplies = quickReplies ?? quickChips ?? const [];
+  }) : id = id ?? 'msg_${DateTime.now().millisecondsSinceEpoch}',
+       quickReplies = quickReplies ?? quickChips ?? const [];
 
   List<String> get quickChips => quickReplies;
 
