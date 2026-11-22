@@ -18,7 +18,8 @@ void main() {
   testWidgets('App smoke test loads successfully', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const OnisApp());
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
 
     // Verify that the OnisAgent title is present.
     expect(find.textContaining('Onis'), findsWidgets);

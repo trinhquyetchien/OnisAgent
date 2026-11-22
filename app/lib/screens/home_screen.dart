@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/mock_data_service.dart';
+import '../services/auth/auth_state_notifier.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 
@@ -67,13 +68,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Xin chào, Bạn! 👋',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.onSurface,
-                          ),
+                        ListenableBuilder(
+                          listenable: AuthStateNotifier(),
+                          builder: (context, _) {
+                            final user = AuthStateNotifier().currentUser;
+                            final displayName =
+                                user != null && user.fullName.isNotEmpty
+                                    ? user.fullName
+                                    : 'Bạn';
+                            return Text(
+                              'Xin chào, $displayName! 👋',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 4),
                         Text(
