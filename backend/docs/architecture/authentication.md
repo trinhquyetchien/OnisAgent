@@ -17,6 +17,15 @@ OnisAgent uses a FastAPI modular authentication layer backed by SQLAlchemy and P
 - Existing email accounts are never linked automatically to a Google identity.
 - Refresh tokens are stored only as SHA-256 hashes.
 - Email verification and password reset tokens are also stored only as hashes.
+- Email verification and password reset codes are six-digit OTPs; verification codes expire
+  after 10 minutes and reset codes after 30 minutes. The API requires the matching email.
+- OTP delivery uses SMTP. Configure `SMTP_HOST`, `SMTP_FROM`, `SMTP_PORT`, and either
+  `SMTP_STARTTLS=true` (default, typically port 587) or `SMTP_USE_SSL=true` (typically port 465).
+  Configure `SMTP_USERNAME` and `SMTP_PASSWORD` together when the server requires authentication.
+  Keep the SMTP password in the untracked `backend/.env`, not in source control.
+- `POST /api/v1/auth/resend-verification` issues and emails a replacement verification code.
+- If mail delivery fails, the API reports HTTP 503; registration may already have created the
+  account, in which case resend the verification code instead of registering again.
 
 ## Token model
 

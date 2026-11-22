@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import logging
+import smtplib
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -13,6 +15,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from src.database.postgres import get_db
+from src.email_service import send_otp_email
 from src.models.auth_models import (
     AuthIdentity,
     AuthSession,
@@ -34,6 +37,7 @@ from src.schemas.auth import (
 )
 from src.security import (
     generate_token,
+    generate_otp,
     hash_password,
     hash_token,
     issue_access_token,
@@ -43,11 +47,15 @@ from src.security import (
 
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
+logger = logging.getLogger(__name__)
 
 
 def _secret() -> str:
     secret = os.getenv("AUTH_SECRET", "").strip()
     if not secret or secret == "replace-with-a-long-random-secret":
+        # In development/local mode, fallback to a default dev secret so it works out-of-the-box
+        if os.getenv("APP_ENV", "development").lower() != "production":
+            return "onisagent-local-development-secret-key-32-chars-long"
         raise HTTPException(status_code=500, detail="Authentication secret is not configured.")
     return secret
 
@@ -62,6 +70,59 @@ def _access_minutes() -> int:
 
 def _refresh_days() -> int:
     return int(os.getenv("AUTH_REFRESH_TOKEN_DAYS", "30"))
+
+
+def _token_response(user: AuthUser, access: str, refresh: str) -> dict:
+    return {
+        "user": _public_user(user),
+        "access_token": access,
+        "refresh_token": refresh,
+        "token_type": "Bearer",
+        "expires_in": _access_minutes() * 60,
+    }
+
+
+def _send_otp(recipient: str, code: str, purpose: str) -> None:
+    try:
+        send_otp_email(recipient, code, purpose)
+    except (OSError, RuntimeError, ValueError, smtplib.SMTPException):
+        logger.exception("Could not deliver %s OTP email", purpose)
+        detail = (
+            "Không gửi được email xác thực; tài khoản có thể đã được tạo. "
+            "Hãy kiểm tra SMTP, đăng nhập rồi gửi lại mã."
+            if purpose == "email_verification"
+            else "Không thể gửi email lúc này. Vui lòng kiểm tra cấu hình SMTP hoặc thử lại sau."
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=detail,
+        ) from None
+
+
+def _otp_hash(user_id: object, code: str) -> str:
+    return hash_token(f"{user_id}:{code}")
+
+
+def _create_email_verification_code(db: Session, user: AuthUser) -> str:
+    now = datetime.now(timezone.utc)
+    previous = db.scalars(
+        select(EmailVerificationToken).where(
+            EmailVerificationToken.user_id == user.id,
+            EmailVerificationToken.used_at.is_(None),
+        )
+    )
+    for token in previous:
+        token.used_at = now
+    code = generate_otp()
+    db.add(
+        EmailVerificationToken(
+            user_id=user.id,
+            token_hash=_otp_hash(user.id, code),
+            expires_at=now + timedelta(minutes=10),
+        )
+    )
+    db.commit()
+    return code
 
 
 def _utc(value: datetime) -> datetime:
@@ -137,21 +198,11 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
         provider_subject=str(user.id),
         password_hash=hash_password(request.password),
     ))
-    raw_token = generate_token()
-    db.add(EmailVerificationToken(
-        user_id=user.id,
-        token_hash=hash_token(raw_token),
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
-    ))
     db.commit()
+    code = _create_email_verification_code(db, user)
     access, refresh = _issue_token_pair(db, user)
-    # Raw verification tokens are returned only by a dedicated mail delivery integration.
-    return {
-        "user": _public_user(user),
-        "access_token": access,
-        "refresh_token": refresh,
-        "token_type": "Bearer",
-    }
+    _send_otp(email, code, "email_verification")
+    return _token_response(user, access, refresh)
 
 
 @router.post("/login")
@@ -167,12 +218,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     if not identity or not identity.password_hash or not verify_password(identity.password_hash, request.password):
         raise HTTPException(status_code=401, detail="Email hoặc mật khẩu không đúng.")
     access, refresh = _issue_token_pair(db, user)
-    return {
-        "user": _public_user(user),
-        "access_token": access,
-        "refresh_token": refresh,
-        "token_type": "Bearer",
-    }
+    return _token_response(user, access, refresh)
 
 
 @router.post("/google")
@@ -229,12 +275,7 @@ def google_login(request: GoogleLoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Tài khoản không khả dụng.")
     db.commit()
     access, refresh = _issue_token_pair(db, user)
-    return {
-        "user": _public_user(user),
-        "access_token": access,
-        "refresh_token": refresh,
-        "token_type": "Bearer",
-    }
+    return _token_response(user, access, refresh)
 
 
 @router.post("/refresh")
@@ -257,22 +298,17 @@ def refresh(request: RefreshRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Tài khoản không khả dụng.")
     session.revoked_at = now
     access, refresh_token = _issue_token_pair(db, user)
-    return {
-        "user": _public_user(user),
-        "access_token": access,
-        "refresh_token": refresh_token,
-        "token_type": "Bearer",
-    }
+    return _token_response(user, access, refresh_token)
 
 
 @router.post("/logout")
 def logout(
-    request: LogoutRequest,
+    request: LogoutRequest | None = None,
     user: AuthUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     session = None
-    if request.refresh_token:
+    if request and request.refresh_token:
         session = db.scalar(select(AuthSession).where(
             AuthSession.user_id == user.id,
             AuthSession.refresh_token_hash == hash_token(request.refresh_token),
@@ -307,21 +343,36 @@ def me(user: AuthUser = Depends(get_current_user)):
 
 
 @router.post("/verify-email")
-def verify_email(request: VerifyEmailRequest, db: Session = Depends(get_db)):
-    digest = hash_token(request.token)
-    record = db.scalar(select(EmailVerificationToken).where(
-        EmailVerificationToken.token_hash == digest
-    ))
+def verify_email(
+    request: VerifyEmailRequest,
+    db: Session = Depends(get_db),
+):
     now = datetime.now(timezone.utc)
+    email = str(request.email).strip().lower()
+    user = db.scalar(select(AuthUser).where(AuthUser.email == email))
+    if not user:
+        raise HTTPException(status_code=400, detail="Token xác thực email không hợp lệ hoặc đã hết hạn.")
+    digest = _otp_hash(user.id, request.token)
+    record = db.scalar(select(EmailVerificationToken).where(
+        EmailVerificationToken.user_id == user.id,
+        EmailVerificationToken.token_hash == digest,
+    ))
     if not record or record.used_at or _utc(record.expires_at) <= now:
         raise HTTPException(status_code=400, detail="Token xác thực email không hợp lệ hoặc đã hết hạn.")
     record.used_at = now
-    user = db.get(AuthUser, record.user_id)
-    if not user:
-        raise HTTPException(status_code=400, detail="Token xác thực email không hợp lệ.")
     user.is_verified = True
     db.commit()
     return {"ok": True, "user": _public_user(user)}
+
+
+@router.post("/resend-verification")
+def resend_verification(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    email = str(request.email).strip().lower()
+    user = db.scalar(select(AuthUser).where(AuthUser.email == email))
+    if user and user.is_active and not user.is_verified:
+        code = _create_email_verification_code(db, user)
+        _send_otp(email, code, "email_verification")
+    return {"ok": True, "message": "Nếu tài khoản cần xác thực, mã mới đã được gửi."}
 
 
 @router.post("/forgot-password")
@@ -329,28 +380,71 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
     email = str(request.email).strip().lower()
     user = db.scalar(select(AuthUser).where(AuthUser.email == email))
     if user:
-        raw_token = generate_token()
-        db.add(PasswordResetToken(
-            user_id=user.id,
-            token_hash=hash_token(raw_token),
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=30),
-        ))
+        now = datetime.now(timezone.utc)
+        previous = db.scalars(
+            select(PasswordResetToken).where(
+                PasswordResetToken.user_id == user.id,
+                PasswordResetToken.used_at.is_(None),
+            )
+        )
+        for token in previous:
+            token.used_at = now
+        code = generate_otp()
+        db.add(
+            PasswordResetToken(
+                user_id=user.id,
+                token_hash=_otp_hash(user.id, code),
+                expires_at=now + timedelta(minutes=30),
+            )
+        )
         db.commit()
+        _send_otp(email, code, "password_reset")
     # Deliberately identical whether the email exists to reduce account enumeration.
     return {"ok": True, "message": "Nếu email tồn tại, hướng dẫn đặt lại mật khẩu đã được gửi."}
 
 
+@router.post("/verify-reset-token")
+def verify_reset_token(request: VerifyEmailRequest, db: Session = Depends(get_db)):
+    email = str(request.email).strip().lower()
+    user = db.scalar(select(AuthUser).where(AuthUser.email == email))
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail="Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.",
+        )
+    record = db.scalar(
+        select(PasswordResetToken).where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.token_hash == _otp_hash(user.id, request.token),
+        )
+    )
+    if (
+        not record
+        or record.used_at
+        or _utc(record.expires_at) <= datetime.now(timezone.utc)
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.",
+        )
+    return {"ok": True}
+
+
 @router.post("/reset-password")
 def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
-    record = db.scalar(select(PasswordResetToken).where(
-        PasswordResetToken.token_hash == hash_token(request.token)
-    ))
+    email = str(request.email).strip().lower()
+    user = db.scalar(select(AuthUser).where(AuthUser.email == email))
+    if not user:
+        raise HTTPException(status_code=400, detail="Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.")
+    record = db.scalar(
+        select(PasswordResetToken).where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.token_hash == _otp_hash(user.id, request.token),
+        )
+    )
     now = datetime.now(timezone.utc)
     if not record or record.used_at or _utc(record.expires_at) <= now:
         raise HTTPException(status_code=400, detail="Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.")
-    user = db.get(AuthUser, record.user_id)
-    if not user:
-        raise HTTPException(status_code=400, detail="Token đặt lại mật khẩu không hợp lệ.")
     identity = db.scalar(select(AuthIdentity).where(
         AuthIdentity.user_id == user.id,
         AuthIdentity.provider == "local",
