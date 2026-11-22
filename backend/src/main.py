@@ -52,6 +52,8 @@ def _looks_like_task_today_query(text: str) -> bool:
     folded = "".join(char for char in folded if unicodedata.category(char) != "Mn")
     folded = re.sub(r"đ", "d", folded)
     folded = re.sub(r"\s+", " ", folded).strip()
+    if "lap ke hoach" in folded or "len ke hoach" in folded or "sap xep" in folded or "toi uu hoa thoi gian" in folded:
+        return False
     has_task_noun = any(term in folded for term in ("viec", "cong viec", "task", "lich"))
     has_query_marker = any(
         marker in folded
@@ -62,6 +64,38 @@ def _looks_like_task_today_query(text: str) -> bool:
         for marker in ("tao", "them", "nhac toi", "ghi chu", "dat lich", "len lich")
     )
     return has_task_noun and has_query_marker and not has_create_marker
+
+
+def _looks_like_task_plan(text: str) -> bool:
+    folded = unicodedata.normalize("NFD", text.lower())
+    folded = "".join(char for char in folded if unicodedata.category(char) != "Mn")
+    folded = re.sub(r"đ", "d", folded)
+    return any(term in folded for term in ("lap ke hoach", "len ke hoach", "sap xep thu tu", "toi uu hoa thoi gian", "ke hoach lam viec"))
+
+
+def _looks_like_cross_plan(text: str) -> bool:
+    folded = unicodedata.normalize("NFD", text.lower())
+    folded = "".join(char for char in folded if unicodedata.category(char) != "Mn")
+    folded = re.sub(r"đ", "d", folded)
+    return _looks_like_task_plan(text) and any(
+        term in folded for term in ("tiec", "du lich", "offline", "su kien", "to chuc")
+    )
+
+
+def _looks_like_budget_plan(text: str) -> bool:
+    folded = unicodedata.normalize("NFD", text.lower())
+    folded = "".join(char for char in folded if unicodedata.category(char) != "Mn")
+    folded = re.sub(r"đ", "d", folded)
+    return "ngan sach" in folded and not _looks_like_cross_plan(text)
+
+
+def _looks_like_greeting_summary(text: str) -> bool:
+    folded = unicodedata.normalize("NFD", text.lower())
+    folded = "".join(char for char in folded if unicodedata.category(char) != "Mn")
+    folded = re.sub(r"đ", "d", folded)
+    has_greeting = any(term in folded for term in ("chao", "hello", "xin chao", "buoi sang"))
+    has_summary = any(term in folded for term in ("tom tat", "diem tin", "tong quan", "tinh hinh"))
+    return has_greeting and (has_summary or "bao nhieu tien" in folded or "bao nhieu task" in folded)
 
 
 # ----------------- IN-MEMORY APPLICATION STATE -----------------
@@ -155,19 +189,30 @@ def parse_slots_from_text(text: str, intent: str) -> dict[str, Any]:
     match_num = re.search(r"\b(\d{4,})\b", lower)
 
     if match_k:
-        val = float(match_k.group(1).replace(",", "."))
-        slots["amount"] = Decimal(str(int(val * 1000)))
+        slots["amount"] = Decimal(match_k.group(1).replace(",", ".")) * 1000
     elif match_cu:
-        val = float(match_cu.group(1).replace(",", "."))
-        slots["amount"] = Decimal(str(int(val * 1_000_000)))
+        slots["amount"] = Decimal(match_cu.group(1).replace(",", ".")) * 1_000_000
     elif match_xi:
-        val = float(match_xi.group(1).replace(",", "."))
-        slots["amount"] = Decimal(str(int(val * 100_000)))
+        slots["amount"] = Decimal(match_xi.group(1).replace(",", ".")) * 100_000
     elif match_lit:
-        val = float(match_lit.group(1).replace(",", "."))
-        slots["amount"] = Decimal(str(int(val * 100_000)))
+        slots["amount"] = Decimal(match_lit.group(1).replace(",", ".")) * 100_000
     elif match_num:
         slots["amount"] = Decimal(match_num.group(1))
+
+    if slots.get("amount") is not None:
+        if "loan_installment_plan" in intent or "loan.calculate" in intent:
+            slots["principal"] = slots["amount"]
+        elif "savings_goal" in intent or "savings.create" in intent:
+            slots["target_amount"] = slots["amount"]
+        elif "budget_plan" in intent or "update_budget" in intent:
+            slots["limit_amount"] = slots["amount"]
+
+    term_match = re.search(r"\b(\d+)\s*(?:tháng|thang|thg)\b", lower)
+    if term_match and ("loan" in intent or "installment" in intent):
+        slots["term_months"] = int(term_match.group(1))
+    rate_match = re.search(r"(?:lãi|lai|rate)\s*(\d+(?:[.,]\d+)?)\s*%?", lower)
+    if rate_match and ("loan" in intent or "installment" in intent):
+        slots["annual_rate"] = Decimal(rate_match.group(1).replace(",", "."))
 
     # 2. Finance Category / Note heuristics
     if any(w in lower for w in ["trà sữa", "cà phê", "cafe", "ăn trưa", "ăn sáng", "ăn tối", "cơm", "phở", "bún", "bánh mì"]):
@@ -181,6 +226,9 @@ def parse_slots_from_text(text: str, intent: str) -> dict[str, Any]:
         slots["note"] = text
     elif any(w in lower for w in ["shopee", "tiki", "lazada", "mua sắm", "quần áo"]):
         slots["category"] = "Mua sắm"
+        slots["note"] = text
+
+    if "add_expense" in intent and slots.get("amount") is not None and not slots.get("category") and not slots.get("note"):
         slots["note"] = text
 
     # 3. Source heuristic for income
@@ -208,16 +256,61 @@ def parse_slots_from_text(text: str, intent: str) -> dict[str, Any]:
                 slots["person"] = name.capitalize()
                 break
 
+    if any(key in intent for key in ("record_debt", "debt_repay")):
+        slots.setdefault("debt_type", "lend" if "record_debt" in intent else "borrow")
+        for name in ["tuấn", "hải", "lan", "nam", "huy", "hùng", "hằng", "phương", "thảo", "hoàng", "hương", "minh", "linh", "mẹ", "bố"]:
+            if name in lower:
+                slots.setdefault("person", name.capitalize())
+                break
+
+    if "transfer" in intent:
+        account_match = re.search(r"(?:từ|tu)\s+(.+?)\s+(?:sang|qua|vào|vao)\s+(.+?)(?:\s+(?:giúp|giup|nhé|nhe|đi|di)\b|$)", lower)
+        if not account_match:
+            account_match = re.search(r"(?:vào|vao)\s+(.+?)\s+(?:từ|tu)\s+(.+?)(?:\s+(?:giúp|giup|nhé|nhe|đi|di)\b|$)", lower)
+        if account_match:
+            if "vào" in account_match.group(0) or "vao" in account_match.group(0):
+                slots["to_account"] = account_match.group(1).strip()
+                slots["from_account"] = account_match.group(2).strip()
+            else:
+                slots["from_account"] = account_match.group(1).strip()
+                slots["to_account"] = account_match.group(2).strip()
+
+    if "split_bill" in intent:
+        people_match = re.search(r"(?:cho|với|voi)\s+(\d+)\s*(?:người|nguoi|đứa|dua)", lower)
+        if people_match:
+            slots["participants"] = int(people_match.group(1))
+
+    if any(key in intent for key in ("query_transactions", "query_by_tag", "search")):
+        slots.setdefault("keyword", text)
+        slots.setdefault("time_range", "today" if "hôm nay" in lower or "hom nay" in lower else "all")
+
+    if "budget" in intent:
+        slots.setdefault("category", "all")
+    if "bill_due_reminder" in intent:
+        slots.setdefault("bill_name", text)
+        slots.setdefault("due_date", "ngày mai" if "mai" in lower else "chưa xác định")
+
     # 5. Task title extraction
     if intent.startswith("task."):
         title = re.sub(
-            r"^(tạo task|tạo việc|nhắc tôi|lên lịch|cần làm|thêm việc|hoàn thành|xóa task)\s*",
+            r"^(tạo task|tạo việc|nhắc tôi|lên lịch|cần làm|thêm việc|hoàn thành|xóa task|hủy|huỷ|dời|lùi|tìm|tìm kiếm)\s*",
             "",
             text,
             flags=re.IGNORECASE,
         ).strip()
         if title:
             slots["title"] = title
+
+    if intent == "task.schedule_event":
+        slots.setdefault("start_time", text)
+    if intent in {"task.reschedule", "task.cancel"}:
+        slots.setdefault("new_deadline", text if "reschedule" in intent else None)
+    if intent == "task.create_recurring":
+        slots.setdefault("recurrence", "theo lịch người dùng nói")
+    if intent == "task.plan_schedule":
+        slots.setdefault("time_frame", "hôm nay" if "hôm nay" in lower or "hom nay" in lower else "tuần này")
+    if intent == "finance.savings_goal":
+        slots.setdefault("goal_name", text)
 
     return slots
 
@@ -289,6 +382,66 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, d
     if intent == "task.complete":
         return template_task_complete(clean_slots)
 
+    if intent == "task.create_recurring":
+        title = clean_slots.get("title", "thói quen mới")
+        recurrence = clean_slots.get("recurrence", "theo lịch đã nói")
+        return (
+            f"✅ Đã tạo công việc lặp lại '{title}' ({recurrence}).",
+            {"task": clean_slots, "recurring": True},
+            ["Xem việc hôm nay", "Tạo việc khác"],
+        )
+
+    if intent == "task.query_by_tag":
+        keyword = clean_slots.get("keyword", clean_slots.get("title", "nhãn đã chọn"))
+        return (
+            f"📋 Đây là danh sách công việc theo nhãn/từ khóa '{keyword}'.",
+            {"filter": "tag", "keyword": keyword, "tasks": []},
+            ["Xem tất cả việc", "Tạo việc mới"],
+        )
+
+    if intent == "task.query_completed":
+        return (
+            "✅ Bạn chưa có công việc hoàn thành nào trong phạm vi truy vấn này.",
+            {"filter": "completed", "tasks": []},
+            ["Xem việc hôm nay", "Xem việc đang chờ"],
+        )
+
+    if intent == "task.schedule_event":
+        return (
+            f"📅 Đã lên lịch '{clean_slots.get('title', 'sự kiện mới')}' vào {clean_slots.get('start_time', 'thời gian đã nói')}.",
+            {"event": clean_slots},
+            ["Xem lịch hôm nay", "Tạo sự kiện khác"],
+        )
+
+    if intent == "task.reschedule":
+        return (
+            f"🔄 Đã dời lịch '{clean_slots.get('title', 'công việc')}' sang {clean_slots.get('new_deadline', 'thời gian mới')}.",
+            {"rescheduled_task": clean_slots},
+            ["Xem việc hôm nay", "Dời việc khác"],
+        )
+
+    if intent == "task.cancel":
+        return (
+            f"⏸️ Đã hủy/tạm hoãn công việc '{clean_slots.get('title', 'công việc')}' và giữ lại lịch sử.",
+            {"cancelled_task": clean_slots},
+            ["Xem việc hôm nay", "Tạo việc mới"],
+        )
+
+    if intent == "task.search":
+        keyword = clean_slots.get("keyword", clean_slots.get("title", ""))
+        return (
+            f"🔎 Đã tìm công việc theo từ khóa '{keyword}'.",
+            {"filter": "search", "keyword": keyword, "tasks": []},
+            ["Xem việc hôm nay", "Tìm từ khóa khác"],
+        )
+
+    if intent == "task.delete":
+        return (
+            f"🛑 Công việc '{clean_slots.get('title', clean_slots.get('task_id', 'đã chọn'))}' đã sẵn sàng để xóa sau khi bạn xác nhận.",
+            {"delete_proposal": clean_slots},
+            ["Xác nhận xóa", "Hủy bỏ"],
+        )
+
     # 2. Finance Domain Templates & Calculators
     if intent in {"finance.get_balance", "finance.balance.query"}:
         return template_finance_balance()
@@ -316,6 +469,59 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, d
         formatted_amt = format_currency(amt)
         msg = f"Đã ghi nhận khoản thu {formatted_amt} từ '{source}' vào tài khoản."
         return msg, {"transaction_type": "income", "recorded": clean_slots}, ["Xem số dư", "Ghi thêm thu nhập", "Báo cáo tài chính"]
+
+    if intent == "finance.transfer":
+        return (
+            f"💸 Đã chuẩn bị chuyển {format_currency(slots.get('amount', 0))} từ '{clean_slots.get('from_account', 'tài khoản nguồn')}' sang '{clean_slots.get('to_account', 'tài khoản đích')}'.",
+            {"transfer": clean_slots, "requires_confirmation": True},
+            ["Xác nhận chuyển", "Hủy bỏ"],
+        )
+
+    if intent == "finance.record_debt":
+        return (
+            f"🧾 Đã ghi khoản nợ {format_currency(slots.get('amount', 0))} với '{clean_slots.get('person', 'người liên quan')}'.",
+            {"debt": clean_slots, "transaction_type": "debt"},
+            ["Xem sổ nợ", "Ghi khoản nợ khác"],
+        )
+
+    if intent == "finance.debt_repay":
+        return (
+            f"✅ Đã ghi nhận khoản trả nợ {format_currency(slots.get('amount', 0))} cho '{clean_slots.get('person', 'người liên quan')}'.",
+            {"debt_repayment": clean_slots},
+            ["Xem sổ nợ", "Ghi khoản trả khác"],
+        )
+
+    if intent == "finance.query_transactions":
+        return (
+            f"📊 Đã lọc lịch sử giao dịch theo '{clean_slots.get('keyword', 'tất cả giao dịch')}'.",
+            {"filter": "transactions", "query": clean_slots, "transactions": []},
+            ["Xem số dư", "Lọc khoảng thời gian khác"],
+        )
+
+    if intent in {"finance.budget_plan", "finance.update_budget"}:
+        action = "thiết lập" if intent == "finance.budget_plan" else "cập nhật"
+        return (
+            f"📌 Đã {action} ngân sách {format_currency(slots.get('limit_amount', slots.get('amount', 0)))} cho '{clean_slots.get('category', 'tất cả danh mục')}'.",
+            {"budget": clean_slots, "requires_confirmation": True},
+            ["Xem ngân sách", "Điều chỉnh ngân sách"],
+        )
+
+    if intent == "finance.savings_goal":
+        return (
+            f"🎯 Đã tạo mục tiêu tiết kiệm '{clean_slots.get('goal_name', 'mục tiêu mới')}' với đích {format_currency(slots.get('target_amount', slots.get('amount', 0)))}.",
+            {"savings_goal": clean_slots, "requires_confirmation": True},
+            ["Xem mục tiêu", "Tạo mục tiêu khác"],
+        )
+
+    if intent == "finance.pay_bill":
+        return template_finance_pay_bill(clean_slots)
+
+    if intent == "cross.bill_due_reminder":
+        return (
+            f"⏰ Đã tạo nhắc hạn '{clean_slots.get('bill_name', 'hóa đơn')}' vào {clean_slots.get('due_date', 'thời hạn đã nói')}.",
+            {"reminder": clean_slots},
+            ["Xem deadline", "Tạo nhắc khác"],
+        )
 
     if intent in {"finance.loan_installment_plan", "finance.loan.calculate"}:
         principal = slots.get("principal", 0)
@@ -350,7 +556,24 @@ def execute_fast_path_action(intent: str, slots: dict[str, Any]) -> tuple[str, d
     if intent == "system.help":
         return template_system_help()
 
-    return f"Đã xử lý xong yêu cầu '{intent}'.", {"slots": clean_slots}, []
+    if intent == "system.undo":
+        return (
+            "↩️ Đã tìm thao tác gần nhất và sẵn sàng hoàn tác sau khi bạn xác nhận.",
+            {"undo": True, "requires_confirmation": True},
+            ["Xác nhận hoàn tác", "Giữ nguyên"],
+        )
+
+    if intent == "system.greeting_summary":
+        return template_system_greeting_summary()
+
+    if intent == "cross.plan_expense_task":
+        return (
+            "🧭 Đã nhận kế hoạch công việc kèm ngân sách và chuyển sang Reasoning Path để lập phương án chi tiết.",
+            {"plan": clean_slots},
+            ["Lưu kế hoạch", "Tạo ngân sách"],
+        )
+
+    return f"⚠️ Intent '{intent}' chưa có executor đăng ký.", {"slots": clean_slots, "unhandled": True}, ["Trợ giúp"]
 
 
 # ----------------- ENDPOINTS -----------------
@@ -395,7 +618,15 @@ def classify_intent(request: ClassifyRequest):
     confidence = float(probs[best_idx])
     latency_ms = (time.perf_counter() - start) * 1000
 
-    if _looks_like_task_today_query(request.text):
+    if _looks_like_greeting_summary(request.text):
+        intent = "system.greeting_summary"
+    elif _looks_like_cross_plan(request.text):
+        intent = "cross.plan_expense_task"
+    elif _looks_like_budget_plan(request.text):
+        intent = "finance.budget_plan"
+    elif _looks_like_task_plan(request.text):
+        intent = "task.plan_schedule"
+    elif _looks_like_task_today_query(request.text):
         intent = "task.query_today"
 
     # If intent belongs to Reasoning Path OR confidence is lower than threshold
@@ -446,7 +677,15 @@ def chat(request: ChatRequest):
     detected_intent = model.classes_[best_idx]
     confidence = float(probs[best_idx])
 
-    if _looks_like_task_today_query(request.text):
+    if _looks_like_greeting_summary(request.text):
+        detected_intent = "system.greeting_summary"
+    elif _looks_like_cross_plan(request.text):
+        detected_intent = "cross.plan_expense_task"
+    elif _looks_like_budget_plan(request.text):
+        detected_intent = "finance.budget_plan"
+    elif _looks_like_task_plan(request.text):
+        detected_intent = "task.plan_schedule"
+    elif _looks_like_task_today_query(request.text):
         detected_intent = "task.query_today"
 
     # If the session is actively waiting for clarification and confidence is borderline,
