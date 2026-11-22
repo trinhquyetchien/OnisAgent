@@ -13,9 +13,10 @@ from pathlib import Path
 import re
 import time
 import unicodedata
+import os
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import numpy as np
@@ -36,6 +37,7 @@ from src.engine.response_templates import (
 from src.engine.session_manager import SessionManager
 from src.engine.slot_validator import SlotValidator
 from src.database.json_storage import JsonStorage
+from src.auth_service import AuthError, AuthService
 from src.schemas.base import ExecutionStatus
 from src.tools.calculator import calculate_loan_amortization
 
@@ -106,6 +108,8 @@ class AppState:
 
 state = AppState()
 storage = JsonStorage()
+auth_service = AuthService(storage)
+AUTH_REQUIRED = os.getenv("AUTH_REQUIRED", "false").casefold() == "true"
 
 
 def load_kev_model() -> Any:
@@ -344,6 +348,67 @@ class ChatRequest(BaseModel):
     user_id: str = Field(default="default_user", description="Unique user identifier")
     text: str = Field(..., min_length=1, description="Message text from user")
     slots: dict[str, Any] | None = Field(default=None, description="Explicit slot overrides if any")
+
+
+class AuthCredentials(BaseModel):
+    email: str = Field(..., min_length=5, max_length=254)
+    password: str = Field(..., min_length=8, max_length=256)
+
+
+class RegisterRequest(AuthCredentials):
+    name: str = Field(..., min_length=1, max_length=100)
+
+
+class AuthResponse(BaseModel):
+    user: dict[str, Any]
+    access_token: str
+    token_type: str = "Bearer"
+
+
+def _resolve_user(authorization: str | None) -> dict[str, Any] | None:
+    if not authorization:
+        if AUTH_REQUIRED:
+            raise HTTPException(status_code=401, detail="Cần đăng nhập để sử dụng API này.")
+        return None
+    scheme, _, token = authorization.partition(" ")
+    if scheme.casefold() != "bearer" or not token:
+        raise HTTPException(status_code=401, detail="Authorization phải có dạng Bearer token.")
+    try:
+        return auth_service.verify(token)
+    except AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/auth/register", response_model=AuthResponse, tags=["Auth"])
+def register(request: RegisterRequest):
+    try:
+        user, token = auth_service.register(request.email, request.password, request.name)
+        return AuthResponse(user=user, access_token=token)
+    except AuthError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/auth/login", response_model=AuthResponse, tags=["Auth"])
+def login(request: AuthCredentials):
+    try:
+        user, token = auth_service.login(request.email, request.password)
+        return AuthResponse(user=user, access_token=token)
+    except AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/auth/me", tags=["Auth"])
+def me(authorization: str | None = Header(default=None)):
+    user = _resolve_user(authorization)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Cần đăng nhập.")
+    return {"user": user}
+
+
+@app.post("/api/v1/auth/logout", tags=["Auth"])
+def logout(authorization: str | None = Header(default=None)):
+    _resolve_user(authorization)
+    return {"ok": True}
 
 
 class ChatResponse(BaseModel):
@@ -651,9 +716,10 @@ def health_check():
 
 
 @app.post("/api/v1/intent/classify", response_model=ClassifyResponse, tags=["Kev Fast Path"])
-def classify_intent(request: ClassifyRequest):
+def classify_intent(request: ClassifyRequest, authorization: str | None = Header(default=None)):
     """Fast sub-10ms intent classification testing endpoint for Web UI / Diagnostics."""
     model = get_kev_model()
+    _resolve_user(authorization)
     if not model:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -702,7 +768,7 @@ def classify_intent(request: ClassifyRequest):
 
 
 @app.post("/api/v1/chat", response_model=ChatResponse, tags=["Chat Agent"])
-def chat(request: ChatRequest):
+def chat(request: ChatRequest, authorization: str | None = Header(default=None)):
     """Unified Chat Endpoint serving Flutter Web/Mobile clients.
 
     1. Kev Decision Classifier -> predicts intent & confidence.
@@ -717,8 +783,11 @@ def chat(request: ChatRequest):
             detail="Kev Intent Classifier is not loaded.",
         )
 
+    auth_user = _resolve_user(authorization)
+    user_id = auth_user["id"] if auth_user else request.user_id
+
     start = time.perf_counter()
-    session = state.session_manager.get_session(request.session_id, request.user_id)
+    session = state.session_manager.get_session(request.session_id, user_id)
 
     # 1. Inference with Kev
     probs = model.predict_proba([request.text])[0]
@@ -775,7 +844,7 @@ def chat(request: ChatRequest):
     # 3. Process turn with SessionManager & SlotValidator
     action_res = state.session_manager.process_turn(
         session_id=request.session_id,
-        user_id=request.user_id,
+        user_id=user_id,
         intent=active_intent,
         slots=extracted_slots,
     )
@@ -827,12 +896,12 @@ def chat(request: ChatRequest):
     # 5. Reasoning Path (System 2: Ollama Local LLM)
     if route == "REASONING_PATH":
         if active_intent == "finance.budget_plan":
-            storage.add_record("budgets", request.user_id, {**serializable_slots, "status": "pending_confirmation"})
+            storage.add_record("budgets", user_id, {**serializable_slots, "status": "pending_confirmation"})
         elif active_intent == "cross.plan_expense_task":
-            storage.add_record("plans", request.user_id, {**serializable_slots, "status": "draft"})
-        summary = storage.summary(request.user_id)
-        pending_tasks = storage.list_tasks(request.user_id, status="pending")
-        debts = storage.list_records("debts", request.user_id)
+            storage.add_record("plans", user_id, {**serializable_slots, "status": "draft"})
+        summary = storage.summary(user_id)
+        pending_tasks = storage.list_tasks(user_id, status="pending")
+        debts = storage.list_records("debts", user_id)
         reasoning_context = {
             "intent": active_intent,
             "confidence": round(confidence, 4),
@@ -881,7 +950,7 @@ def chat(request: ChatRequest):
         )
 
     # Status is READY -> Execute deterministic action
-    reply_msg, reply_data, action_chips = execute_fast_path_action(action_res.intent, action_res.slots, request.user_id)
+    reply_msg, reply_data, action_chips = execute_fast_path_action(action_res.intent, action_res.slots, user_id)
 
     return ChatResponse(
         session_id=request.session_id,

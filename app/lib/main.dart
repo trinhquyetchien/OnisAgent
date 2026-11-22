@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
 import 'screens/finance_screen.dart';
 import 'screens/tasks_screen.dart';
 import 'screens/deadlines_screen.dart';
 import 'screens/assistant_screen.dart';
 import 'services/mock_data_service.dart';
+import 'services/api_service.dart';
+import 'screens/auth_screen.dart';
 import 'theme/app_theme.dart';
 
 // Global Theme Controller: Mặc định Light Mode, hỗ trợ chuyển đổi tức thì
@@ -33,15 +36,73 @@ class OnisApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeMode,
-          home: const MainNavigationShell(),
+          home: const AuthGate(),
         );
       },
     );
   }
 }
 
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  late final ApiService _api;
+  AuthSession? _session;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _api = ApiService();
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('onis_access_token');
+    if (token != null && token.isNotEmpty) {
+      _api.token = token;
+      try {
+        _session = await _api.me();
+      } catch (_) {
+        await prefs.remove('onis_access_token');
+        _api.token = null;
+      }
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _authenticated(AuthSession session) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('onis_access_token', session.token);
+    if (mounted) setState(() => _session = session);
+  }
+
+  Future<void> _logout() async {
+    await _api.logout();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('onis_access_token');
+    if (mounted) setState(() => _session = null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_session == null) return AuthScreen(api: _api, onAuthenticated: _authenticated);
+    return MainNavigationShell(session: _session!, onLogout: _logout);
+  }
+}
+
 class MainNavigationShell extends StatefulWidget {
-  const MainNavigationShell({super.key});
+  final AuthSession session;
+  final VoidCallback onLogout;
+
+  const MainNavigationShell({super.key, required this.session, required this.onLogout});
 
   @override
   State<MainNavigationShell> createState() => _MainNavigationShellState();
@@ -213,21 +274,20 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         alignment: Alignment.bottomCenter,
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 24),
-                          child: IconButton.filledTonal(
-                            icon: Icon(
-                              isDark
-                                  ? Icons.light_mode_rounded
-                                  : Icons.dark_mode_rounded,
-                              size: 20,
-                            ),
-                            tooltip: isDark
-                                ? 'Chuyển sang Giao diện Sáng'
-                                : 'Chuyển sang Giao diện Tối',
-                            onPressed: () {
-                              appThemeModeNotifier.value = isDark
-                                  ? ThemeMode.light
-                                  : ThemeMode.dark;
-                            },
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton.filledTonal(
+                                icon: Icon(isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded, size: 20),
+                                tooltip: isDark ? 'Chuyển sang Giao diện Sáng' : 'Chuyển sang Giao diện Tối',
+                                onPressed: () => appThemeModeNotifier.value = isDark ? ThemeMode.light : ThemeMode.dark,
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.logout_rounded),
+                                tooltip: 'Đăng xuất',
+                                onPressed: widget.onLogout,
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -357,6 +417,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
                   tooltip: 'Trợ lý AI',
                   onPressed: () => setState(() => _selectedIndex = 4),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout_rounded),
+                  tooltip: 'Đăng xuất',
+                  onPressed: widget.onLogout,
                 ),
                 const SizedBox(width: 4),
               ],

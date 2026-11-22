@@ -30,6 +30,11 @@ flutter run -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8000
 The API base URL is configurable through `API_BASE_URL`; it defaults to
 `http://127.0.0.1:8000` for web, desktop, and iOS simulator testing.
 
+On first launch, the app opens the authentication screen. Register or log in;
+the access token is stored locally and attached to chat requests. To enforce
+authentication on the backend, set `AUTH_REQUIRED=true` and configure a strong
+`AUTH_SECRET`.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

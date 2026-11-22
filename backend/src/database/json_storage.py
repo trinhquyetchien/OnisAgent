@@ -22,7 +22,7 @@ class JsonStorage:
     """Durable local store for the finance/task domains."""
 
     _lock = RLock()
-    _empty = {"transactions": [], "tasks": [], "debts": [], "budgets": [], "savings_goals": [], "reminders": [], "plans": []}
+    _empty = {"users": [], "sessions": [], "transactions": [], "tasks": [], "debts": [], "budgets": [], "savings_goals": [], "reminders": [], "plans": []}
 
     def __init__(self, path: str | Path | None = None) -> None:
         default = Path(__file__).resolve().parents[2] / "data" / "local" / "onis_state.json"
@@ -116,3 +116,14 @@ class JsonStorage:
 
     def list_records(self, collection: str, user_id: str) -> list[dict[str, Any]]:
         return [x for x in self._read()[collection] if x.get("user_id") == user_id]
+
+    def find_user_by_email(self, email: str) -> dict[str, Any] | None:
+        email = email.casefold().strip()
+        return next((x for x in self._read()["users"] if x.get("email", "").casefold() == email), None)
+
+    def get_user(self, user_id: str) -> dict[str, Any] | None:
+        return next((x for x in self._read()["users"] if x.get("id") == user_id), None)
+
+    def create_user(self, *, email: str, name: str, password_hash: str, salt: str) -> dict[str, Any]:
+        user = {"id": f"usr_{uuid4().hex[:12]}", "email": email.casefold().strip(), "name": name.strip(), "password_hash": password_hash, "salt": salt, "created_at": self._now()}
+        data = self._read(); data["users"].append(user); self._write(data); return user
