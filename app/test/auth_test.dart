@@ -173,7 +173,7 @@ void main() {
       );
     }
 
-    testWidgets('LoginScreen renders fields and demo account chips', (
+    testWidgets('LoginScreen renders fields without demo account shortcuts', (
       tester,
     ) async {
       await tester.pumpWidget(buildTestableWidget(const LoginScreen()));
@@ -186,8 +186,9 @@ void main() {
       expect(find.text('Ghi nhớ đăng nhập'), findsOneWidget);
       expect(find.text('Quên mật khẩu?'), findsOneWidget);
       expect(find.text('Google'), findsOneWidget);
-      expect(find.text('Apple'), findsOneWidget);
-      expect(find.text('Demo (Đã verify)'), findsOneWidget);
+      expect(find.text('Apple'), findsNothing);
+      expect(find.text('Tài khoản Demo thử nghiệm:'), findsNothing);
+      expect(find.text('Demo (Đã verify)'), findsNothing);
     });
 
     testWidgets(
@@ -224,7 +225,7 @@ void main() {
 
       expect(find.textContaining('Xác thực Email'), findsOneWidget);
       expect(find.text('test@onis.ai'), findsOneWidget);
-      expect(find.textContaining('Mock Demo'), findsOneWidget);
+      expect(find.textContaining('Mã xác nhận 6 chữ số'), findsOneWidget);
       expect(find.textContaining('Gửi lại mã sau'), findsOneWidget);
       expect(find.text('Xác thực & Kích hoạt'), findsOneWidget);
 
