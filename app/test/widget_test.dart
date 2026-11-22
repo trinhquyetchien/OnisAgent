@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:app/main.dart';
+import 'package:app/services/auth/auth_state_notifier.dart';
+import 'package:app/services/auth/mock_auth_service.dart';
 
 void main() {
   setUpAll(() async {
@@ -16,6 +18,7 @@ void main() {
   });
 
   testWidgets('App smoke test loads successfully', (WidgetTester tester) async {
+    AuthStateNotifier().setAuthService(MockAuthService());
     // Build our app and trigger a frame.
     await tester.pumpWidget(const OnisApp());
     await tester.pump(const Duration(milliseconds: 500));

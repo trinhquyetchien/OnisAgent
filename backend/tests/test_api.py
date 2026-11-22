@@ -10,11 +10,18 @@ Covers:
 
 from fastapi.testclient import TestClient
 import pytest
-from src.main import app
+from sqlalchemy.exc import SQLAlchemyError
+
+from src.database import postgres
+from src.database.postgres import create_database_engine
+from src.main import app, storage
 
 
 @pytest.fixture
-def client():
+def client(tmp_path, monkeypatch):
+    monkeypatch.setattr(storage, "path", tmp_path / "onis_state.json")
+    engine = create_database_engine(f"sqlite:///{tmp_path / 'health-test.db'}")
+    monkeypatch.setattr(postgres, "SessionLocal", postgres.sessionmaker(bind=engine))
     with TestClient(app) as test_client:
         yield test_client
 
@@ -26,6 +33,7 @@ def test_health_endpoints(client):
     assert res1.status_code == 200
     data1 = res1.json()
     assert data1["status"] == "ok"
+    assert data1["database_connected"] is True
     assert data1["model_loaded"] is True
     assert data1["supported_intents_count"] == 33
     assert "finance.add_expense" in data1["intents"]
@@ -38,6 +46,18 @@ def test_health_endpoints(client):
     data2 = res2.json()
     assert data2["status"] == "ok"
     assert data2["supported_intents_count"] == 33
+
+
+def test_health_reports_database_unavailable(client, monkeypatch):
+    def unavailable_session():
+        raise SQLAlchemyError("database down")
+
+    monkeypatch.setattr(postgres, "SessionLocal", unavailable_session)
+
+    response = client.get("/health")
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Database unavailable."
 
 
 def test_classify_intent_endpoint(client):
@@ -162,7 +182,7 @@ def test_chat_query_debt(client):
     data2 = res2.json()
     assert data2["intent"] == "finance.query_debt"
     assert "Tuấn" in data2["message"]
-    assert "200.000₫" in data2["message"]
+    assert "không có khoản nợ" in data2["message"]
 
 
 def test_chat_task_query_today(client):
@@ -173,9 +193,9 @@ def test_chat_task_query_today(client):
     assert data["intent"] in ["task.query_today", "task.query"]
     assert data["status"] == "READY"
     assert "Danh sách công việc hôm nay của bạn" in data["message"]
-    assert "Hoàn thiện tài liệu kiến trúc OnisAgent" in data["message"]
+    assert data["data"]["tasks"] == []
     assert "Thêm việc mới" in data["quick_replies"]
-    assert data["data"]["count"] == 3
+    assert data["data"]["count"] == 0
 
 
 def test_chat_task_query_deadline(client):
@@ -187,7 +207,7 @@ def test_chat_task_query_deadline(client):
     assert data["status"] == "READY"
     assert "Cảnh báo hạn chót (Deadline)" in data["message"]
     assert "Đã làm xong" in data["quick_replies"]
-    assert data["data"]["count"] == 2
+    assert data["data"]["count"] == 0
 
 
 def test_chat_cross_plan_expense_task(client):
@@ -201,3 +221,61 @@ def test_chat_cross_plan_expense_task(client):
     assert len(data["message"]) > 50
     assert "Lưu kế hoạch" in data["quick_replies"]
     assert "Tạo ngân sách" in data["quick_replies"]
+
+
+def test_transaction_crud_and_correction(client):
+    created = client.post(
+        "/api/v1/transactions",
+        json={
+            "amount": 45000,
+            "type": "expense",
+            "description": "Trà sữa",
+            "category": "Khác",
+        },
+    )
+    assert created.status_code == 201
+    transaction = created.json()["transaction"]
+
+    corrected = client.post(
+        "/api/v1/transactions/corrections",
+        json={
+            "transaction_id": transaction["id"],
+            "raw_description": "Trà sữa",
+            "ai_predicted_category": "Khác",
+            "user_corrected_category": "Ăn uống",
+        },
+    )
+    assert corrected.status_code == 201
+    assert corrected.json()["correction"]["user_id"] == "default_user"
+
+    listed = client.get("/api/v1/transactions")
+    assert listed.json()["transactions"][0]["category"] == "Ăn uống"
+
+    deleted = client.delete(f"/api/v1/transactions/{transaction['id']}")
+    assert deleted.status_code == 200
+
+
+def test_hitl_delete_is_blocked_until_explicit_approval(client):
+    created = client.post(
+        "/api/v1/tasks",
+        json={"title": "Kiểm tra HITL", "priority": "high"},
+    )
+    assert created.status_code == 201
+    task = created.json()["task"]
+
+    blocked = client.delete(f"/api/v1/tasks/{task['id']}")
+    assert blocked.status_code == 200
+    assert blocked.json()["requires_hitl"] is True
+    assert storage.list_tasks("default_user", status="all")
+
+    approved = client.post(
+        "/api/v1/hitl/approve",
+        json={
+            "idempotency_key": "delete-task-hitl-1",
+            "action": "task_delete",
+            "payload": {"task_id": task["id"]},
+        },
+    )
+    assert approved.status_code == 200
+    assert approved.json()["ok"] is True
+    assert not storage.list_tasks("default_user", status="all")
