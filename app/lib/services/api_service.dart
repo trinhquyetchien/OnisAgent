@@ -18,7 +18,7 @@ class IntentClassifyResult {
     return IntentClassifyResult(
       intent: json['intent'] as String? ?? 'unknown',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
-      path: json['path'] as String? ?? 'Fast Path',
+      path: json['route'] as String? ?? json['path'] as String? ?? 'FAST_PATH',
       latencyMs: (json['latency_ms'] as num?)?.toDouble() ?? 0.0,
     );
   }
@@ -51,7 +51,7 @@ class ChatApiResponse {
     return ChatApiResponse(
       reply: json['reply'] as String? ?? '',
       status: json['status'] as String? ?? 'READY',
-      path: json['path'] as String? ?? 'Fast Path (~6ms)',
+      path: json['route'] as String? ?? json['path'] as String? ?? 'FAST_PATH',
       intent: json['intent'] as String? ?? 'unknown',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
       latencyMs: (json['latency_ms'] as num?)?.toDouble() ?? 0.0,
@@ -67,11 +67,15 @@ class ChatApiResponse {
 
 class ApiService {
   static const String defaultBaseUrl = 'http://127.0.0.1:8000';
+  static const String configuredBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: defaultBaseUrl,
+  );
   final String baseUrl;
   final String sessionId;
 
   ApiService({
-    this.baseUrl = defaultBaseUrl,
+    this.baseUrl = configuredBaseUrl,
     String? sessionId,
   }) : sessionId = sessionId ?? 'session_${DateTime.now().millisecondsSinceEpoch}';
 
@@ -88,7 +92,7 @@ class ApiService {
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return IntentClassifyResult.fromJson(data);
     } else {
-      throw Exception('Failed to classify intent: HTTP ${response.statusCode}');
+      throw _apiError('classify intent', response);
     }
   }
 
@@ -113,7 +117,12 @@ class ApiService {
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return ChatApiResponse.fromJson(data);
     } else {
-      throw Exception('Failed to send chat: HTTP ${response.statusCode}');
+      throw _apiError('send chat', response);
     }
+  }
+
+  Exception _apiError(String operation, http.Response response) {
+    final detail = response.body.isEmpty ? '' : ' — ${response.body}';
+    return Exception('Failed to $operation: HTTP ${response.statusCode}$detail');
   }
 }

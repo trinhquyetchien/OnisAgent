@@ -63,35 +63,6 @@ class _AssistantScreenState extends State<AssistantScreen>
     });
     _scrollToBottom();
 
-    final lower = text.toLowerCase();
-    if (lower.contains('quỹ laptop') ||
-        (lower.contains('trích') && lower.contains('tiết kiệm'))) {
-      await Future.delayed(const Duration(milliseconds: 350));
-      if (!mounted) return;
-      final hitlMsg = ChatMessage(
-        text:
-            'OnisAgent đã nhận lệnh trích tiền. Theo chốt kiểm soát an toàn Human-in-the-Loop (ADR-0004), xin vui lòng xác nhận trước khi thực hiện:',
-        isUser: false,
-        time: DateTime.now(),
-        pathBadge: 'Reasoning Path • HITL Gate',
-        fastPathTag: 'Reasoning Path • HITL Gate',
-        hitlProposal: HitlActionProposal(
-          id: 'hitl_${DateTime.now().millisecondsSinceEpoch}',
-          actionType: 'transfer_savings',
-          title: 'Trích ngân sách vào Quỹ Laptop AI',
-          details:
-              'Chuyển 500.000 ₫ từ Số dư khả dụng sang quỹ "Đổi Laptop chạy Local AI Model".',
-          amount: 500000,
-          targetName: 'Đổi Laptop chạy Local AI Model (RTX GPU)',
-          timestamp: DateTime.now(),
-        ),
-      );
-      dataService.addChatMessage(hitlMsg);
-      setState(() => _isLoading = false);
-      _scrollToBottom();
-      return;
-    }
-
     try {
       final response = await _apiService.sendMessage(text: text);
       if (!mounted) return;
