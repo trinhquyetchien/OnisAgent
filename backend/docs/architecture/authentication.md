@@ -39,7 +39,10 @@ OnisAgent uses a FastAPI modular authentication layer backed by SQLAlchemy and P
 
 Set `GOOGLE_WEB_CLIENT_ID` to the Google OAuth Web Client ID. FastAPI validates the Google ID
 Token signature, issuer, audience and `email_verified` claim. Flutter must pass the same Web
-Client ID as `serverClientId`.
+Client ID as `serverClientId` on Android and as `clientId` on Web. Android's OAuth client must
+be registered in Google Cloud for the app's package name and signing-key SHA-1 fingerprint;
+the Android client ID is not the backend token audience. Authorized JavaScript origins are only
+required for Web sign-in.
 
 Android and iOS OAuth client configuration must be performed in the corresponding Google
 platform projects; never place a Google Client Secret in Flutter.

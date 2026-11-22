@@ -217,6 +217,9 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     ))
     if not identity or not identity.password_hash or not verify_password(identity.password_hash, request.password):
         raise HTTPException(status_code=401, detail="Email hoặc mật khẩu không đúng.")
+    if not user.is_verified:
+        code = _create_email_verification_code(db, user)
+        _send_otp(email, code, "email_verification")
     access, refresh = _issue_token_pair(db, user)
     return _token_response(user, access, refresh)
 

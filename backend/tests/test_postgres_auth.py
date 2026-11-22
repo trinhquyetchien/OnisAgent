@@ -76,6 +76,44 @@ def test_register_login_and_me(auth_client, outbox):
     assert me.json()["user"]["id"] == registered["user"]["id"]
 
 
+def test_unverified_login_sends_verification_otp(auth_client, outbox):
+    register(auth_client)
+
+    login = auth_client.post(
+        "/api/v1/auth/login",
+        json={"email": "test@example.com", "password": "StrongPass123!"},
+    )
+
+    assert login.status_code == 200
+    assert outbox[-1]["purpose"] == "email_verification"
+    assert outbox[-1]["code"] != outbox[0]["code"]
+
+    verified = auth_client.post(
+        "/api/v1/auth/verify-email",
+        json={"email": "test@example.com", "token": outbox[-1]["code"]},
+    )
+    assert verified.status_code == 200
+    assert verified.json()["user"]["is_verified"] is True
+
+
+def test_verified_login_does_not_send_another_otp(auth_client, outbox):
+    register(auth_client)
+    verified = auth_client.post(
+        "/api/v1/auth/verify-email",
+        json={"email": "test@example.com", "token": outbox[-1]["code"]},
+    )
+    assert verified.status_code == 200
+    sent_count = len(outbox)
+
+    login = auth_client.post(
+        "/api/v1/auth/login",
+        json={"email": "test@example.com", "password": "StrongPass123!"},
+    )
+
+    assert login.status_code == 200
+    assert len(outbox) == sent_count
+
+
 def test_access_token_authenticates_feature_api(auth_client):
     registered = register(auth_client)
 

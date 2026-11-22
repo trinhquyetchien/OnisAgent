@@ -14,7 +14,11 @@ import 'auth_service_interface.dart';
 class ApiAuthService implements IAuthService {
   static const _googleClientId = String.fromEnvironment(
     'GOOGLE_APP_CLIENT_ID',
-    defaultValue: String.fromEnvironment('GOOGLE_WEB_CLIENT_ID'),
+    defaultValue: String.fromEnvironment(
+      'GOOGLE_WEB_CLIENT_ID',
+      defaultValue:
+          '431226224662-v9g44g70vla4u4hh6t5ruubkda0elgea.apps.googleusercontent.com',
+    ),
   );
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: kIsWeb ? _googleClientId : null,
