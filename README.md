@@ -301,6 +301,35 @@ OnisAgent/
 
 Mở terminal tại thư mục gốc của dự án:
 
+#### Chạy development bằng Docker Compose
+
+```powershell
+cd backend
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+# Đặt POSTGRES_PASSWORD và AUTH_SECRET thành giá trị mạnh trong .env.
+docker compose up -d --build
+docker compose ps
+docker compose logs -f
+docker compose run --rm backend alembic upgrade head
+```
+
+API chạy tại `http://localhost:8000`; PostgreSQL chỉ được bind vào loopback
+`localhost:5432`. Compose chờ database healthy trước khi khởi động backend.
+Migration được chạy chủ động bằng lệnh trên, không tự chạy khi container khởi động.
+Để chạy backend trực tiếp trên máy thay vì trong Docker, đặt host trong
+`DATABASE_URL` thành `localhost` (Compose tự dùng hostname `db` trong container).
+
+Dừng container mà vẫn giữ dữ liệu:
+
+```powershell
+docker compose down
+```
+
+> **Cảnh báo:** `docker compose down -v` sẽ xóa volume PostgreSQL và toàn bộ dữ liệu
+> trong đó. Chỉ chạy khi chủ động muốn xóa dữ liệu.
+
+#### Chạy backend trực tiếp trên máy
+
 ```bash
 # 1. Di chuyển vào thư mục backend
 cd backend
