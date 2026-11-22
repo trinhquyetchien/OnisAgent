@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
 
-enum OtpPurpose {
-  emailVerification,
-  passwordReset,
-}
+enum OtpPurpose { emailVerification, passwordReset }
 
-enum PasswordStrength {
-  empty,
-  weak,
-  medium,
-  strong,
-}
+enum PasswordStrength { empty, weak, medium, strong }
 
 extension PasswordStrengthExtension on PasswordStrength {
   String get label {
@@ -56,8 +48,14 @@ extension PasswordStrengthExtension on PasswordStrength {
     if (password.isEmpty) return PasswordStrength.empty;
     int score = 0;
     if (password.length >= 8) score++;
-    if (RegExp(r'[A-Z]').hasMatch(password) && RegExp(r'[a-z]').hasMatch(password)) score++;
-    if (RegExp(r'[0-9]').hasMatch(password) || RegExp(r'[!@#$&*~_.]').hasMatch(password)) score++;
+    if (RegExp(r'[A-Z]').hasMatch(password) &&
+        RegExp(r'[a-z]').hasMatch(password)) {
+      score++;
+    }
+    if (RegExp(r'[0-9]').hasMatch(password) ||
+        RegExp(r'[!@#$&*~_.]').hasMatch(password)) {
+      score++;
+    }
 
     if (score <= 1) return PasswordStrength.weak;
     if (score == 2) return PasswordStrength.medium;
@@ -104,9 +102,17 @@ class AuthUser {
     return AuthUser(
       id: json['id'] as String,
       email: json['email'] as String,
-      fullName: json['full_name'] as String? ?? json['fullName'] as String? ?? '',
+      fullName:
+          json['full_name'] as String? ??
+          json['display_name'] as String? ??
+          json['name'] as String? ??
+          json['fullName'] as String? ??
+          '',
       avatarUrl: json['avatar_url'] as String? ?? json['avatarUrl'] as String?,
-      isEmailVerified: json['is_email_verified'] as bool? ?? json['isEmailVerified'] as bool? ?? false,
+      isEmailVerified:
+          json['is_email_verified'] as bool? ??
+          json['isEmailVerified'] as bool? ??
+          false,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
           : DateTime.now(),

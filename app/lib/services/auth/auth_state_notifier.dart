@@ -7,12 +7,7 @@ enum AuthStatus { initial, authenticated, unverified, unauthenticated }
 
 class AuthStateNotifier extends ChangeNotifier {
   static final AuthStateNotifier _instance = AuthStateNotifier._internal(
-    authService: ApiAuthService(
-      baseUrl: const String.fromEnvironment(
-        'API_BASE_URL',
-        defaultValue: 'http://127.0.0.1:8000',
-      ),
-    ),
+    authService: ApiAuthService(),
   );
   factory AuthStateNotifier() => _instance;
 

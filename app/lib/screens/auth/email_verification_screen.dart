@@ -8,13 +8,11 @@ import 'widgets/otp_input_field.dart';
 class EmailVerificationScreen extends StatefulWidget {
   final String email;
 
-  const EmailVerificationScreen({
-    super.key,
-    required this.email,
-  });
+  const EmailVerificationScreen({super.key, required this.email});
 
   @override
-  State<EmailVerificationScreen> createState() => _EmailVerificationScreenState();
+  State<EmailVerificationScreen> createState() =>
+      _EmailVerificationScreenState();
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
@@ -79,7 +77,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     } else if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Kích hoạt tài khoản thành công! Chào mừng bạn đến OnisAgent 🎉'),
+          content: Text(
+            'Kích hoạt tài khoản thành công! Chào mừng bạn đến OnisAgent 🎉',
+          ),
           backgroundColor: AppColors.accent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -100,12 +100,20 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Đã gửi lại mã xác thực tới hộp thư của bạn! (Mã mẫu: 123456)'),
+          content: Text('Đã gửi lại mã xác thực tới hộp thư của bạn.'),
           backgroundColor: AppColors.accent,
           behavior: SnackBarBehavior.floating,
         ),
       );
       _startCountdown();
+    } else if (authNotifier.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authNotifier.errorMessage!),
+          backgroundColor: AppColors.expense,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -142,9 +150,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.primary.withAlpha(isDark ? 40 : 25),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.primary.withAlpha(80),
-                    ),
+                    border: Border.all(color: AppColors.primary.withAlpha(80)),
                   ),
                   child: const Icon(
                     Icons.mark_email_read_rounded,
@@ -185,41 +191,6 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Demo Testing Banner
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withAlpha(isDark ? 30 : 20),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.accent.withAlpha(isDark ? 80 : 60),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.tips_and_updates_rounded,
-                      color: AppColors.accent,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Mock Demo: Sử dụng mã xác thực 123456 để thử nghiệm kích hoạt.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: isDark
-                              ? const Color(0xFFA7F3D0)
-                              : const Color(0xFF065F46),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
 
               // 6-digit OTP Field
               OtpInputField(

@@ -1,5 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../main.dart';
+import '../../services/auth/api_auth_service.dart';
 import '../../services/auth/auth_state_notifier.dart';
 import '../../theme/app_theme.dart';
 import 'email_verification_screen.dart';
@@ -7,6 +12,9 @@ import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'widgets/auth_card.dart';
 import 'widgets/auth_text_field.dart';
+import 'widgets/google_web_sign_in_button_stub.dart'
+    if (dart.library.js_interop) 'widgets/google_web_sign_in_button_web.dart'
+    as google_web_sign_in_button;
 import 'widgets/social_auth_button.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -20,26 +28,56 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  late final AuthStateNotifier _authNotifier;
+  StreamSubscription<GoogleSignInAccount?>? _googleSignInSubscription;
   bool _rememberMe = true;
+  bool _googleWebReady = false;
+  bool _googleLoginInProgress = false;
+  String? _googleWebError;
+
+  @override
+  void initState() {
+    super.initState();
+    _authNotifier = AuthStateNotifier();
+    if (kIsWeb) {
+      _googleSignInSubscription = ApiAuthService.googleSignInEvents.listen(
+        _onGoogleWebAccount,
+      );
+      unawaited(_initializeGoogleWebSignIn());
+    }
+  }
 
   @override
   void dispose() {
+    unawaited(_googleSignInSubscription?.cancel());
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _fillDemoAccount(String email, String password) {
-    setState(() {
-      _emailController.text = email;
-      _passwordController.text = password;
-    });
+  Future<void> _initializeGoogleWebSignIn() async {
+    try {
+      await ApiAuthService.initializeWebGoogleSignIn();
+      if (mounted) setState(() => _googleWebReady = true);
+    } catch (error) {
+      if (mounted) setState(() => _googleWebError = error.toString());
+    }
+  }
+
+  Future<void> _onGoogleWebAccount(GoogleSignInAccount? account) async {
+    if (account == null || !mounted || _googleLoginInProgress) return;
+    _googleLoginInProgress = true;
+    try {
+      await _authNotifier.loginWithSocial('Google');
+    } finally {
+      _googleLoginInProgress = false;
+    }
   }
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final authNotifier = AuthStateNotifier();
+    final authNotifier = _authNotifier;
     final success = await authNotifier.login(
       email: _emailController.text.trim(),
       password: _passwordController.text,
@@ -144,71 +182,25 @@ class _LoginScreenState extends State<LoginScreen> {
                         : const Color(0xFF64748B),
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // Quick Demo Account Selector Chips
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF0F172A)
-                        : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withAlpha(120),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.tune_rounded,
-                            size: 14,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Tài khoản Demo thử nghiệm:',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? const Color(0xFFCBD5E1)
-                                  : const Color(0xFF475569),
-                            ),
-                          ),
-                        ],
+                ListenableBuilder(
+                  listenable: authNotifier,
+                  builder: (context, _) {
+                    final error = authNotifier.errorMessage;
+                    if (error == null || authNotifier.isLoading) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        error,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.expense,
+                          fontSize: 12,
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          _buildAccountChip(
-                            label: 'Demo (Đã verify)',
-                            email: 'demo@onis.ai',
-                            pass: 'password123',
-                            isDark: isDark,
-                          ),
-                          _buildAccountChip(
-                            label: 'Alex Đỗ',
-                            email: 'alex@onis.ai',
-                            pass: 'password123',
-                            isDark: isDark,
-                          ),
-                          _buildAccountChip(
-                            label: 'Chưa verify OTP',
-                            email: 'unverified@onis.ai',
-                            pass: 'password123',
-                            isDark: isDark,
-                            isWarning: true,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 20),
 
@@ -377,28 +369,42 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Social Buttons (Google & Apple)
-                Row(
-                  children: [
-                    Expanded(
-                      child: SocialAuthButton(
-                        provider: 'Google',
-                        onPressed: () async {
-                          await authNotifier.loginWithSocial('Google');
-                        },
+                if (kIsWeb) ...[
+                  if (_googleWebError != null)
+                    Text(
+                      _googleWebError!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.expense,
+                        fontSize: 12,
+                      ),
+                    )
+                  else if (_googleWebReady)
+                    SizedBox(
+                      height: 44,
+                      child: google_web_sign_in_button
+                          .buildGoogleWebSignInButton(),
+                    )
+                  else
+                    const SizedBox(
+                      height: 44,
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SocialAuthButton(
-                        provider: 'Apple',
-                        onPressed: () async {
-                          await authNotifier.loginWithSocial('Apple');
-                        },
+                ] else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SocialAuthButton(
+                          provider: 'Google',
+                          onPressed: () async {
+                            await authNotifier.loginWithSocial('Google');
+                          },
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 const SizedBox(height: 24),
 
                 // Register Link
@@ -441,44 +447,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildAccountChip({
-    required String label,
-    required String email,
-    required String pass,
-    required bool isDark,
-    bool isWarning = false,
-  }) {
-    final isSelected = _emailController.text == email;
-    return InkWell(
-      onTap: () => _fillDemoAccount(email, pass),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withAlpha(isDark ? 50 : 25)
-              : (isDark ? const Color(0xFF1E293B) : Colors.white),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : (isWarning ? AppColors.warning : AppColors.borderLight),
-            width: isSelected ? 1.4 : 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected
-                ? AppColors.primary
-                : (isWarning
-                      ? AppColors.warning
-                      : (isDark ? Colors.white70 : const Color(0xFF334155))),
-          ),
-        ),
-      ),
-    );
-  }
 }

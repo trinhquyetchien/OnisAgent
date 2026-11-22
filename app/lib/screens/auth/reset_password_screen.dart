@@ -9,10 +9,7 @@ import 'widgets/password_strength_bar.dart';
 class ResetPasswordScreen extends StatefulWidget {
   final String email;
 
-  const ResetPasswordScreen({
-    super.key,
-    required this.email,
-  });
+  const ResetPasswordScreen({super.key, required this.email});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -166,41 +163,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
-
-                // Mock Banner
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withAlpha(isDark ? 30 : 20),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.accent.withAlpha(isDark ? 80 : 60),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.info_outline_rounded,
-                        color: AppColors.accent,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Mã OTP thử nghiệm: 123456',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? const Color(0xFFA7F3D0)
-                                : const Color(0xFF065F46),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
 
                 // OTP
                 Text(

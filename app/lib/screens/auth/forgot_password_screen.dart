@@ -50,15 +50,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } else if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Mã OTP khôi phục đã được gửi! (Mã mẫu test: 123456)'),
+          content: Text('Nếu email tồn tại, mã OTP khôi phục đã được gửi.'),
           backgroundColor: AppColors.accent,
           behavior: SnackBarBehavior.floating,
         ),
       );
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => ResetPasswordScreen(email: email),
-        ),
+        MaterialPageRoute(builder: (_) => ResetPasswordScreen(email: email)),
       );
     }
   }
@@ -144,8 +142,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     if (val == null || val.trim().isEmpty) {
                       return 'Vui lòng nhập email';
                     }
-                    if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(val.trim())) {
+                    if (!RegExp(
+                      r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(val.trim())) {
                       return 'Email không hợp lệ';
                     }
                     return null;
