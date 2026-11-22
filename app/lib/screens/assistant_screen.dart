@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
-import '../services/mock_data_service.dart';
+import '../services/app_data_service.dart';
 import '../services/api_service.dart';
+import '../services/auth/auth_state_notifier.dart';
 import '../models/models.dart';
 
 class AssistantScreen extends StatefulWidget {
@@ -43,16 +45,12 @@ class _AssistantScreenState extends State<AssistantScreen>
     super.dispose();
   }
 
-  void _sendMessage([String? overrideText]) async {
+  Future<void> _sendMessage([String? overrideText]) async {
     final text = (overrideText ?? _controller.text).trim();
     if (text.isEmpty) return;
 
-    final dataService = MockDataService();
-    final userMsg = ChatMessage(
-      text: text,
-      isUser: true,
-      time: DateTime.now(),
-    );
+    final dataService = AppDataService();
+    final userMsg = ChatMessage(text: text, isUser: true, time: DateTime.now());
 
     dataService.addChatMessage(userMsg);
     if (overrideText == null) {
@@ -63,12 +61,47 @@ class _AssistantScreenState extends State<AssistantScreen>
     });
     _scrollToBottom();
 
+    final idempotencyKey = 'chat_${DateTime.now().microsecondsSinceEpoch}';
     try {
-      final response = await _apiService.sendMessage(text: text);
+      final response = await _apiService.sendMessage(
+        text: text,
+        userId: AuthStateNotifier().currentUser?.id,
+        idempotencyKey: idempotencyKey,
+      );
       if (!mounted) return;
 
       if (response.status == 'READY') {
-        _syncLocalDashboard(response, text, dataService);
+        await _syncLocalDashboard(dataService);
+      } else if (response.requiresHitl) {
+        final action = switch (response.intent) {
+          final intent when intent.startsWith('task.delete') => 'task_delete',
+          final intent when intent.startsWith('finance.transfer') => 'transfer',
+          final intent when intent.startsWith('finance.savings_goal') =>
+            'savings_create',
+          final intent
+              when intent.startsWith('finance.loan_installment_plan') ||
+                  intent.startsWith('finance.loan.calculate') =>
+            'loan_apply',
+          _ => 'chat_confirm',
+        };
+        final directAction = action != 'chat_confirm';
+        final payload = Map<String, dynamic>.from(response.slots);
+        if (action == 'task_delete' &&
+            payload['task_id'] == null &&
+            payload['title'] == null &&
+            payload['task_name'] != null) {
+          payload['title'] = payload['task_name'];
+        }
+        dataService.addChatHitlProposal(
+          action: action,
+          payload: directAction
+              ? payload
+              : {'text': text, 'slots': response.slots},
+          title: 'Xác nhận thao tác',
+          details: response.reply,
+          idempotencyKey:
+              response.data['idempotency_key']?.toString() ?? idempotencyKey,
+        );
       }
 
       final botMsg = ChatMessage(
@@ -84,9 +117,9 @@ class _AssistantScreenState extends State<AssistantScreen>
         status: response.status,
       );
       dataService.addChatMessage(botMsg);
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
-      _handleOfflineFallback(text, dataService);
+      _handleOfflineFallback(text, dataService, e);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -95,161 +128,70 @@ class _AssistantScreenState extends State<AssistantScreen>
     }
   }
 
-  void _syncLocalDashboard(
-    ChatApiResponse response,
-    String originalText,
-    MockDataService dataService,
-  ) {
-    if (response.intent.startsWith('finance.add_expense') ||
-        response.intent.startsWith('finance.expense.create')) {
-      final amount =
-          double.tryParse(response.slots['amount']?.toString() ?? '45000') ??
-          45000;
-      dataService.addTransaction(
-        TransactionItem(
-          id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
-          description:
-              response.slots['note']?.toString() ??
-              response.slots['category']?.toString() ??
-              originalText,
-          amount: amount,
-          type: 'expense',
-          category: response.slots['category']?.toString() ?? 'Ăn uống',
-          date: DateTime.now(),
+  Future<void> _syncLocalDashboard(AppDataService dataService) async {
+    await dataService.refresh();
+  }
+
+  Future<void> _approveProposal(
+    HitlActionProposal proposal,
+    AppDataService service,
+  ) async {
+    if (proposal.actionType != 'chat_confirm') {
+      await service.approveHitlProposal(proposal.id);
+      return;
+    }
+
+    try {
+      final slots = proposal.payload['slots'];
+      final response = await _apiService.sendMessage(
+        text: proposal.payload['text']?.toString() ?? '',
+        slots: slots is Map<String, dynamic> ? slots : null,
+        userConfirmed: true,
+        idempotencyKey: proposal.idempotencyKey,
+        userId: AuthStateNotifier().currentUser?.id,
+      );
+      if (response.status == 'READY') {
+        service.markHitlProposalStatus(proposal.id, HitlStatus.approved);
+        await service.refresh();
+      }
+      service.addChatMessage(
+        ChatMessage(
+          text: response.reply,
+          isUser: false,
+          time: DateTime.now(),
+          pathBadge: response.path,
+          intentTag: response.intent,
+          confidence: response.confidence,
+          latencyMs: response.latencyMs,
+          quickReplies: response.quickReplies,
+          status: response.status,
         ),
       );
-    } else if (response.intent.startsWith('finance.add_income') ||
-        response.intent.startsWith('finance.income.create')) {
-      final amount =
-          double.tryParse(response.slots['amount']?.toString() ?? '1000000') ??
-          1000000;
-      dataService.addTransaction(
-        TransactionItem(
-          id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
-          description: response.slots['source']?.toString() ?? originalText,
-          amount: amount,
-          type: 'income',
-          category: 'Thu nhập khác',
-          date: DateTime.now(),
-        ),
-      );
-    } else if (response.intent.startsWith('task.create')) {
-      dataService.addTask(
-        TaskItem(
-          id: 't_${DateTime.now().millisecondsSinceEpoch}',
-          title: response.slots['title']?.toString() ?? originalText,
-          deadline: DateTime.now().add(const Duration(hours: 12)),
-          priority: Priority.high,
-          category: 'Kỹ thuật',
-          isImportant: true,
+    } on Exception catch (error) {
+      service.addChatMessage(
+        ChatMessage(
+          text: 'Không thể xác nhận thao tác với backend: $error',
+          isUser: false,
+          time: DateTime.now(),
+          pathBadge: 'API error',
+          status: 'FAILED',
         ),
       );
     }
   }
 
-  void _handleOfflineFallback(String text, MockDataService dataService) {
-    final lower = text.toLowerCase();
-    String reply;
-    String badge = 'Fast Path (~6ms) • Offline Fallback';
-    String intent = 'finance.add_expense';
-    double confidence = 0.88;
-    List<String> replies = [];
-
-    final isTaskTodayQuery =
-        (lower.contains('hôm nay') || lower.contains('nay')) &&
-        (lower.contains('việc') || lower.contains('công việc') || lower.contains('task')) &&
-        (lower.contains('gì') || lower.contains('nào') || lower.contains('xem') || lower.contains('liệt kê')) &&
-        !lower.contains('tạo') &&
-        !lower.contains('thêm') &&
-        !lower.contains('nhắc');
-
-    if (isTaskTodayQuery) {
-      intent = 'task.query_today';
-      reply = '📅 Hôm nay bạn có 3 việc cần giải quyết:\n'
-          '1. Hoàn thiện tài liệu kiến trúc OnisAgent\n'
-          '2. Họp nhóm dự án AI4Life\n'
-          '3. Đọc tài liệu Flutter & Bedrock';
-      replies = ['Thêm việc mới', 'Xem deadline tuần'];
-      dataService.addChatMessage(
-        ChatMessage(
-          text: reply,
-          isUser: false,
-          time: DateTime.now(),
-          pathBadge: 'Offline Fallback • Task Query',
-          fastPathTag: 'Offline Fallback • Task Query',
-          intentTag: intent,
-          confidence: confidence,
-          latencyMs: 0,
-          quickReplies: replies,
-        ),
-      );
-      return;
-    }
-
-    if (lower.contains('cà phê') ||
-        lower.contains('ăn') ||
-        lower.contains('phở') ||
-        lower.contains('chi')) {
-      double amount = 35000;
-      if (lower.contains('45k') || lower.contains('45.000')) amount = 45000;
-      if (lower.contains('35k') || lower.contains('35.000')) amount = 35000;
-      dataService.addTransaction(
-        TransactionItem(
-          id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
-          description: text,
-          amount: amount,
-          type: 'expense',
-          category:
-              lower.contains('cà phê') ||
-                  lower.contains('ăn') ||
-                  lower.contains('phở')
-              ? 'Ăn uống'
-              : 'Mua sắm',
-          date: DateTime.now(),
-        ),
-      );
-      reply =
-          'Đã ghi nhận khoản chi: "$text" - ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(amount)} vào sổ quỹ. Số dư đã cập nhật tức thì với Python Decimal.';
-    } else if (lower.contains('task') ||
-        lower.contains('việc') ||
-        lower.contains('nhắc') ||
-        lower.contains('kiểm tra')) {
-      intent = 'task.create';
-      dataService.addTask(
-        TaskItem(
-          id: 't_${DateTime.now().millisecondsSinceEpoch}',
-          title: text,
-          deadline: DateTime.now().add(const Duration(hours: 12)),
-          priority: Priority.high,
-          category: 'Kỹ thuật',
-          isImportant: true,
-        ),
-      );
-      reply =
-          'Đã tạo công việc mới: "$text" vào danh sách việc cần làm (Hạn chót đặt mặc định trong 12h tới).';
-    } else if (lower.contains('mua đồ')) {
-      intent = 'finance.add_expense';
-      reply = 'Bạn đã chi bao nhiêu tiền cho khoản mua sắm này vậy?';
-      replies = ['30.000₫', '50.000₫', '100.000₫', '200.000₫'];
-    } else {
-      badge = 'Reasoning Path • Bedrock Swarm';
-      intent = 'finance.financial_report';
-      confidence = 0.75;
-      reply =
-          'Phân tích tổng thể OnisAgent: Bạn hiện có ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(dataService.balance)} số dư khả dụng, tỉ lệ chi tiêu tháng đạt ${(dataService.totalExpense / (dataService.totalIncome > 0 ? dataService.totalIncome : 1) * 100).toInt()}% ngân sách thu. Kế hoạch tài chính đang ở mức an toàn.';
-    }
-
+  void _handleOfflineFallback(
+    String text,
+    AppDataService dataService,
+    Exception error,
+  ) {
     dataService.addChatMessage(
       ChatMessage(
-        text: reply,
+        text: 'Không thể gửi yêu cầu tới backend cho "$text": $error',
         isUser: false,
         time: DateTime.now(),
-        pathBadge: badge,
-        fastPathTag: badge,
-        intentTag: intent,
-        confidence: confidence,
-        latencyMs: 7.2,
-        quickReplies: replies,
+        pathBadge: 'API error',
+        status: 'FAILED',
       ),
     );
   }
@@ -356,7 +298,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     super.build(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dataService = MockDataService();
+    final dataService = AppDataService();
 
     return Column(
       children: [
@@ -555,7 +497,7 @@ class _AssistantScreenState extends State<AssistantScreen>
   Widget _buildMessageItem(
     BuildContext context,
     ChatMessage msg,
-    MockDataService service,
+    AppDataService service,
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -566,8 +508,9 @@ class _AssistantScreenState extends State<AssistantScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
-        crossAxisAlignment:
-            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           // Routing / System Tag Pill
           if (!isUser && (badgeText != null || msg.intentTag != null)) ...[
@@ -789,7 +732,7 @@ class _AssistantScreenState extends State<AssistantScreen>
   Widget _buildHitlProposalCard(
     BuildContext context,
     HitlActionProposal proposal,
-    MockDataService service,
+    AppDataService service,
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -909,7 +852,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
-                  onPressed: () => service.approveHitlProposal(proposal.id),
+                  onPressed: () => _approveProposal(proposal, service),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.accent,
                     padding: const EdgeInsets.symmetric(

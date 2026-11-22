@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../services/mock_data_service.dart';
+import '../services/app_data_service.dart';
 import '../services/auth/auth_state_notifier.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
@@ -30,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dataService = MockDataService();
+    final dataService = AppDataService();
     final currencyFormatter = NumberFormat.currency(
       locale: 'vi_VN',
       symbol: '₫',

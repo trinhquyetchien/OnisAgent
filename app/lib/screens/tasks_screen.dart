@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../services/mock_data_service.dart';
+import '../services/app_data_service.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 
@@ -19,7 +19,7 @@ class _TasksScreenState extends State<TasksScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dataService = MockDataService();
+    final dataService = AppDataService();
 
     return ListenableBuilder(
       listenable: dataService,
@@ -219,7 +219,7 @@ class _TasksScreenState extends State<TasksScreen> {
   Widget _buildTaskCard(
     BuildContext context,
     TaskItem task,
-    MockDataService service,
+    AppDataService service,
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -376,7 +376,7 @@ class _TasksScreenState extends State<TasksScreen> {
   Widget _buildEisenhowerMatrixView(
     BuildContext context,
     List<TaskItem> allTasks,
-    MockDataService service,
+    AppDataService service,
   ) {
     // 4 Quadrants
     final q1 = allTasks
@@ -439,7 +439,7 @@ class _TasksScreenState extends State<TasksScreen> {
     required String subtitle,
     required List<TaskItem> tasks,
     required Color badgeColor,
-    required MockDataService service,
+    required AppDataService service,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -565,7 +565,7 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  void _showAddTaskBottomSheet(BuildContext context, MockDataService service) {
+  void _showAddTaskBottomSheet(BuildContext context, AppDataService service) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final titleController = TextEditingController();
@@ -745,10 +745,10 @@ class _TasksScreenState extends State<TasksScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () {
+                    onPressed: () async {
                       final title = titleController.text.trim();
                       if (title.isNotEmpty) {
-                        service.addTask(
+                        await service.addTask(
                           TaskItem(
                             id: 't_${DateTime.now().millisecondsSinceEpoch}',
                             title: title,
@@ -761,7 +761,9 @@ class _TasksScreenState extends State<TasksScreen> {
                             category: category,
                           ),
                         );
-                        Navigator.pop(ctx);
+                        if (service.errorMessage == null && ctx.mounted) {
+                          Navigator.pop(ctx);
+                        }
                       }
                     },
                     child: const Text('Lưu công việc'),
