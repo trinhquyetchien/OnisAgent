@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'screens/auth/auth_gate.dart';
+import 'screens/auth/user_profile_dialog.dart';
 import 'screens/home_screen.dart';
 import 'screens/finance_screen.dart';
 import 'screens/tasks_screen.dart';
 import 'screens/deadlines_screen.dart';
 import 'screens/assistant_screen.dart';
+import 'services/auth/auth_state_notifier.dart';
 import 'services/mock_data_service.dart';
 import 'theme/app_theme.dart';
 
@@ -33,7 +36,7 @@ class OnisApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeMode,
-          home: const MainNavigationShell(),
+          home: const AuthGate(),
         );
       },
     );
@@ -213,21 +216,57 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         alignment: Alignment.bottomCenter,
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 24),
-                          child: IconButton.filledTonal(
-                            icon: Icon(
-                              isDark
-                                  ? Icons.light_mode_rounded
-                                  : Icons.dark_mode_rounded,
-                              size: 20,
-                            ),
-                            tooltip: isDark
-                                ? 'Chuyển sang Giao diện Sáng'
-                                : 'Chuyển sang Giao diện Tối',
-                            onPressed: () {
-                              appThemeModeNotifier.value = isDark
-                                  ? ThemeMode.light
-                                  : ThemeMode.dark;
-                            },
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton.filledTonal(
+                                icon: Icon(
+                                  isDark
+                                      ? Icons.light_mode_rounded
+                                      : Icons.dark_mode_rounded,
+                                  size: 20,
+                                ),
+                                tooltip: isDark
+                                    ? 'Chuyển sang Giao diện Sáng'
+                                    : 'Chuyển sang Giao diện Tối',
+                                onPressed: () {
+                                  appThemeModeNotifier.value = isDark
+                                      ? ThemeMode.light
+                                      : ThemeMode.dark;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              ListenableBuilder(
+                                listenable: AuthStateNotifier(),
+                                builder: (context, _) {
+                                  final user = AuthStateNotifier().currentUser;
+                                  final initialChar = (user != null &&
+                                          user.fullName.isNotEmpty)
+                                      ? user.fullName[0].toUpperCase()
+                                      : 'U';
+                                  return Tooltip(
+                                    message: 'Tài khoản: ${user?.fullName ?? ""}',
+                                    child: InkWell(
+                                      onTap: () =>
+                                          UserProfileDialog.show(context),
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: CircleAvatar(
+                                        radius: 16,
+                                        backgroundColor: AppColors.primary,
+                                        child: Text(
+                                          initialChar,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -357,6 +396,32 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
                   tooltip: 'Trợ lý AI',
                   onPressed: () => setState(() => _selectedIndex = 4),
+                ),
+                ListenableBuilder(
+                  listenable: AuthStateNotifier(),
+                  builder: (context, _) {
+                    final user = AuthStateNotifier().currentUser;
+                    final initialChar = (user != null &&
+                            user.fullName.isNotEmpty)
+                        ? user.fullName[0].toUpperCase()
+                        : 'U';
+                    return IconButton(
+                      icon: CircleAvatar(
+                        radius: 14,
+                        backgroundColor: AppColors.primary,
+                        child: Text(
+                          initialChar,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      tooltip: 'Tài khoản: ${user?.fullName ?? ""}',
+                      onPressed: () => UserProfileDialog.show(context),
+                    );
+                  },
                 ),
                 const SizedBox(width: 4),
               ],
