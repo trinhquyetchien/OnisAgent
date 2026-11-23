@@ -393,7 +393,7 @@ Các biến môi trường trọng yếu:
 AWS_REGION=ap-southeast-1
 BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
 DYNAMODB_TABLE_NAME=onis_main_table
-USER_ID=demo_user
+USER_ID=   # Optional legacy setting; authenticated API requests use the logged-in user ID.
 DATA_SOURCE=csv   # Chọn 'csv' khi chạy local hoặc 'dynamodb' khi kết nối AWS Cloud
 SAMPLE_DATA_PATH=data/sample_transactions_onis.csv
 ```

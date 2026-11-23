@@ -29,7 +29,7 @@ class AuthStateNotifier extends ChangeNotifier {
   bool get isAuthenticated =>
       _status == AuthStatus.authenticated && _currentUser != null;
 
-  /// Cho phép hoán đổi giữa MockAuthService và ApiAuthService
+  /// Cho phép inject auth service khác trong test; runtime mặc định dùng API thật.
   void setAuthService(IAuthService service) {
     _authService = service;
     notifyListeners();

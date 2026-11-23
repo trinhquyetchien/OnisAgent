@@ -25,7 +25,8 @@ def test_ollama_generate_reasoning_response_fallback_on_error():
     prompt = "Phân tích tài chính cá nhân giúp tôi"
     reply = client.generate_reasoning_response(prompt=prompt)
     assert len(reply) > 20
-    assert "tài chính" in reply.lower() or "dự phòng" in reply.lower()
+    assert "tài chính" in reply.lower()
+    assert "18.450.000" not in reply
 
 
 def test_ollama_generate_reasoning_response_with_mocked_success():

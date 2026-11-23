@@ -14,12 +14,14 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from src.database import postgres
 from src.database.postgres import create_database_engine
+import src.main as main
 from src.main import app, storage
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(storage, "path", tmp_path / "onis_state.json")
+    monkeypatch.setattr(main, "AUTH_REQUIRED", False)
     engine = create_database_engine(f"sqlite:///{tmp_path / 'health-test.db'}")
     monkeypatch.setattr(postgres, "SessionLocal", postgres.sessionmaker(bind=engine))
     with TestClient(app) as test_client:

@@ -18,7 +18,7 @@
 Dự án được nghiên cứu, thiết kế và phát triển bởi sinh viên **Trường Đại học Công nghệ Thông tin và Truyền thông Việt - Hàn (VKU) – Đại học Đà Nẵng** tham gia cuộc thi đổi mới sáng tạo ứng dụng trí tuệ nhân tạo **Da Nang AI4Life**:
 
 * **Trịnh Quyết Chiến** – MSSV: `23IT.B019` – Lớp: `23JIT` – Email: `chientq.23itb@vku.udn.vn`  
-  *Phụ trách:* Lõi AI Agent, FastAPI Server, Kev Decision Model (System 1 - Fast Path), Amazon Bedrock Reasoning Swarm (System 2), 100% Decimal Calculator, Bộ chuẩn hóa Slot Validator & Multi-turn Clarification Engine.
+  *Phụ trách:* Lõi AI Agent, FastAPI Server, Kev Decision Model (System 1 - Fast Path), Ollama Reasoning Path (System 2), 100% Decimal Calculator, Bộ chuẩn hóa Slot Validator & Multi-turn Clarification Engine.
 * **Hứa Huỳnh Anh** – MSSV: `23IT.B002` – Lớp: `23JIT` – Email: `anhhh.23itb@vku.udn.vn`  
   *Phụ trách:* Ứng dụng Flutter Multiplatform (Web, Android, iOS, Desktop), Kiến trúc Clean Architecture & State Management (Riverpod), Hệ thống Dashboard Tài chính & Công việc, Voice Push-to-Talk (PTT), Quick-Reply Action Chips, DynamoDB & S3 Storage và chốt kiểm soát Human-in-the-Loop (HITL).
 
@@ -35,7 +35,7 @@ Trong nhịp sống hiện đại bận rộn, người dùng cá nhân (đặc 
 * **Hợp nhất không gian sống (Unified Life Workspace):** Đồng bộ hoàn hảo giữa **Miền Tài Chính (Finance)** và **Miền Công Việc (Task)** trong một hệ sinh thái duy nhất.
 * **Kiến trúc nhận thức hai luồng (Dual-Path Cognitive Architecture):**
   * **Fast Path (System 1 / Kev Decision Model):** Xử lý phản xạ tức thì (**~5–12 ms**, **0 Token LLM**) cho 85% tác vụ lặp lại (ghi thu chi, tạo việc, tra cứu số dư, xem deadline).
-  * **Reasoning Path (System 2 / Amazon Bedrock Swarm):** Phân tích chiến lược tài chính chuyên sâu, cảnh báo rủi ro dòng tiền và lập kế hoạch làm việc thông minh.
+  * **Reasoning Path (System 2 / Ollama):** Phân tích chiến lược tài chính chuyên sâu, cảnh báo rủi ro dòng tiền và lập kế hoạch làm việc thông minh.
 * **Triết lý chống ảo giác số học:** *"Models reason, software computes"* – LLM chỉ đảm nhiệm suy luận ngôn ngữ ngữ cảnh; mã nguồn Python sử dụng `Decimal` thuần túy trên Local Tools & AWS Lambda đảm bảo độ chính xác tuyệt đối **100%**.
 * **Cơ chế Hội thoại Làm Rõ Thông Minh (Multi-turn Clarification Dialog - ADR-0006):** Không bao giờ ghi nhận dữ liệu rác hay mơ hồ. Khi thiếu thông tin cốt lõi (như số tiền, danh mục, hạn chót), app chủ động hỏi lại lịch sự và cung cấp các nút chọn nhanh (Quick-Reply Action Chips).
 * **Chốt kiểm duyệt an toàn Human-in-the-Loop (HITL - ADR-0004):** Bắt buộc người dùng phê duyệt trực tiếp trên giao diện trước các hành động nhạy cảm (áp dụng lịch trả góp nợ, cam kết quỹ tiết kiệm, xóa task vĩnh viễn).
@@ -195,7 +195,7 @@ Hệ thống OnisAgent quy chuẩn toàn bộ hành vi của người dùng vào
 | **11** | `finance.update_budget` | Điều chỉnh hạn mức ngân sách đã có | **Fast Path** (~5-12ms) | Gate 1 | `category`, `limit_amount` |
 | **12** | `finance.loan_installment_plan` | Bảng khấu hao trả góp dư nợ giảm dần | **Fast Path** + Decimal | Gate 1 | `principal`, `term_months`, `annual_rate` |
 | **13** | `finance.savings_goal` | Tạo mục tiêu / quỹ tiết kiệm | **Fast Path** (~5-12ms) | Gate 1 | `goal_name`, `target_amount` |
-| **14** | `finance.financial_report` | Báo cáo tài chính & phân tích chuyên sâu | **Reasoning Path** (Bedrock) | Không | *Không* (fallback `period="this_month"`) |
+| **14** | `finance.financial_report` | Báo cáo tài chính & phân tích chuyên sâu | **Reasoning Path** (Ollama) | Không | *Không* (fallback `period="this_month"`) |
 
 ### 📋 2. Miền Công Việc & Thời Gian (Task Domain – 13 Intents)
 
@@ -209,7 +209,7 @@ Hệ thống OnisAgent quy chuẩn toàn bộ hành vi của người dùng vào
 | **20** | `task.query_completed` | Xem lại các công việc đã hoàn thành | **Fast Path** (~5-12ms) | Không | *Không* |
 | **21** | `task.schedule_event` | Lịch hẹn / Cuộc họp có mốc giờ cụ thể | **Fast Path** (~5-12ms) | Không | `title`, `start_time` |
 | **22** | `task.reschedule` | Dời lịch / Đổi hạn chót / Hoãn deadline | **Fast Path** (~5-12ms) | Không | `new_deadline`, (`title` hoặc `task_id`) |
-| **23** | `task.plan_schedule` | Lập kế hoạch ngày/tuần (Eisenhower Matrix) | **Reasoning Path** (Bedrock) | Không | `time_frame` |
+| **23** | `task.plan_schedule` | Lập kế hoạch ngày/tuần (Eisenhower Matrix) | **Reasoning Path** (Ollama) | Không | `time_frame` |
 | **24** | `task.complete` | Đánh dấu hoàn thành việc | **Fast Path** (~5-12ms) | Không | `title` hoặc `task_id` |
 | **25** | `task.cancel` | Tạm hoãn / Hủy việc (vẫn lưu lịch sử) | **Fast Path** (~5-12ms) | Không | `title` hoặc `task_id` |
 | **26** | `task.delete` | Xóa vĩnh viễn công việc | **Fast Path** (~5-12ms) | **Gate 3 (BLOCKED)** | `title` hoặc `task_id` |
@@ -219,7 +219,7 @@ Hệ thống OnisAgent quy chuẩn toàn bộ hành vi của người dùng vào
 
 | STT | Mã Intent Chuẩn | Tên Hành Động / Nghiệp Vụ | Tuyến Nhận Thức | Chốt HITL | Slots Bắt Buộc |
 | :---: | :--- | :--- | :---: | :---: | :--- |
-| **28** | `cross.plan_expense_task` | Kế hoạch công việc gắn dự trù kinh phí | **Reasoning Path** (Bedrock) | Gate 1 | `title`, `estimated_cost` |
+| **28** | `cross.plan_expense_task` | Kế hoạch công việc gắn dự trù kinh phí | **Reasoning Path** (Ollama) | Gate 1 | `title`, `estimated_cost` |
 | **29** | `cross.bill_due_reminder` | Nhắc hạn thanh toán hóa đơn kèm số tiền | **Fast Path** (~5-12ms) | Không | `bill_name`, `amount`, `due_date` |
 
 ### ⚙️ 4. Miền Hệ Thống (System Domain – 3 Intents)

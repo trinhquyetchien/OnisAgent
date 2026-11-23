@@ -2,7 +2,7 @@
 
 Connects to local Ollama instance (default: qwen2.5:3b at http://127.0.0.1:11434).
 Provides in-depth financial advisory, Eisenhower schedule planning,
-and complex multi-step reasoning with zero external API cost and graceful fallbacks.
+and complex multi-step reasoning with zero external API cost.
 """
 
 import json
@@ -54,7 +54,7 @@ class OllamaClient:
         system_prompt: str | None = None,
         context: dict[str, Any] | None = None,
     ) -> str:
-        """Send prompt to local Ollama model with context & fallback protection.
+        """Send prompt to local Ollama model with context.
 
         Args:
             prompt: User request or analysis goal.
@@ -99,33 +99,20 @@ class OllamaClient:
                     if message:
                         return message
         except Exception as exc:
-            logger.warning("Ollama call failed or timed out (%s). Falling back to rule-based response.", exc)
+            logger.warning("Ollama call failed or timed out (%s). No synthetic response will be returned.", exc)
 
-        # Fallback intelligent response if Ollama is unreachable
-        return self._generate_fallback(prompt, context)
+        return self._generate_unavailable_response(context)
 
-    def _generate_fallback(self, prompt: str, context: dict[str, Any] | None) -> str:
-        """Heuristic fallback response when local LLM is temporarily unavailable."""
-        p_lower = prompt.lower()
-        if "tài chính" in p_lower or "báo cáo" in p_lower or "thu chi" in p_lower or "dư" in p_lower:
+    def _generate_unavailable_response(self, context: dict[str, Any] | None) -> str:
+        """Report unavailable inference without inventing user data."""
+        if context:
             return (
-                "📊 **Phân tích tài chính cá nhân (Chế độ Dự phòng An toàn):**\n\n"
-                "• 💰 **Tổng quan dòng tiền:** Số dư hiện tại khả dụng 18.450.000₫. Thu nhập tháng ổn định, chi tiêu thiết yếu chiếm 62%.\n"
-                "• ⚠️ **Cảnh báo chi tiêu:** Khoản chi ăn uống ngoài hàng quán tuần qua tăng 18% so với tuần trước.\n"
-                "• 💡 **Khuyến nghị OnisAgent:** Nên trích ngay 15% (khoảng 2.500.000₫) sang quỹ tiết kiệm khẩn cấp trước khi chi tiêu các khoản không bắt buộc."
+                "⚠️ Ollama hiện không khả dụng nên chưa thể tạo phân tích tài chính/công việc "
+                "bằng LLM. Dữ liệu thật đã được giữ nguyên; hãy khởi động Ollama rồi thử lại."
             )
-
-        if "kế hoạch" in p_lower or "lịch" in p_lower or "eisenhower" in p_lower or "sắp xếp" in p_lower:
-            return (
-                "📋 **Gợi ý tối ưu hóa lịch trình (Ma trận Eisenhower):**\n\n"
-                "• 🔴 **Khẩn cấp & Quan trọng (Làm ngay):** Hoàn thiện slide thuyết trình OnisAgent (Hạn: hôm nay).\n"
-                "• 🟡 **Quan trọng nhưng chưa khẩn cấp (Lên lịch):** Đọc tài liệu công nghệ và rà soát tài chính tháng.\n"
-                "• 🟢 **Ủy quyền / Giảm thiểu:** Tinh gọn các cuộc họp không cần thiết để tập trung năng suất sâu."
-            )
-
         return (
-            "💡 **Nhận định từ OnisAgent:** Yêu cầu phân tích sâu của bạn đã được ghi nhận. "
-            "Dữ liệu tài chính và công việc của bạn hiện ở trạng thái ổn định và được bảo vệ an toàn."
+            "⚠️ Ollama hiện không khả dụng nên chưa thể tạo phản hồi phân tích tài chính. "
+            "Hãy khởi động Ollama rồi thử lại."
         )
 
 

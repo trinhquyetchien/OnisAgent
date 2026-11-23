@@ -37,7 +37,7 @@ def load_settings() -> Settings:
         aws_region=os.getenv("AWS_REGION", "ap-southeast-1"),
         bedrock_model_id=os.getenv("BEDROCK_MODEL_ID", "").strip(),
         dynamodb_table_name=os.getenv("DYNAMODB_TABLE_NAME", "").strip(),
-        user_id=os.getenv("USER_ID", "demo").strip(),
+        user_id=os.getenv("USER_ID", "").strip(),
         data_source=data_source,
         sample_data_path=sample_path,
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").strip(),

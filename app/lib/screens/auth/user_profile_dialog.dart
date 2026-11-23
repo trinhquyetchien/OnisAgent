@@ -179,7 +179,7 @@ class UserProfileDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      user?.email ?? 'demo@onis.ai',
+                      user?.email ?? 'Chưa đăng nhập',
                       style: TextStyle(
                         fontSize: 13,
                         color: isDark

@@ -337,7 +337,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Bedrock Grounded',
+                    'Ollama Grounded',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,

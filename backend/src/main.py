@@ -27,19 +27,15 @@ from sqlalchemy.exc import SQLAlchemyError
 from src.agents.ollama_client import ollama_client
 from src.engine.response_templates import (
     format_currency,
-    template_finance_balance,
-    template_finance_query_debt,
     template_finance_split_bill,
     template_system_help,
     template_task_create,
     template_task_complete,
-    template_task_query_deadline,
-    template_task_query_today,
 )
 from src.engine.session_manager import SessionManager
 from src.engine.slot_validator import SlotValidator
 from src.database.json_storage import JsonStorage
-from src.auth_service import AuthError, AuthService
+from src.auth_service import AuthError
 from src.schemas.base import ExecutionStatus
 from src.tools.calculator import calculate_loan_amortization
 from src.database import postgres
@@ -116,8 +112,10 @@ class AppState:
 
 state = AppState()
 storage = JsonStorage()
-auth_service = AuthService(storage)
-AUTH_REQUIRED = os.getenv("AUTH_REQUIRED", "false").casefold() == "true"
+# Production API calls must be associated with a real authenticated account.
+# Tests that exercise unauthenticated legacy endpoints explicitly override this
+# module flag in their isolated fixture.
+AUTH_REQUIRED = os.getenv("AUTH_REQUIRED", "true").casefold() == "true"
 
 
 def load_kev_model() -> Any:
@@ -146,6 +144,13 @@ def get_kev_model() -> Any:
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     try:
+        postgres.init_db()
+        print("🗄️ [Database] Authentication schema is ready.")
+    except Exception as exc:
+        # Keep health endpoints available so an operator can see the database
+        # failure instead of masking it with an import/startup error.
+        print(f"⚠️ [Database Warning] Could not initialize authentication schema: {exc}")
+    try:
         state.kev_model = load_kev_model()
         state.supported_intents = sorted(list(state.kev_model.classes_))
         print(f"🚀 [Kev Fast Path] Model loaded: {len(state.supported_intents)} intents ready.")
@@ -161,7 +166,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="OnisAgent Backend Core API",
     version="1.0.0",
-    description="Cognitive Multi-turn API with Kev Fast Path & Amazon Bedrock Routing",
+    description="Cognitive Multi-turn API with Kev Fast Path & Ollama Reasoning",
     lifespan=lifespan,
 )
 

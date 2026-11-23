@@ -53,9 +53,6 @@ logger = logging.getLogger(__name__)
 def _secret() -> str:
     secret = os.getenv("AUTH_SECRET", "").strip()
     if not secret or secret == "replace-with-a-long-random-secret":
-        # In development/local mode, fallback to a default dev secret so it works out-of-the-box
-        if os.getenv("APP_ENV", "development").lower() != "production":
-            return "onisagent-local-development-secret-key-32-chars-long"
         raise HTTPException(status_code=500, detail="Authentication secret is not configured.")
     return secret
 
